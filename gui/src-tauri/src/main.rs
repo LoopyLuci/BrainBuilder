@@ -24,6 +24,10 @@ struct AppState {
     // Filled in once the observer HTTP server (Phase 5's phone/tablet view)
     // has bound a real port and detected this machine's LAN address.
     observer_url: Arc<OnceCell<String>>,
+    // Where components live on disk — needed by component synthesis to write a
+    // newly-synthesized descriptor + kernel so `install_component` can register
+    // it live.
+    components_dir: std::path::PathBuf,
 }
 
 async fn cluster_handle(state: &State<'_, AppState>) -> Result<ClusterHandle, String> {
@@ -224,6 +228,80 @@ async fn generate_graph(description: String, selector: String, state: State<'_, 
     let registry = orchestrator.context.registry.read().map_err(|_| "component registry lock poisoned".to_string())?;
     let graph = brainbuilder_core::llm::parse_and_validate(&raw, &registry).map_err(|e| e.to_string())?;
     serde_json::to_string(&graph).map_err(|e| e.to_string())
+}
+
+/// Component synthesis: turn a description into a brand-new component
+/// (descriptor + kernel), run the *static* half of the validation gauntlet
+/// (parse + structure + name-collision), then run the **sandboxed smoke test**
+/// and return everything — including the smoke result — WITHOUT installing.
+/// The frontend shows the descriptor/kernel/smoke result and only calls
+/// `install_synthesized_component` on user acceptance.
+#[command]
+async fn synthesize_component(description: String, selector: String, state: State<'_, AppState>) -> Result<String, String> {
+    // Same non-`Send` registry-lock dance as generate_graph: build the prompt
+    // under the lock, drop it before the network await, re-acquire to validate.
+    let existing = {
+        let orchestrator = state.orchestrator.lock().await;
+        let registry = orchestrator.context.registry.read().map_err(|_| "component registry lock poisoned".to_string())?;
+        registry.list_names()
+    };
+    let system = brainbuilder_core::synthesis::build_synthesis_prompt(&existing);
+
+    let (provider, model) = provider_registry().resolve(&selector).map_err(|e| e.to_string())?;
+    let raw = provider.generate_json(&model, &system, &description).await.map_err(|e| e.to_string())?;
+
+    let component = {
+        let orchestrator = state.orchestrator.lock().await;
+        let registry = orchestrator.context.registry.read().map_err(|_| "component registry lock poisoned".to_string())?;
+        brainbuilder_core::synthesis::parse_synthesis_output(&raw, &registry).map_err(|e| e.to_string())?
+    };
+
+    // Third gate: run the kernel in the nervous-system sandbox on tiny tensors.
+    let smoke = brainbuilder_core::synthesis::run_smoke_test(&component).map_err(|e| e.to_string())?;
+
+    // Return the serializable artifacts + smoke report; the descriptor is
+    // re-parsed on install, so nothing untrusted is trusted across the hop.
+    let payload = serde_json::json!({
+        "name": component.name,
+        "descriptor_edn": component.descriptor_edn,
+        "python_code": component.python_code,
+        // Echo the exact smoke-test shapes so the install call can round-trip
+        // them back verbatim (parse_synthesis_output requires them to line up
+        // with the descriptor's input ports).
+        "smoke_test": component.smoke_test,
+        "smoke": smoke,
+    });
+    serde_json::to_string(&payload).map_err(|e| e.to_string())
+}
+
+/// Install a previously-synthesized component. Never trusts the round-trip:
+/// re-parses + re-validates the descriptor against the live registry, re-runs
+/// the sandboxed smoke test, and only on green writes it to disk and
+/// hot-registers it so it appears in the palette live. `component_json` is the
+/// object `synthesize_component` returned, plus its `smoke_test` shapes.
+#[command]
+async fn install_synthesized_component(component_json: String, state: State<'_, AppState>) -> Result<(), String> {
+    // Re-run the full static gauntlet against the current registry (rejects a
+    // name taken since synthesis, a descriptor that no longer parses, etc.).
+    let component = {
+        let orchestrator = state.orchestrator.lock().await;
+        let registry = orchestrator.context.registry.read().map_err(|_| "component registry lock poisoned".to_string())?;
+        brainbuilder_core::synthesis::parse_synthesis_output(&component_json, &registry).map_err(|e| e.to_string())?
+    };
+
+    // Re-run the sandboxed smoke test; refuse to install anything that doesn't
+    // actually run and produce its promised shape.
+    let smoke = brainbuilder_core::synthesis::run_smoke_test(&component).map_err(|e| e.to_string())?;
+    if !smoke.passed {
+        return Err(format!("refusing to install: smoke test failed — {}", smoke.detail));
+    }
+
+    let edn_path = brainbuilder_core::synthesis::install_synthesized(&component, &state.components_dir)
+        .map_err(|e| e.to_string())?;
+
+    // Hot-register so the palette updates without a restart.
+    let orchestrator = state.orchestrator.lock().await;
+    orchestrator.install_component(&edn_path.to_string_lossy()).map_err(|e| e.to_string())
 }
 
 /// The task-first Intent layer's front door: given a goal (classify/regress)
@@ -532,6 +610,7 @@ fn main() {
             orchestrator: Mutex::new(orchestrator),
             cluster: cluster_cell.clone(),
             observer_url: observer_cell.clone(),
+            components_dir: components_dir.clone(),
         })
         .setup(move |app| {
             setup_metrics_event(app)?;
@@ -560,6 +639,8 @@ fn main() {
             get_distributed_training_status,
             get_observer_url,
             generate_graph,
+            synthesize_component,
+            install_synthesized_component,
             list_llm_providers,
             list_provider_models,
             set_provider_credentials,

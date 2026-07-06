@@ -10,6 +10,7 @@ import { ClusterConsole } from '../cluster/ClusterConsole';
 import { LLMAuthor } from '../llm/LLMAuthor';
 import { ModelHub } from '../models/ModelHub';
 import { IntentPanel } from '../intent/IntentPanel';
+import { SynthesizePanel } from '../synthesis/SynthesizePanel';
 import { PluginsPanel } from './PluginsPanel';
 
 // Registers all first-party panels as widgets. This replaces the hardcoded
@@ -25,6 +26,7 @@ export function registerBuiltinWidgets() {
   registerWidget({ id: 'inspector', title: 'Inspector', slot: 'side', component: Inspector, order: 20 });
   registerWidget({ id: 'data', title: 'Data', slot: 'side', component: DataPanel, order: 30 });
   registerWidget({ id: 'author', title: 'Author', slot: 'side', component: LLMAuthor, order: 40 });
+  registerWidget({ id: 'synthesize', title: 'Synthesize', slot: 'side', component: SynthesizePanel, order: 45 });
   registerWidget({ id: 'models', title: 'Models', slot: 'side', component: ModelHub, order: 50 });
   registerWidget({ id: 'plugins', title: 'Plugins', slot: 'side', component: PluginsPanel, order: 60 });
 

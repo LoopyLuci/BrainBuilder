@@ -1,9 +1,45 @@
 use crate::bbir::{BBIRGraph, BBIRNode};
 use crate::component::registry::ComponentRegistry;
-use crate::component::descriptor::ShapeExpr;
+use crate::component::descriptor::{ComponentDescriptor, ShapeExpr};
 use crate::runtime::scheduler::resolve_shape_dims_partial;
 use crate::Result;
 use crate::interop::protocol::BrainBuilderError;
+
+/// Self-consistency checks for a single component descriptor, independent of
+/// any graph — the structural gate a *synthesized* component must clear before
+/// its kernel is ever run (see `crate::synthesis`). Confirms it declares a
+/// name, at least one output, and unique, non-empty port names. Deliberately
+/// conservative: it rejects obviously-malformed descriptors without second-
+/// guessing legitimate exotic shapes.
+pub fn validate_descriptor_self(descriptor: &ComponentDescriptor) -> Result<()> {
+    if descriptor.name.trim().is_empty() {
+        return Err(BrainBuilderError::ConfigError("component descriptor has no name".into()));
+    }
+    if descriptor.outputs.is_empty() {
+        return Err(BrainBuilderError::ConfigError(format!(
+            "component `{}` declares no outputs",
+            descriptor.name
+        )));
+    }
+    for (side, ports) in [("input", &descriptor.inputs), ("output", &descriptor.outputs)] {
+        let mut seen = std::collections::HashSet::new();
+        for port in ports.iter() {
+            if port.name.trim().is_empty() {
+                return Err(BrainBuilderError::ConfigError(format!(
+                    "component `{}` has an {side} port with an empty name",
+                    descriptor.name
+                )));
+            }
+            if !seen.insert(port.name.as_str()) {
+                return Err(BrainBuilderError::ConfigError(format!(
+                    "component `{}` has a duplicate {side} port name `{}`",
+                    descriptor.name, port.name
+                )));
+            }
+        }
+    }
+    Ok(())
+}
 
 /// Validate shape and type compatibility across every edge in the graph.
 pub fn validate_graph(graph: &BBIRGraph, registry: &ComponentRegistry) -> Result<()> {

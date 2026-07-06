@@ -92,3 +92,49 @@ export async function setProviderCredentials(provider: string, key: string): Pro
 export async function hasProviderCredentials(provider: string): Promise<boolean> {
   return invoke('has_provider_credentials', { provider });
 }
+
+// --- Component synthesis (create brand-new components on demand) ---
+
+export interface SmokeReport {
+  passed: boolean;
+  actual_shape: number[] | null;
+  detail: string;
+}
+
+export interface SmokeTest {
+  input_shapes: number[][];
+  expected_shape: number[];
+}
+
+export interface SynthesisResult {
+  name: string;
+  descriptor_edn: string;
+  python_code: string;
+  smoke_test: SmokeTest;
+  smoke: SmokeReport;
+}
+
+// Synthesize a new component from a description. Runs the static gauntlet +
+// sandboxed smoke test on the backend; does NOT install. Returns the generated
+// descriptor/kernel and the smoke-test result for the user to review.
+export async function synthesizeComponent(description: string, selector: string): Promise<SynthesisResult> {
+  const json = await invoke<string>('synthesize_component', { description, selector });
+  return JSON.parse(json);
+}
+
+// Install a synthesized component after review. The backend re-validates and
+// re-runs the smoke test, installing (and hot-registering) only on green.
+// `result` is what synthesizeComponent returned (its smoke_test shapes are
+// reconstructed backend-side from the descriptor).
+export async function installSynthesizedComponent(result: SynthesisResult): Promise<void> {
+  // Send back the exact artifacts + smoke-test shapes the synthesize call
+  // produced; the backend re-parses, re-runs the sandboxed smoke test, and
+  // installs only on green.
+  const componentJson = JSON.stringify({
+    name: result.name,
+    descriptor_edn: result.descriptor_edn,
+    python_code: result.python_code,
+    smoke_test: result.smoke_test,
+  });
+  return invoke('install_synthesized_component', { componentJson });
+}

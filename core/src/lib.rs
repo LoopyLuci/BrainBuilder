@@ -10,6 +10,7 @@ pub mod models;
 pub mod llm;
 pub mod intent;
 pub mod diagnostics;
+pub mod synthesis;
 
 use std::sync::Arc;
 
