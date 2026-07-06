@@ -183,31 +183,28 @@ mod imp {
         COUNTER.fetch_add(1, Ordering::Relaxed)
     }
 
-    /// A minimal, real Seatbelt profile: deny everything by default, then
-    /// explicitly allow just enough for a normal dynamically-linked
-    /// executable to start (dyld/libSystem/the OS's shared libraries),
-    /// process exec/fork (`sandbox-exec` itself execs into the target; the
-    /// target may itself fork/exec, e.g. a shell test script), and reads of
-    /// exactly the paths this runtime's capability grant names. Anything not
-    /// listed here — including all filesystem writes and, unless
-    /// `caps.network_allowed()`, all network access — falls through to the
-    /// default deny.
+    /// A real Seatbelt profile: deny everything by default, then import
+    /// Apple's own maintained `bsd.sb` baseline (the same building block
+    /// Chromium/WebKit-style sandboxes use) for the low-level bootstrap
+    /// every dynamically-linked executable needs — dyld's own reads, mach
+    /// lookups for basic system services, sysctl reads. Hand-enumerating
+    /// those paths instead (an earlier version of this function did) is
+    /// fragile: they differ across macOS versions/architectures (e.g. the
+    /// dyld shared cache's location under System-Volume cryptexes on newer
+    /// macOS), and getting one wrong makes dyld itself abort before this
+    /// crate's component code ever runs (`Abort trap: 6`) — observed
+    /// directly on a real macOS CI runner. On top of that safe baseline,
+    /// this adds only the two things actually specific to a runtime's
+    /// `Capabilities` grant: reads of exactly the granted paths, and network
+    /// access only if `caps.network_allowed()`. Anything else — including
+    /// all filesystem writes — falls through to the default deny.
     fn sandbox_profile(caps: &Capabilities) -> String {
         let mut lines = vec![
             "(version 1)".to_string(),
             "(deny default)".to_string(),
+            "(import \"bsd.sb\")".to_string(),
             "(allow process-exec*)".to_string(),
             "(allow process-fork)".to_string(),
-            "(allow signal (target self))".to_string(),
-            "(allow sysctl-read)".to_string(),
-            "(allow mach-lookup)".to_string(),
-            "(allow file-read* \
-                (subpath \"/usr\") (subpath \"/bin\") (subpath \"/sbin\") \
-                (subpath \"/System\") (subpath \"/private/var/db/dyld\") \
-                (literal \"/dev/null\") (literal \"/dev/zero\") \
-                (literal \"/dev/random\") (literal \"/dev/urandom\") \
-                (literal \"/dev/dtracehelper\"))"
-                .to_string(),
         ];
         for path in caps.read_paths() {
             let canon = path.canonicalize().unwrap_or_else(|_| path.clone());
