@@ -62,6 +62,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      # Reclaim disk before building. This job does a full debug build of a
+      # large workspace (datafusion, arrow, libp2p, ...) plus a ~2 GB torch
+      # wheel, and rust-cache runs `cargo metadata --all-features`, which pulls
+      # the heavy optional `onnx` (ort's native runtime) and `gpu` (cudarc/wgpu)
+      # dependencies. Together that overruns the stock ~14 GB runner and fails
+      # with "No space left on device" — not a test failure. Removing the
+      # preinstalled toolchains this job never uses frees ~25 GB of headroom.
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android \
+            /usr/local/share/boost /usr/local/share/powershell /opt/hostedtoolcache/CodeQL \
+            "$AGENT_TOOLSDIRECTORY"
+          sudo docker image prune --all --force || true
+          df -h
+
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-python@v5
