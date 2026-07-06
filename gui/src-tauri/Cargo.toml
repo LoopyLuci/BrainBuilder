@@ -17,6 +17,9 @@ env_logger = "0.10"
 libp2p = { version = "0.54", features = ["tokio", "noise", "yamux", "macros", "tcp", "mdns", "gossipsub", "request-response", "cbor"] }
 axum = "0.7"
 uuid = { version = "1", features = ["v4"] }
+# OS-native secret storage for the OpenCode API key (Keychain / Credential
+# Manager / libsecret) — the key never touches disk or the graph EDN.
+keyring = "2"
 
 [features]
 default = ["custom-protocol"]

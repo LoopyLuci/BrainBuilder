@@ -12,6 +12,7 @@ import {
 import { logError, logInfo } from '../console/logStore';
 import { Panel } from '../ui/Panel';
 import { Button } from '../ui/Button';
+import { OpenCodeConnect } from './OpenCodeConnect';
 
 function findFile(model: LocalModel, ext: string): string | null {
   const f = model.files.find((f) => f.toLowerCase().endsWith(ext));
@@ -91,7 +92,9 @@ export function ModelHub() {
   };
 
   return (
-    <Panel
+    <>
+      <OpenCodeConnect />
+      <Panel
       title="Model Hub"
       action={
         <Button variant="ghost" onClick={refresh}>
@@ -165,6 +168,7 @@ export function ModelHub() {
           </li>
         ))}
       </ul>
-    </Panel>
+      </Panel>
+    </>
   );
 }

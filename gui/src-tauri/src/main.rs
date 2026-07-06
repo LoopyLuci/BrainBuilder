@@ -137,8 +137,73 @@ async fn validate_graph(graph_json: String, state: State<'_, AppState>) -> Resul
 /// a native `BBIRGraph` — Tauri's IPC layer round-trips through JSON either
 /// way, and this keeps the same shape the frontend already knows how to
 /// consume via `convertFromBBIR`.
+/// OS keychain coordinates for the OpenCode API key. `keyring` maps these to
+/// the platform-native secret store (macOS Keychain, Windows Credential
+/// Manager, Linux libsecret) — the key is never written to disk or the graph.
+const KEYCHAIN_SERVICE: &str = "brainbuilder";
+const OPENCODE_KEY_USER: &str = "opencode-api-key";
+
+/// Reads the stored OpenCode key from the OS keychain, if any. Returns `None`
+/// (never an error) when unset so the provider layer can give a friendly
+/// "add your key" message rather than a keychain-plumbing error.
+fn read_opencode_key() -> Option<String> {
+    let entry = keyring::Entry::new(KEYCHAIN_SERVICE, OPENCODE_KEY_USER).ok()?;
+    entry.get_password().ok()
+}
+
+/// Builds a `ProviderRegistry` whose OpenCode key is sourced live from the OS
+/// keychain — so a key pasted into the Models panel takes effect on the next
+/// authoring/synthesis call with no restart.
+fn provider_registry() -> brainbuilder_core::llm::ProviderRegistry {
+    brainbuilder_core::llm::ProviderRegistry::new(Box::new(read_opencode_key))
+}
+
+/// The LLM providers the GUI selector should offer, as `[id, display_name]`.
 #[command]
-async fn generate_graph(description: String, model: String, state: State<'_, AppState>) -> Result<String, String> {
+async fn list_llm_providers() -> Result<Vec<[String; 2]>, String> {
+    Ok(provider_registry()
+        .available()
+        .into_iter()
+        .map(|(id, name)| [id, name])
+        .collect())
+}
+
+/// The models a given provider can serve right now — a live reachability probe
+/// for Ollama, the published roster for OpenCode.
+#[command]
+async fn list_provider_models(provider: String) -> Result<Vec<String>, String> {
+    // Resolve with an empty model; we only need the provider handle to list.
+    let (handle, _) = provider_registry().resolve(&format!("{provider}:")).map_err(|e| e.to_string())?;
+    handle.list_models().await.map_err(|e| e.to_string())
+}
+
+/// Stores (or clears, when `key` is empty) the OpenCode API key in the OS
+/// keychain. Only the `opencode` provider currently has credentials.
+#[command]
+async fn set_provider_credentials(provider: String, key: String) -> Result<(), String> {
+    if provider != "opencode" {
+        return Err(format!("provider `{provider}` has no credentials to set"));
+    }
+    let entry = keyring::Entry::new(KEYCHAIN_SERVICE, OPENCODE_KEY_USER).map_err(|e| e.to_string())?;
+    if key.trim().is_empty() {
+        // `delete_password` errors if nothing was stored — that's fine, treat
+        // "clear an unset key" as success.
+        let _ = entry.delete_password();
+        Ok(())
+    } else {
+        entry.set_password(&key).map_err(|e| e.to_string())
+    }
+}
+
+/// Whether a provider's credentials are present (so the GUI can show
+/// "connected" without ever reading the secret back into the frontend).
+#[command]
+async fn has_provider_credentials(provider: String) -> Result<bool, String> {
+    Ok(provider == "opencode" && read_opencode_key().is_some())
+}
+
+#[command]
+async fn generate_graph(description: String, selector: String, state: State<'_, AppState>) -> Result<String, String> {
     // The registry lock is `std::sync::RwLock` (fine for every other command
     // here, which only ever reads it synchronously) — its guard isn't
     // `Send`, so it can't be held across the network `.await` below. Build
@@ -150,8 +215,10 @@ async fn generate_graph(description: String, model: String, state: State<'_, App
         brainbuilder_core::llm::build_system_prompt(&registry.summaries())
     };
 
-    let client = brainbuilder_core::llm::OllamaClient::new();
-    let raw = client.generate_json(&model, &system, &description).await.map_err(|e| e.to_string())?;
+    // Resolve the `"provider:model"` selector to a concrete provider (Ollama or
+    // OpenCode); a bare model name still defaults to Ollama for back-compat.
+    let (provider, model) = provider_registry().resolve(&selector).map_err(|e| e.to_string())?;
+    let raw = provider.generate_json(&model, &system, &description).await.map_err(|e| e.to_string())?;
 
     let orchestrator = state.orchestrator.lock().await;
     let registry = orchestrator.context.registry.read().map_err(|_| "component registry lock poisoned".to_string())?;
@@ -493,6 +560,10 @@ fn main() {
             get_distributed_training_status,
             get_observer_url,
             generate_graph,
+            list_llm_providers,
+            list_provider_models,
+            set_provider_credentials,
+            has_provider_credentials,
             propose_model,
             propose_transfer_model,
             diagnose_data,

@@ -20,6 +20,7 @@ use crate::component::registry::ComponentRegistry;
 use crate::component::validation::validate_graph;
 use crate::interop::protocol::BrainBuilderError;
 use crate::llm::ollama::OllamaClient;
+use crate::llm::provider::LlmProvider;
 use crate::Result;
 
 pub async fn generate_graph_from_description(
@@ -30,6 +31,23 @@ pub async fn generate_graph_from_description(
     let system = build_system_prompt(&registry.summaries());
     let client = OllamaClient::new();
     let raw = client.generate_json(model, &system, description).await?;
+    parse_and_validate(&raw, registry)
+}
+
+/// Provider-agnostic authoring: identical to
+/// [`generate_graph_from_description`] but drives any [`LlmProvider`] (Ollama
+/// or OpenCode) instead of assuming a local Ollama client. The caller resolves
+/// the provider + model from a `"provider:model"` selector via
+/// [`crate::llm::registry::ProviderRegistry`]. Kept separate so the existing
+/// Ollama-only entrypoint (and its tests) stay untouched.
+pub async fn generate_graph_with_provider(
+    description: &str,
+    provider: &dyn LlmProvider,
+    model: &str,
+    registry: &ComponentRegistry,
+) -> Result<BBIRGraph> {
+    let system = build_system_prompt(&registry.summaries());
+    let raw = provider.generate_json(model, &system, description).await?;
     parse_and_validate(&raw, registry)
 }
 

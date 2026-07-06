@@ -61,8 +61,34 @@ export async function registerGgufModel(path: string, modelName: string): Promis
   return invoke('register_gguf_model', { path, modelName });
 }
 
-// Local-first LLM-assisted authoring (Ollama). Returns the generated graph
-// as a JSON string, matching loadGraph's convention.
-export async function generateGraph(description: string, model: string): Promise<string> {
-  return invoke('generate_graph', { description, model });
+// LLM-assisted authoring, provider-agnostic. `selector` is a "provider:model"
+// string (e.g. "ollama:llama3.2" or "opencode:opencode-go/glm-5.2"); a bare
+// model name still defaults to Ollama on the backend. Returns the generated
+// graph as a JSON string, matching loadGraph's convention.
+export async function generateGraph(description: string, selector: string): Promise<string> {
+  return invoke('generate_graph', { description, selector });
+}
+
+// --- Multi-provider LLM plumbing (Ollama + OpenCode Go) ---
+
+// [id, display_name][] for the provider selector.
+export async function listLlmProviders(): Promise<[string, string][]> {
+  return invoke('list_llm_providers');
+}
+
+// The models a provider can serve now — live probe for Ollama, published
+// roster for OpenCode.
+export async function listProviderModels(provider: string): Promise<string[]> {
+  return invoke('list_provider_models', { provider });
+}
+
+// Store (or clear, with an empty key) a provider's API key in the OS keychain.
+export async function setProviderCredentials(provider: string, key: string): Promise<void> {
+  return invoke('set_provider_credentials', { provider, key });
+}
+
+// Whether a provider's credentials are present (the secret itself never comes
+// back to the frontend).
+export async function hasProviderCredentials(provider: string): Promise<boolean> {
+  return invoke('has_provider_credentials', { provider });
 }
