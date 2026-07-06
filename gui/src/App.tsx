@@ -1,18 +1,14 @@
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { InfiniteCanvas } from './canvas/InfiniteCanvas';
-import { ComponentPalette } from './palette/ComponentPalette';
-import { Inspector } from './inspector/Inspector';
-import { Console } from './console/Console';
-import { TrainingDashboard } from './training/TrainingDashboard';
-import { DataPanel } from './data/DataPanel';
-import { PredictPanel } from './predict/PredictPanel';
-import { ClusterConsole } from './cluster/ClusterConsole';
-import { LLMAuthor } from './llm/LLMAuthor';
-import { ModelHub } from './models/ModelHub';
-import { IntentPanel } from './intent/IntentPanel';
 import { Header } from './shell/Header';
-import { Tabs } from './ui/Tabs';
+import { SlotRenderer } from './widgets/SlotRenderer';
+import { registerBuiltinWidgets } from './widgets/builtins';
+
+// Register the first-party panels once, at module load, before React renders.
+// Everything the shell shows now comes from the widget registry — App.tsx no
+// longer hardcodes which panels exist, so panels (built-in or hot-loaded
+// plugins) can be added, removed, or swapped at runtime without editing here.
+registerBuiltinWidgets();
 
 function App() {
   return (
@@ -20,28 +16,17 @@ function App() {
       <div className="app-shell">
         <Header />
         <div className="app-layout">
-          <div className="palette"><ComponentPalette /></div>
-          <div className="canvas-container"><InfiniteCanvas /></div>
+          <div className="palette">
+            <SlotRenderer slot="palette" />
+          </div>
+          <div className="canvas-container">
+            <SlotRenderer slot="canvas" />
+          </div>
           <div className="side-rail">
-            <Tabs
-              tabs={[
-                { id: 'build', label: 'Build', content: <IntentPanel /> },
-                { id: 'inspector', label: 'Inspector', content: <Inspector /> },
-                { id: 'data', label: 'Data', content: <DataPanel /> },
-                { id: 'author', label: 'Author', content: <LLMAuthor /> },
-                { id: 'models', label: 'Models', content: <ModelHub /> },
-              ]}
-            />
+            <SlotRenderer slot="side" asTabs />
           </div>
           <div className="bottom-rail">
-            <Tabs
-              tabs={[
-                { id: 'metrics', label: 'Metrics', content: <TrainingDashboard /> },
-                { id: 'predict', label: 'Predict', content: <PredictPanel /> },
-                { id: 'cluster', label: 'Cluster', content: <ClusterConsole /> },
-                { id: 'console', label: 'Console', content: <Console /> },
-              ]}
-            />
+            <SlotRenderer slot="bottom" asTabs />
           </div>
         </div>
       </div>

@@ -322,6 +322,18 @@
   text-align: center;
 }
 
+/* ---------- Widget error boundary card ---------- */
+.bb-widget-error {
+  border: 1px solid var(--danger, #c0392b);
+  border-radius: var(--radius-md, 6px);
+  padding: var(--space-3, 12px);
+  margin: var(--space-2, 8px);
+  background: color-mix(in srgb, var(--danger, #c0392b) 8%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 4px);
+}
+
 /* ---------- Scrollbars (webkit) ---------- */
 * {
   scrollbar-width: thin;
