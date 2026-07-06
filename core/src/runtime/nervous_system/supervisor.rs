@@ -155,9 +155,72 @@ mod tests {
     #[test]
     fn kills_a_process_that_exceeds_its_timeout() {
         let caps = Capabilities::none().with_timeout(Duration::from_millis(200));
-        let mut cmd = Command::new("cmd");
-        cmd.args(["/C", "ping", "-n", "10", "127.0.0.1", ">", "NUL"]);
+        let mut cmd = long_running_command();
         let result = Supervisor::run_checked(&mut cmd, &caps, &[], None);
         assert!(result.is_err(), "expected the long-running process to be killed");
+    }
+
+    #[cfg(windows)]
+    fn long_running_command() -> Command {
+        let mut cmd = Command::new("cmd");
+        cmd.args(["/C", "ping", "-n", "10", "127.0.0.1", ">", "NUL"]);
+        cmd
+    }
+
+    #[cfg(not(windows))]
+    fn long_running_command() -> Command {
+        let mut cmd = Command::new("sleep");
+        cmd.arg("10");
+        cmd
+    }
+
+    // Unix-only: proves `harden_before_spawn`'s `RLIMIT_AS` ceiling is a real
+    // kernel-enforced constraint, not just plumbing. A memory limit far below
+    // what even loading a dynamic-linked shell needs (`/bin/sh`'s own runtime
+    // image + linker) makes the child fail during exec/startup itself, before
+    // it can run any code — the observable proof this repo's own comments
+    // (job_object.rs, supervisor.rs) flagged as "written but unverified on a
+    // real Linux/macOS machine".
+    #[cfg(not(windows))]
+    #[test]
+    fn rlimit_as_ceiling_is_enforced_by_the_kernel_on_unix() {
+        let caps = Capabilities::none().with_memory_limit(64 * 1024); // 64 KiB
+        let mut cmd = Command::new("/bin/sh");
+        cmd.args(["-c", "echo should_not_run"]);
+        let result = Supervisor::run_checked(&mut cmd, &caps, &[], None);
+        match result {
+            Err(_) => {} // spawn/exec itself failed under the tiny ceiling
+            Ok(out) => assert!(
+                !out.status.success() || !String::from_utf8_lossy(&out.stdout).contains("should_not_run"),
+                "expected a 64 KiB RLIMIT_AS ceiling to prevent /bin/sh from completing"
+            ),
+        }
+    }
+
+    // Unix-only: proves `harden_before_spawn`'s `process_group(0)` +
+    // `kill_process_tree`'s `killpg` actually reach a grandchild, not just the
+    // immediate child — the scenario a plain `Child::kill()` (SIGKILL to one
+    // pid) can't handle, which is the whole reason this containment exists.
+    #[cfg(not(windows))]
+    #[test]
+    fn kill_process_tree_reaches_a_grandchild_via_the_process_group() {
+        let marker = std::env::temp_dir().join(format!("bb_pgrp_test_{}", std::process::id()));
+        let _ = std::fs::remove_file(&marker);
+
+        let caps = Capabilities::none().with_timeout(Duration::from_millis(200));
+        let mut cmd = Command::new("sh");
+        // Parent sleeps well past the timeout; the backgrounded grandchild
+        // sleeps then touches `marker` — if it's still alive after the
+        // timeout kill, the marker will appear.
+        cmd.args(["-c", &format!("(sleep 1 && touch {}) & sleep 10", marker.display())]);
+        let result = Supervisor::run_checked(&mut cmd, &caps, &[], None);
+        assert!(result.is_err(), "expected the parent to be killed on timeout");
+
+        std::thread::sleep(Duration::from_millis(1200));
+        assert!(
+            !marker.exists(),
+            "grandchild survived the process-group kill and created the marker file"
+        );
+        let _ = std::fs::remove_file(&marker);
     }
 }
