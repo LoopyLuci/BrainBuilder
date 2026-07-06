@@ -1,0 +1,13 @@
+{:component/id ""
+ :component/name "adam"
+ :meta-type "optimizer"
+ :version "1.0.0"
+ :interface/inputs [{:name "params" :tensor {:shape [:any] :dtype "float32"}}
+                     {:name "grads" :tensor {:shape [:any] :dtype "float32"}}]
+ :interface/outputs [{:name "updated_params" :tensor {:shape [:any] :dtype "float32"}}]
+ :hyperparameters {"lr" {:type "float" :default 0.001}
+                    "betas" {:type "tuple" :default [0.9 0.999]}
+                    "eps" {:type "float" :default 1e-8}
+                    "weight_decay" {:type "float" :default 0.0}}
+ :implementation [{:language "python" :entry "step"}]
+ :compatibility {:devices ["cpu" "cuda"] :dtypes ["float32"] :autograd false}}

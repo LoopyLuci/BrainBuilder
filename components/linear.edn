@@ -1,0 +1,11 @@
+{:component/id ""
+ :component/name "linear"
+ :meta-type "stateful-module"
+ :version "1.0.0"
+ :interface/inputs [{:name "input" :tensor {:shape [:batch :in-features] :dtype "float32"}}
+                     {:name "weight" :role "parameter" :tensor {:shape [:out-features :in-features] :dtype "float32"}}]
+ :interface/outputs [{:name "output" :tensor {:shape [:batch :out-features] :dtype "float32"}}]
+ :hyperparameters {"in_features" {:type "int" :default 0}
+                    "out_features" {:type "int" :default 0}}
+ :implementation [{:language "python" :entry "forward"}]
+ :compatibility {:devices ["cpu" "cuda"] :dtypes ["float32"] :autograd true}}

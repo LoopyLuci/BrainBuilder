@@ -1,0 +1,9 @@
+{:component/id ""
+ :component/name "scale"
+ :meta-type "function"
+ :version "1.0.0"
+ :interface/inputs [{:name "x" :tensor {:shape [:batch] :dtype "float32"}}
+                     {:name "w" :role "parameter" :tensor {:shape [1] :dtype "float32"}}]
+ :interface/outputs [{:name "y" :tensor {:shape [:batch] :dtype "float32"}}]
+ :implementation [{:language "python" :entry "forward"}]
+ :compatibility {:devices ["cpu"] :dtypes ["float32"] :autograd true}}

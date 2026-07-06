@@ -1,0 +1,180 @@
+html, body, #root {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  background: var(--bg-canvas);
+  -webkit-font-smoothing: antialiased;
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* ---------- Header ---------- */
+.bb-header {
+  flex-shrink: 0;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-3);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.bb-header__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  font-size: var(--text-md);
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.bb-header__actions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+/* ---------- Main layout ---------- */
+.app-layout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 230px 1fr 340px;
+  grid-template-rows: 1fr 260px;
+  grid-template-areas:
+    'palette canvas side'
+    'bottom  bottom  bottom';
+}
+
+.palette {
+  grid-area: palette;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-subtle);
+  overflow-y: auto;
+}
+
+.canvas-container {
+  grid-area: canvas;
+  overflow: hidden;
+  position: relative;
+  background: var(--bg-canvas);
+}
+
+.side-rail {
+  grid-area: side;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border-subtle);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.bottom-rail {
+  grid-area: bottom;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-subtle);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ---------- Canvas toolbars ---------- */
+.bb-canvas-toolbar {
+  position: absolute;
+  z-index: 10;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  padding: var(--space-1);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+.bb-toolbar-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border-subtle);
+  margin: 2px 2px;
+}
+
+/* react-flow theming so it doesn't fight the design tokens */
+.react-flow__attribution {
+  background: transparent !important;
+  color: var(--text-tertiary) !important;
+}
+.react-flow__controls {
+  box-shadow: var(--shadow-sm) !important;
+}
+.react-flow__controls-button {
+  background: var(--bg-surface) !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+  fill: var(--text-secondary) !important;
+}
+.react-flow__controls-button:hover {
+  background: var(--bg-hover) !important;
+}
+.react-flow__edge-path {
+  stroke: var(--border-strong);
+}
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--accent);
+}
+.react-flow__background {
+  background: var(--bg-canvas) !important;
+}
+.react-flow__background pattern circle {
+  fill: var(--border-strong) !important;
+}
+
+/* ---------- Node cards ---------- */
+.bb-node {
+  padding: 10px 16px;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  min-width: 130px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.bb-node--selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+.bb-node__meta {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+.bb-node__label {
+  font-weight: 600;
+  font-size: var(--text-base);
+  text-align: center;
+  color: var(--text-primary);
+}
+.bb-node__params {
+  font-size: 10px;
+  color: var(--warning);
+  text-align: center;
+  margin-top: 2px;
+}
+.bb-node__handle {
+  width: 9px !important;
+  height: 9px !important;
+  background: var(--accent) !important;
+  border: 2px solid var(--bg-surface) !important;
+}

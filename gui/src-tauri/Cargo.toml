@@ -1,0 +1,25 @@
+[package]
+name = "brainbuilder-gui"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "1", features = [] }
+
+[dependencies]
+tauri = { version = "1", features = ["shell-open", "dialog-all", "fs-create-dir", "fs-exists", "path-all"] }
+brainbuilder-core = { path = "../../core", features = ["gui", "onnx"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+log = "0.4"
+env_logger = "0.10"
+libp2p = { version = "0.54", features = ["tokio", "noise", "yamux", "macros", "tcp", "mdns", "gossipsub", "request-response", "cbor"] }
+axum = "0.7"
+uuid = { version = "1", features = ["v4"] }
+
+[features]
+default = ["custom-protocol"]
+# Required by `tauri build`/production bundling to serve the built frontend
+# assets via a custom protocol instead of a devserver URL.
+custom-protocol = ["tauri/custom-protocol"]

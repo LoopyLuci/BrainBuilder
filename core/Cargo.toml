@@ -1,0 +1,110 @@
+[package]
+name = "brainbuilder-core"
+version = "0.1.0"
+edition = "2021"
+description = "BrainBuilder polyglot orchestration engine"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+async-trait = "0.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Real EDN support: edn-rs provides the Edn value type + from_str/to_string,
+# edn-derive provides #[derive(Serialize, Deserialize)] proc macros that key
+# struct fields as `:kebab-case` (single `_`), `.`-namespaced (double `__`) and
+# `/`-namespaced (triple `___`) keywords. Verified against the real published
+# APIs (crates.io) rather than assumed.
+edn-rs = { version = "0.18", features = ["json"] }
+edn-derive = "0.7"
+blake3 = "1"
+# Pinned: newer chrono (0.4.39+) added `Datelike::quarter`, which collides
+# with arrow-arith 51.0.0's own `ChronoDateExt::quarter` extension trait and
+# fails to compile (E0034, ambiguous method). Not our bug — an upstream
+# arrow/chrono version incompatibility; pinning chrono keeps arrow 51 building.
+chrono = "=0.4.38"
+arrow = { version = "51", features = ["prettyprint"] }
+# Real `dlpack` 0.2 crate: it's a thin repr(C) binding to the DLPack C ABI only
+# (Tensor/ManagedTensor/Context/DataType structs + raw `extern fn` deleter) —
+# no `ManagedTensor::new(...)` constructor or safe wrapper exists. Construction
+# is done via struct literals in core/src/interop/arena.rs and
+# core/src/runtime/cpu_backend.rs.
+dlpack = "0.2"
+# Provenance persistence (utils/provenance.rs): an append-only SQLite table
+# of data-sample -> weight-update lineage. `bundled` vendors SQLite itself so
+# this doesn't need a system libsqlite3 to build.
+rusqlite = { version = "0.31", features = ["bundled"] }
+thiserror = "1"
+# `log` macros are used directly (component/registry.rs, orchestrator.rs);
+# `env_logger` (the actual subscriber/init call) belongs to the binary
+# (gui/src-tauri), not this library crate.
+log = "0.4"
+libp2p = { version = "0.54", features = ["tokio", "noise", "yamux", "macros", "tcp", "mdns", "gossipsub", "request-response", "cbor"] }
+datafusion = "38"
+once_cell = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+# Real HuggingFace .safetensors parsing (models::safetensors_loader) — the
+# same official crate `transformers`/`candle` use, not a hand-rolled parser.
+safetensors = "0.4"
+# Memory-maps model files instead of reading them fully into RAM — a real
+# personal-scale model can be tens of GB; a user shouldn't need that much
+# free RAM just to inspect a manifest or load one named tensor.
+memmap2 = "0.9"
+# Real local LLM authoring (llm::ollama) — a plain HTTP client against
+# Ollama's local REST API (http://localhost:11434), no cloud dependency.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+
+# Windows Job Objects (nervous_system::JobObject) — real OS-level process
+# containment for sandboxed subprocesses.
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_System_JobObjects", "Win32_Foundation", "Win32_System_SystemInformation"] }
+
+# Unix process containment (nervous_system::job_object): RLIMIT_AS memory
+# ceiling (set pre-exec, in the child, before it execs into the real
+# component subprocess) and killpg-based whole-process-tree termination —
+# the Unix equivalent of the Windows Job Object above.
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[dev-dependencies]
+# Property-based round-trip testing (core/tests/bbir_roundtrip_proptest.rs) —
+# generates many random graphs instead of relying only on the few
+# hand-picked examples in bbir_roundtrip.rs, to catch EDN<->JSON edge cases
+# (e.g. the real camelCase-keyword bug documented in
+# runtime/scheduler.rs::camel_to_snake) that a handful of fixed cases could
+# miss.
+proptest = "1"
+
+[features]
+default = ["cpu"]
+# Marker features only — nothing in `core/src` is `#[cfg]`-gated on them
+# (`gui`'s actual Tauri dependency lives entirely in `gui/src-tauri`, which
+# has its own `tauri` dependency; core needs none of its types).
+cpu = []
+gui = []
+gpu = ["cudarc", "wgpu", "pollster"]
+# Real local ONNX Runtime inference (models::onnx_loader) — optional since
+# `ort` vendors/downloads a real native runtime binary, a meaningfully larger
+# footprint than the rest of this crate's pure-Rust dependencies.
+onnx = ["ort"]
+
+[dependencies.ort]
+version = "2.0.0-rc.9"
+optional = true
+
+[dependencies.wgpu]
+version = "0.19"
+optional = true
+
+[dependencies.pollster]
+version = "0.3"
+optional = true
+
+[dependencies.cudarc]
+version = "0.12"
+optional = true
+# cudarc's build.rs hard-panics unless exactly one CUDA-version feature (or
+# this auto-detect one) is selected — without it, `--features gpu` fails to
+# configure at all, even on a machine with a real GPU and toolkit installed,
+# before ever touching hardware. `cuda-version-from-build-system` probes
+# `nvcc`/`CUDA_ROOT` at build time instead of hardcoding a version.
+features = ["cuda-version-from-build-system"]

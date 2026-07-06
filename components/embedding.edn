@@ -1,0 +1,12 @@
+{:component/id ""
+ :component/name "embedding"
+ :meta-type "stateful-module"
+ :version "1.0.0"
+ :tags ["transformer" "nlp"]
+ :interface/inputs [{:name "ids" :tensor {:shape [:batch :seq] :dtype "float32"}}
+                     {:name "weight" :role "parameter" :tensor {:shape [:vocab-size :embedding-dim] :dtype "float32"}}]
+ :interface/outputs [{:name "output" :tensor {:shape [:batch :seq :embedding-dim] :dtype "float32"}}]
+ :hyperparameters {"vocab_size" {:type "int" :default 1000}
+                    "embedding_dim" {:type "int" :default 64}}
+ :implementation [{:language "python" :entry "forward"}]
+ :compatibility {:devices ["cpu" "cuda"] :dtypes ["float32"] :autograd true}}

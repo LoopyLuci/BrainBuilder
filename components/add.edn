@@ -1,0 +1,11 @@
+{:component/id ""
+ :component/name "add"
+ :meta-type "pure-function"
+ :version "1.0.0"
+ :tags ["transformer" "residual"]
+ :interface/inputs [{:name "a" :tensor {:shape [:batch :features] :dtype "float32"}}
+                     {:name "b" :tensor {:shape [:batch :features] :dtype "float32"}}]
+ :interface/outputs [{:name "output" :tensor {:shape [:batch :features] :dtype "float32"}}]
+ :hyperparameters {}
+ :implementation [{:language "python" :entry "forward"}]
+ :compatibility {:devices ["cpu" "cuda"] :dtypes ["float32"] :autograd true}}

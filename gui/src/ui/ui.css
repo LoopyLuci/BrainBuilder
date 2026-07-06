@@ -1,0 +1,330 @@
+/* Shared UI primitives — buttons, panels, tabs, forms, tables. Every panel
+   component in the app should compose from these classes instead of inline
+   styles, so visual changes happen in one place. */
+
+/* ---------- Panel ---------- */
+.bb-panel {
+  padding: var(--space-3);
+  color: var(--text-primary);
+  font-size: var(--text-base);
+}
+.bb-panel + .bb-panel {
+  border-top: 1px solid var(--border-subtle);
+}
+.bb-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.bb-panel__title {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.bb-panel__subtitle {
+  margin: 2px 0 0;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+.bb-panel__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* ---------- Buttons ---------- */
+.bb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
+  white-space: nowrap;
+}
+.bb-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.bb-btn--sm {
+  padding: 5px 10px;
+  font-size: var(--text-sm);
+}
+.bb-btn--md {
+  padding: 8px 14px;
+  font-size: var(--text-base);
+}
+.bb-btn--secondary {
+  background: var(--bg-surface);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+.bb-btn--secondary:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+}
+.bb-btn--primary {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+.bb-btn--primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+.bb-btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-secondary);
+}
+.bb-btn--ghost:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.bb-btn--danger {
+  background: transparent;
+  border-color: var(--border-default);
+  color: var(--danger);
+}
+.bb-btn--danger:hover:not(:disabled) {
+  background: var(--danger-subtle);
+  border-color: var(--danger);
+}
+.bb-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ---------- Tabs ---------- */
+.bb-tabs {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.bb-tabs__list {
+  display: flex;
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0 var(--space-2);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+.bb-tabs__tab {
+  position: relative;
+  background: none;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  padding: 10px var(--space-2);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color var(--transition-fast);
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.bb-tabs__tab:hover {
+  color: var(--text-primary);
+}
+.bb-tabs__tab--active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.bb-tabs__badge {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-left: 6px;
+  background: var(--text-tertiary);
+}
+.bb-tabs__badge--dot {
+  background: var(--accent);
+}
+.bb-tabs__badge--error {
+  background: var(--danger);
+}
+.bb-tabs__panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* ---------- Forms ---------- */
+.bb-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: var(--space-2);
+}
+.bb-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.bb-label small {
+  font-weight: 400;
+  text-transform: none;
+  color: var(--text-tertiary);
+  letter-spacing: normal;
+}
+.bb-input,
+.bb-select,
+.bb-textarea {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  width: 100%;
+  box-sizing: border-box;
+}
+.bb-input:focus,
+.bb-select:focus,
+.bb-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+.bb-textarea {
+  resize: vertical;
+  font-family: var(--font-sans);
+}
+.bb-form-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-2) var(--space-2);
+  align-items: center;
+}
+.bb-form-grid .bb-label {
+  margin: 0;
+}
+.bb-row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* ---------- Text helpers ---------- */
+.bb-text-muted {
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
+.bb-text-error {
+  color: var(--danger);
+  font-size: var(--text-sm);
+}
+.bb-text-success {
+  color: var(--success);
+  font-size: var(--text-sm);
+}
+.bb-code {
+  font-family: var(--font-mono);
+  background: var(--bg-subtle);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+  font-size: 0.92em;
+}
+
+/* ---------- Lists / tables ---------- */
+.bb-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.bb-list-item {
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.bb-list-item:last-child {
+  border-bottom: none;
+}
+.bb-table {
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  width: 100%;
+}
+.bb-table th {
+  text-align: left;
+  padding: 4px 8px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.bb-table td {
+  padding: 4px 8px;
+  border: 1px solid var(--border-subtle);
+}
+
+/* ---------- Badge / chip ---------- */
+.bb-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+}
+.bb-chip--accent {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+/* ---------- Component palette ---------- */
+.bb-palette-item {
+  padding: var(--space-2);
+  margin: 0 0 var(--space-2);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  cursor: grab;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.bb-palette-item:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+.bb-palette-item:active {
+  cursor: grabbing;
+}
+
+/* ---------- Empty state ---------- */
+.bb-empty {
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+  padding: var(--space-3) 0;
+  text-align: center;
+}
+
+/* ---------- Scrollbars (webkit) ---------- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}

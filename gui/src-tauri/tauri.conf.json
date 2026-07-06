@@ -1,0 +1,37 @@
+{
+  "build": {
+    "distDir": "../dist",
+    "devPath": "http://localhost:5173",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "package": {
+    "productName": "BrainBuilder",
+    "version": "0.1.0"
+  },
+  "tauri": {
+    "allowlist": {
+      "all": false,
+      "shell": { "open": true },
+      "dialog": { "all": true },
+      "path": { "all": true },
+      "fs": {
+        "createDir": true,
+        "exists": true,
+        "scope": ["$APPDATA", "$APPDATA/**"]
+      }
+    },
+    "windows": [
+      {
+        "title": "BrainBuilder",
+        "width": 1280,
+        "height": 800,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  }
+}
