@@ -120,6 +120,9 @@ fn a_frozen_pretrained_backbone_with_a_fresh_head_trains() {
 
     let components_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../components");
     std::env::set_var("PYTHONPATH", components_dir.join("python"));
+    // Deterministic weight init (adapters + head) for a non-flaky CI run (see
+    // _bb_worker.py::_apply_seed).
+    std::env::set_var("BRAINBUILDER_SEED", "7");
 
     let dir = std::env::temp_dir().join(format!("bb_transfer_train_{}", uuid::Uuid::new_v4()));
     std::fs::create_dir_all(&dir).unwrap();

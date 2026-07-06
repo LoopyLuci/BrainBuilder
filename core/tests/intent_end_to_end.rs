@@ -29,6 +29,9 @@ fn write_png(path: &Path, color: [u8; 3]) {
 fn a_proposed_image_classifier_actually_trains() {
     let components_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../components");
     std::env::set_var("PYTHONPATH", components_dir.join("python"));
+    // Deterministic weight init for a non-flaky CI run (see
+    // _bb_worker.py::_apply_seed).
+    std::env::set_var("BRAINBUILDER_SEED", "7");
 
     // Real folder-of-classes data the user "points at".
     let root = std::env::temp_dir().join(format!("bb_intent_e2e_{}", uuid::Uuid::new_v4()));

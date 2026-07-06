@@ -33,6 +33,10 @@ fn write_png(path: &Path, color: [u8; 3]) {
 fn linear_classifier_trains_on_a_real_image_folder() {
     let components_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../components");
     std::env::set_var("PYTHONPATH", components_dir.join("python"));
+    // Seed weight init for a deterministic, non-flaky run on CI (see
+    // _bb_worker.py::_apply_seed). The data is trivially separable, so it
+    // converges either way, but a fixed seed removes any run-to-run variance.
+    std::env::set_var("BRAINBUILDER_SEED", "7");
 
     // Build a real folder-of-classes dataset on disk.
     let root = std::env::temp_dir().join(format!("bb_image_folder_train_{}", uuid::Uuid::new_v4()));
