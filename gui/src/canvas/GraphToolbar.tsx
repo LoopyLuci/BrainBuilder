@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { save, open } from '@tauri-apps/api/dialog';
 import { useGraphStore } from '../state/graphStore';
 import { convertToBBIR, convertFromBBIR } from './utils';
@@ -38,6 +39,19 @@ export function GraphToolbar() {
   const onNew = () => {
     setGraph([], []);
   };
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z') return;
+      e.preventDefault();
+      if (e.shiftKey) redo();
+      else undo();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [undo, redo]);
 
   return (
     <div className="bb-canvas-toolbar">

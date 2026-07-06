@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { open } from '@tauri-apps/api/dialog';
 import { previewDataset, DatasetPreview } from '../api/tauri';
 import { useGraphStore } from '../state/graphStore';
@@ -11,8 +11,24 @@ const OPTIMIZERS = ['sgd', 'adam'];
 export function DataPanel() {
   const training = useGraphStore((s) => s.training);
   const setTraining = useGraphStore((s) => s.setTraining);
+  const nodes = useGraphStore((s) => s.nodes);
+  const updateNodeHyperparams = useGraphStore((s) => s.updateNodeHyperparams);
   const [preview, setPreview] = useState<DatasetPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Keep every embedding node's `vocab_size` hyperparameter in lockstep with
+  // the dataset's vocab_size so a text-sequence run can't silently mismatch
+  // the embedding table shape against the tokenizer.
+  const vocabSize = training.data_source.vocab_size;
+  useEffect(() => {
+    if (vocabSize === undefined) return;
+    for (const node of nodes) {
+      if (node.data.component !== 'embedding') continue;
+      if (node.data.hyperparams?.vocab_size === vocabSize) continue;
+      updateNodeHyperparams(node.id, { ...node.data.hyperparams, vocab_size: vocabSize });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vocabSize, nodes]);
 
   const pickDataset = async () => {
     const selected = await open({
@@ -92,8 +108,8 @@ export function DataPanel() {
             }
           />
           <p className="bb-text-muted" style={{ gridColumn: '1 / -1', margin: 0 }}>
-            Must match the <code className="bb-code">vocab_size</code> hyperparameter on your graph's{' '}
-            <code className="bb-code">embedding</code> node — not auto-synced yet.
+            Automatically kept in sync with the <code className="bb-code">vocab_size</code> hyperparameter
+            on any <code className="bb-code">embedding</code> node in your graph.
           </p>
         </div>
       )}
