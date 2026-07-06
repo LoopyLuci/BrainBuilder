@@ -187,7 +187,10 @@ mod tests {
 
     #[cfg(not(windows))]
     fn long_running_command() -> Command {
-        let mut cmd = Command::new("sleep");
+        // Absolute path, not a bare `PATH`-searched name: keeps this
+        // independent of exactly which directories a sandbox profile (macOS)
+        // grants execute/search access to.
+        let mut cmd = Command::new("/bin/sleep");
         cmd.arg("10");
         cmd
     }
@@ -232,13 +235,24 @@ mod tests {
         let _ = std::fs::remove_file(&marker);
 
         let caps = Capabilities::none().with_timeout(Duration::from_millis(200));
-        let mut cmd = Command::new("sh");
+        let mut cmd = Command::new("/bin/sh");
         // Parent sleeps well past the timeout; the backgrounded grandchild
         // sleeps then touches `marker` — if it's still alive after the
         // timeout kill, the marker will appear.
         cmd.args(["-c", &format!("(sleep 1 && touch {}) & sleep 10", marker.display())]);
         let result = Supervisor::run_checked(&mut cmd, &caps, &[], None);
-        assert!(result.is_err(), "expected the parent to be killed on timeout");
+        // If this ever regresses again, the actual denial/exit reason (e.g. a
+        // sandbox-profile EPERM) is far more useful than a bare "didn't
+        // error" — surface it instead of just asserting is_err().
+        match &result {
+            Err(_) => {}
+            Ok(out) => panic!(
+                "expected the parent to be killed on timeout, but it exited on its own: status={:?} stdout={:?} stderr={:?}",
+                out.status,
+                String::from_utf8_lossy(&out.stdout),
+                String::from_utf8_lossy(&out.stderr)
+            ),
+        }
 
         std::thread::sleep(Duration::from_millis(1200));
         assert!(
@@ -264,13 +278,18 @@ mod tests {
         std::fs::write(&file, "visible-content").unwrap();
 
         let caps = Capabilities::none().allow_read(&dir);
-        let mut cmd = Command::new("cat");
+        let mut cmd = Command::new("/bin/cat");
         cmd.arg(&file);
-        let output = Supervisor::run_checked(&mut cmd, &caps, &[], None)
-            .expect("cat should succeed under the sandbox for a granted path");
+        let output = match Supervisor::run_checked(&mut cmd, &caps, &[], None) {
+            Ok(out) => out,
+            Err(e) => panic!("cat should succeed under the sandbox for a granted path: {e}"),
+        };
         assert!(
             String::from_utf8_lossy(&output.stdout).contains("visible-content"),
-            "expected to read the granted file's real contents"
+            "expected to read the granted file's real contents: status={:?} stdout={:?} stderr={:?}",
+            output.status,
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
         );
 
         std::fs::remove_dir_all(&dir).ok();
@@ -290,7 +309,7 @@ mod tests {
         // Grants a real, different directory — proves the sandbox profile
         // is scoped, not wide open.
         let caps = Capabilities::none().allow_read(&allowed);
-        let mut cmd = Command::new("cat");
+        let mut cmd = Command::new("/bin/cat");
         cmd.arg(&secret);
         let result = Supervisor::run_checked(&mut cmd, &caps, &[], None);
         let denied_by_sandbox = match result {
