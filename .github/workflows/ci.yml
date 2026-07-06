@@ -84,7 +84,19 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install torch (CPU wheel — the same real autograd path every training test exercises)
-        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+        # The PyTorch CDN (download-r2.pytorch.org) occasionally drops the TLS
+        # handshake outright (SSLV3_ALERT_HANDSHAKE_FAILURE) on shared CI
+        # network paths — a transient edge issue, not a real cert/config
+        # problem, since the exact same command reliably succeeds on rerun.
+        # A short retry loop absorbs that without masking a genuine failure
+        # (each attempt is the real `pip install`, not a fallback source).
+        run: |
+          for attempt in 1 2 3 4 5; do
+            pip install torch --index-url https://download.pytorch.org/whl/cpu && exit 0
+            echo "pip install torch failed (attempt $attempt), retrying in 15s..."
+            sleep 15
+          done
+          exit 1
       # Racket/Clojure/JDK toolchains (needed by interop_smoke.rs and the
       # component-designer round-trip tests) aren't installed here — a real,
       # documented gap in CI coverage, not a silent one. Those two tests still
