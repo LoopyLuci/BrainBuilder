@@ -16,24 +16,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Tauri Linux system dependencies
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf build-essential
-
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: cargo build (workspace)
-        run: cargo build --workspace --locked
+      # This matrix job deliberately builds and tests only `brainbuilder-core`
+      # (all the real logic), not the whole workspace. The `brainbuilder-gui`
+      # Tauri binary is intentionally excluded here: building it cross-platform
+      # needs the prebuilt frontend `dist/` (produced only by the `frontend`
+      # job) plus per-OS native GUI toolkits (webkit2gtk/libsoup on Linux,
+      # a signed app context on macOS) — i.e. exactly the "extra setup" this
+      # fast, every-push job is meant to avoid. The GUI Rust crate is covered
+      # by `cargo check -p brainbuilder-gui` locally and by the packaging
+      # workflow; the frontend job covers its TypeScript.
+      - name: cargo build (brainbuilder-core)
+        run: cargo build -p brainbuilder-core --locked
 
       - name: cargo test (brainbuilder-core, fast/no-torch tests only)
         # Every #[ignore]d integration test needs a real torch/racket/clojure
-        # toolchain installed on the runner (see full-suite.yml for the one
-        # job that does that); everything here is pure Rust and runs on every
-        # OS with zero extra setup — real coverage on every push, not just a
+        # toolchain installed on the runner (see the full-suite job for the one
+        # that does that); everything here is pure Rust and runs on every OS
+        # with zero extra setup — real coverage on every push, not just a
         # "does it compile" check.
         run: cargo test -p brainbuilder-core --lib --locked
 
