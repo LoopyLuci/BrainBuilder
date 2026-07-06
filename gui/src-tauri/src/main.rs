@@ -28,6 +28,9 @@ struct AppState {
     // newly-synthesized descriptor + kernel so `install_component` can register
     // it live.
     components_dir: std::path::PathBuf,
+    // The active self-building agent session (isolated git worktree + branch),
+    // if one is running. At most one at a time keeps the safety model simple.
+    agent: Mutex<Option<brainbuilder_core::agent::AgentSession>>,
 }
 
 async fn cluster_handle(state: &State<'_, AppState>) -> Result<ClusterHandle, String> {
@@ -302,6 +305,112 @@ async fn install_synthesized_component(component_json: String, state: State<'_, 
     // Hot-register so the palette updates without a restart.
     let orchestrator = state.orchestrator.lock().await;
     orchestrator.install_component(&edn_path.to_string_lossy()).map_err(|e| e.to_string())
+}
+
+/// Resolve the git repo root from the components dir, so the agent's worktree
+/// is cut from the real checkout the app is running out of.
+fn repo_root_from(components_dir: &std::path::Path) -> Result<std::path::PathBuf, String> {
+    let out = std::process::Command::new("git")
+        .current_dir(components_dir)
+        .args(["rev-parse", "--show-toplevel"])
+        .output()
+        .map_err(|e| format!("git not available: {e}"))?;
+    if !out.status.success() {
+        return Err("not inside a git repository — the self-building agent needs one".to_string());
+    }
+    Ok(std::path::PathBuf::from(String::from_utf8_lossy(&out.stdout).trim().to_string()))
+}
+
+/// Start a self-building agent session: cut an isolated git worktree + branch
+/// off the live checkout. `mode` is "propose-approve" | "auto-apply" | "full".
+#[command]
+async fn agent_start(mode: String, state: State<'_, AppState>) -> Result<String, String> {
+    let mode: brainbuilder_core::agent::AutonomyMode =
+        serde_json::from_str(&format!("\"{mode}\"")).map_err(|_| format!("unknown autonomy mode `{mode}`"))?;
+    let repo_root = repo_root_from(&state.components_dir)?;
+    let session = brainbuilder_core::agent::AgentSession::create(&repo_root, mode).map_err(|e| e.to_string())?;
+    let json = serde_json::to_string(&session).map_err(|e| e.to_string())?;
+    *state.agent.lock().await = Some(session);
+    Ok(json)
+}
+
+/// The current agent session (isolated worktree/branch/mode), if any.
+#[command]
+async fn agent_status(state: State<'_, AppState>) -> Result<Option<String>, String> {
+    let guard = state.agent.lock().await;
+    match &*guard {
+        Some(s) => Ok(Some(serde_json::to_string(s).map_err(|e| e.to_string())?)),
+        None => Ok(None),
+    }
+}
+
+/// Run one agent step on the active session: hand `task` to OpenCode inside the
+/// sandboxed worktree, then run the test gate, then apply the mode's merge
+/// policy. Returns a JSON report {agent_output, diff, gate_passed, gate_output,
+/// merged}.
+#[command]
+async fn agent_run(task: String, selector: String, state: State<'_, AppState>) -> Result<String, String> {
+    let session = {
+        let guard = state.agent.lock().await;
+        guard.clone().ok_or_else(|| "no active agent session — start one first".to_string())?
+    };
+
+    // Blocking git/subprocess work off the async runtime.
+    let report = tokio::task::spawn_blocking(move || {
+        let agent_output = session.run_agent_step(&task, &selector).unwrap_or_else(|e| format!("[agent step error] {e}"));
+        let diff = session.diff().unwrap_or_default();
+        let gate = session.run_test_gate();
+
+        // Merge policy: propose never auto-merges; auto merges on green; full
+        // merges regardless (test failures still recorded in the gate output).
+        let mut merged = false;
+        if session.mode.merges_automatically() && (gate.passed || !session.mode.requires_green_tests()) {
+            if session.approve().is_ok() {
+                merged = true;
+            }
+        }
+
+        serde_json::json!({
+            "agent_output": agent_output,
+            "diff": diff,
+            "gate_passed": gate.passed,
+            "gate_output": gate.output,
+            "merged": merged,
+        })
+        .to_string()
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(report)
+}
+
+/// Approve (merge) the active session's work into the live checkout — the
+/// human gate for propose-approve mode.
+#[command]
+async fn agent_approve(state: State<'_, AppState>) -> Result<(), String> {
+    let session = {
+        let guard = state.agent.lock().await;
+        guard.clone().ok_or_else(|| "no active agent session".to_string())?
+    };
+    tokio::task::spawn_blocking(move || session.approve())
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())
+}
+
+/// Discard the active session's worktree + branch (a true undo — nothing was
+/// merged) and clear it.
+#[command]
+async fn agent_revert(state: State<'_, AppState>) -> Result<(), String> {
+    let session = {
+        let mut guard = state.agent.lock().await;
+        guard.take().ok_or_else(|| "no active agent session".to_string())?
+    };
+    tokio::task::spawn_blocking(move || session.revert())
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())
 }
 
 /// The task-first Intent layer's front door: given a goal (classify/regress)
@@ -611,6 +720,7 @@ fn main() {
             cluster: cluster_cell.clone(),
             observer_url: observer_cell.clone(),
             components_dir: components_dir.clone(),
+            agent: Mutex::new(None),
         })
         .setup(move |app| {
             setup_metrics_event(app)?;
@@ -641,6 +751,11 @@ fn main() {
             generate_graph,
             synthesize_component,
             install_synthesized_component,
+            agent_start,
+            agent_status,
+            agent_run,
+            agent_approve,
+            agent_revert,
             list_llm_providers,
             list_provider_models,
             set_provider_credentials,

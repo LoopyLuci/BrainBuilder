@@ -11,6 +11,7 @@ pub mod llm;
 pub mod intent;
 pub mod diagnostics;
 pub mod synthesis;
+pub mod agent;
 
 use std::sync::Arc;
 

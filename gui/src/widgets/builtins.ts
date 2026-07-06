@@ -11,6 +11,7 @@ import { LLMAuthor } from '../llm/LLMAuthor';
 import { ModelHub } from '../models/ModelHub';
 import { IntentPanel } from '../intent/IntentPanel';
 import { SynthesizePanel } from '../synthesis/SynthesizePanel';
+import { AgentPanel } from '../agent/AgentPanel';
 import { PluginsPanel } from './PluginsPanel';
 
 // Registers all first-party panels as widgets. This replaces the hardcoded
@@ -28,6 +29,7 @@ export function registerBuiltinWidgets() {
   registerWidget({ id: 'author', title: 'Author', slot: 'side', component: LLMAuthor, order: 40 });
   registerWidget({ id: 'synthesize', title: 'Synthesize', slot: 'side', component: SynthesizePanel, order: 45 });
   registerWidget({ id: 'models', title: 'Models', slot: 'side', component: ModelHub, order: 50 });
+  registerWidget({ id: 'agent', title: 'Agent', slot: 'side', component: AgentPanel, order: 55 });
   registerWidget({ id: 'plugins', title: 'Plugins', slot: 'side', component: PluginsPanel, order: 60 });
 
   // Bottom rail (tabs).
