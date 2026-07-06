@@ -127,46 +127,60 @@ mod imp {
     /// Rewraps `command` to run under a real `sandbox-exec` profile built
     /// from `caps` (deny-by-default: only `caps.read_paths()` plus the
     /// minimal system paths a dynamically-linked executable needs to start
-    /// are readable; network denied unless `caps.network_allowed()`), then
-    /// applies the same process-group + `RLIMIT_AS` hardening as other Unix
-    /// targets as defense in depth alongside the sandbox profile.
+    /// are readable; network denied unless `caps.network_allowed()`).
     ///
-    /// `sandbox-exec -p <profile> -- <program> <args>` applies the profile
-    /// via `sandbox_init` and then `execve`s the target *in the same
+    /// `sandbox-exec -f <profile-file> -- <program> <args>` applies the
+    /// profile via `sandbox_init` and then `execve`s the target *in the same
     /// process* (no extra fork) — transparent to whatever stdio/env the
-    /// caller has already configured on `command`, regardless of whether
-    /// that configuration happens before or after this call.
-    pub fn harden_before_spawn(command: &mut Command, memory_limit_bytes: Option<u64>, caps: &Capabilities) {
+    /// caller has already configured on `command`. The profile is written to
+    /// a real file rather than passed inline via `-p`: this is the
+    /// conventional, widely-used form (WebKit/Chromium's own sandboxes use
+    /// it) and avoids `-p`'s inline-string argv handling, which real-machine
+    /// testing on a macOS CI runner showed intermittently failing the
+    /// *outer* `sandbox-exec` spawn itself (an `EINVAL` from `Command::spawn`
+    /// before the target ever ran) specifically when a real, existing
+    /// granted subpath was present in the profile.
+    ///
+    /// Deliberately does *not* also install the `RLIMIT_AS` `pre_exec` hook
+    /// the other Unix targets get: `pre_exec` forces Rust's std off the
+    /// `posix_spawn` fast path and onto real `fork()`+`exec()`, which is
+    /// unsafe to do from a process running multiple threads (a fork mid-way
+    /// through another thread's malloc/IO critical section can corrupt the
+    /// child) — real-machine testing hit exactly that failure mode. Seatbelt
+    /// has no native memory-ceiling primitive, so this is a genuine,
+    /// documented gap on macOS specifically: sandboxed file/network access is
+    /// enforced, a memory ceiling is not (Windows and Linux both still
+    /// enforce one).
+    pub fn harden_before_spawn(command: &mut Command, _memory_limit_bytes: Option<u64>, caps: &Capabilities) {
         let profile = sandbox_profile(caps);
+        let profile_path =
+            std::env::temp_dir().join(format!("bb_sandbox_{}_{}.sb", std::process::id(), profile_id()));
+        // Best-effort: if the write fails, fall back to running unsandboxed
+        // rather than failing the whole spawn outright — matches this
+        // module's existing "hardening unavailable isn't a hard error"
+        // convention (see `JobObject::new`'s doc comment).
+        if std::fs::write(&profile_path, &profile).is_err() {
+            command.process_group(0);
+            return;
+        }
+
         let program = command.get_program().to_os_string();
         let args: Vec<OsString> = command.get_args().map(|a| a.to_os_string()).collect();
 
         let mut wrapped = Command::new("sandbox-exec");
-        wrapped.arg("-p").arg(profile).arg("--").arg(program).args(args);
+        wrapped.arg("-f").arg(&profile_path).arg("--").arg(program).args(args);
         *command = wrapped;
 
-        // Same containment as the generic Unix path (see the non-macOS Unix
-        // `imp` module below): private process group for a whole-tree kill,
-        // and a pre-exec RLIMIT_AS ceiling.
+        // `process_group(0)` alone doesn't force the fork()+exec() fallback
+        // (Rust maps it to a posix_spawn attribute), so this stays on the
+        // safe posix_spawn path.
         command.process_group(0);
-        if let Some(limit) = memory_limit_bytes {
-            // Safety: the closure only calls `setrlimit`, an async-signal-safe
-            // syscall — no allocation, no locking, satisfying `pre_exec`'s
-            // requirement that the closure be safe to run between fork and
-            // exec in the child.
-            unsafe {
-                command.pre_exec(move || {
-                    let rlim = libc::rlimit {
-                        rlim_cur: limit as libc::rlim_t,
-                        rlim_max: limit as libc::rlim_t,
-                    };
-                    if libc::setrlimit(libc::RLIMIT_AS, &rlim) != 0 {
-                        return Err(std::io::Error::last_os_error());
-                    }
-                    Ok(())
-                });
-            }
-        }
+    }
+
+    fn profile_id() -> u64 {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        COUNTER.fetch_add(1, Ordering::Relaxed)
     }
 
     /// A minimal, real Seatbelt profile: deny everything by default, then

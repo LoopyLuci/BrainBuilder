@@ -192,14 +192,18 @@ mod tests {
         cmd
     }
 
-    // Unix-only: proves `harden_before_spawn`'s `RLIMIT_AS` ceiling is a real
-    // kernel-enforced constraint, not just plumbing. A memory limit far below
-    // what even loading a dynamic-linked shell needs (`/bin/sh`'s own runtime
-    // image + linker) makes the child fail during exec/startup itself, before
-    // it can run any code — the observable proof this repo's own comments
-    // (job_object.rs, supervisor.rs) flagged as "written but unverified on a
-    // real Linux/macOS machine".
-    #[cfg(not(windows))]
+    // Linux (and other non-Apple Unix) only: proves `harden_before_spawn`'s
+    // `RLIMIT_AS` ceiling is a real kernel-enforced constraint, not just
+    // plumbing. A memory limit far below what even loading a dynamic-linked
+    // shell needs (`/bin/sh`'s own runtime image + linker) makes the child
+    // fail during exec/startup itself, before it can run any code — the
+    // observable proof this repo's own comments (job_object.rs,
+    // supervisor.rs) flagged as "written but unverified on a real Linux
+    // machine". Not run on macOS: its `harden_before_spawn` deliberately
+    // doesn't install this pre_exec hook (see job_object.rs's macOS `imp`
+    // module doc comment for why), relying on the `sandbox-exec` profile
+    // instead.
+    #[cfg(all(unix, not(target_os = "macos")))]
     #[test]
     fn rlimit_as_ceiling_is_enforced_by_the_kernel_on_unix() {
         let _guard = SPAWN_TEST_GUARD.lock().unwrap();
