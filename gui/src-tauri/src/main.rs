@@ -307,6 +307,56 @@ async fn install_synthesized_component(component_json: String, state: State<'_, 
     orchestrator.install_component(&edn_path.to_string_lossy()).map_err(|e| e.to_string())
 }
 
+/// Auto-tuning: given a graph, sweep a small grid of training configs, run each
+/// as a real (short) training trial, and return the trials ranked by final
+/// loss — so a zero-knowledge user gets a config that already works instead of
+/// guessing. Each trial's metrics still stream to the dashboard as it runs.
+#[command]
+async fn autotune(graph_json: String, budget: usize, state: State<'_, AppState>) -> Result<String, String> {
+    use brainbuilder_core::autotune;
+
+    let graph: BBIRGraph = serde_json::from_str(&graph_json).map_err(|e| e.to_string())?;
+    let base = graph
+        .training
+        .clone()
+        .ok_or_else(|| "graph has no training config to tune".to_string())?;
+
+    let space = autotune::SearchSpace::default_around(&base);
+    let candidates = autotune::candidate_configs(&base, &space, budget.max(1));
+
+    let mut results = Vec::new();
+    for (index, cfg) in candidates.into_iter().enumerate() {
+        let mut trial_graph = graph.clone();
+        let batch_size = cfg.data_source.batch_size;
+        let optimizer = cfg.optimizer.clone();
+        let learning_rate = autotune::lr_of(&cfg);
+        trial_graph.training = Some(cfg);
+
+        // Capture the final loss by draining the metrics broadcast this trial
+        // emits. Trials run sequentially, so points don't interleave.
+        let mut rx = subscribe_metrics();
+        let orchestrator = state.orchestrator.lock().await;
+        let run = orchestrator.execute_graph(trial_graph).await;
+        drop(orchestrator);
+
+        let score = match run {
+            Ok(()) => {
+                let mut last = None;
+                while let Ok(point) = rx.try_recv() {
+                    last = Some(point.loss);
+                }
+                last
+            }
+            Err(_) => None,
+        };
+
+        results.push(autotune::TrialResult { index, learning_rate, batch_size, optimizer, score });
+    }
+
+    let ranked = autotune::rank(&results);
+    serde_json::to_string(&ranked).map_err(|e| e.to_string())
+}
+
 /// Resolve the git repo root from the components dir, so the agent's worktree
 /// is cut from the real checkout the app is running out of.
 fn repo_root_from(components_dir: &std::path::Path) -> Result<std::path::PathBuf, String> {
@@ -756,6 +806,7 @@ fn main() {
             agent_run,
             agent_approve,
             agent_revert,
+            autotune,
             list_llm_providers,
             list_provider_models,
             set_provider_credentials,

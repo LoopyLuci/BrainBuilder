@@ -138,3 +138,20 @@ export async function installSynthesizedComponent(result: SynthesisResult): Prom
   });
   return invoke('install_synthesized_component', { componentJson });
 }
+
+// --- Auto-tuning ---
+
+export interface TrialResult {
+  index: number;
+  learning_rate: number | null;
+  batch_size: number;
+  optimizer: string;
+  score: number | null;
+}
+
+// Sweep a small grid of training configs, running each as a real short trial,
+// and return them ranked best-first (lowest final loss). `graphJson` is the
+// full BBIR graph (with a training config).
+export async function autotune(graphJson: string, budget: number): Promise<TrialResult[]> {
+  return JSON.parse(await invoke<string>('autotune', { graphJson, budget }));
+}

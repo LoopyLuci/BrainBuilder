@@ -12,6 +12,7 @@ pub mod intent;
 pub mod diagnostics;
 pub mod synthesis;
 pub mod agent;
+pub mod autotune;
 
 use std::sync::Arc;
 

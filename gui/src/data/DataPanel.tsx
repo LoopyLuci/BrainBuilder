@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { open } from '@tauri-apps/api/dialog';
 import { previewDataset, DatasetPreview } from '../api/tauri';
+import { autotune, TrialResult } from '../api/models';
+import { convertToBBIR } from '../canvas/utils';
 import { useGraphStore } from '../state/graphStore';
+import { logError, logInfo } from '../console/logStore';
 import { Panel } from '../ui/Panel';
 import { Button } from '../ui/Button';
 
@@ -61,6 +64,38 @@ export function DataPanel() {
     } catch (e) {
       setError(String(e));
       setPreview(null);
+    }
+  };
+
+  const edges = useGraphStore((s) => s.edges);
+  const graphId = useGraphStore((s) => s.graphId);
+  const [tuning, setTuning] = useState(false);
+  const [trials, setTrials] = useState<TrialResult[] | null>(null);
+
+  const runAutotune = async () => {
+    setTuning(true);
+    setTrials(null);
+    try {
+      const graphJson = JSON.stringify(convertToBBIR(nodes, edges, graphId, 'untitled', training));
+      const ranked = await autotune(graphJson, 8);
+      setTrials(ranked);
+      const best = ranked.find((t) => t.score !== null);
+      if (best) {
+        // Apply the winning config so the user can just train with it.
+        setTraining({
+          ...training,
+          optimizer: best.optimizer,
+          hyperparams: { ...training.hyperparams, lr: best.learning_rate ?? training.hyperparams?.lr },
+          data_source: { ...training.data_source, batch_size: best.batch_size },
+        });
+        logInfo(`Auto-tune picked lr=${best.learning_rate}, ${best.optimizer}, batch=${best.batch_size} (loss ${best.score?.toFixed(4)}).`);
+      } else {
+        logError('Auto-tune finished but no trial produced a usable result.');
+      }
+    } catch (e) {
+      logError(`Auto-tune failed: ${e}`);
+    } finally {
+      setTuning(false);
     }
   };
 
@@ -187,6 +222,24 @@ export function DataPanel() {
             setTraining({ ...training, data_source: { ...training.data_source, batch_size: Number(e.target.value) } })
           }
         />
+      </div>
+
+      <div style={{ borderTop: '1px solid var(--border, rgba(0,0,0,0.1))', paddingTop: 8, marginTop: 4 }}>
+        <p className="bb-text-muted" style={{ margin: '0 0 6px' }}>
+          Not sure what to pick? Auto-tune runs a few short trials and applies the config that trains best.
+        </p>
+        <Button variant="secondary" onClick={runAutotune} disabled={tuning || nodes.length === 0}>
+          {tuning ? 'Tuning…' : 'Auto-tune'}
+        </Button>
+        {trials && (
+          <ul className="bb-list" style={{ marginTop: 6 }}>
+            {trials.slice(0, 4).map((t) => (
+              <li key={t.index} className="bb-list-item bb-text-muted" style={{ fontSize: 11, fontFamily: 'var(--font-mono)' }}>
+                lr={t.learning_rate} {t.optimizer} batch={t.batch_size} → {t.score === null ? 'failed' : `loss ${t.score.toFixed(4)}`}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </Panel>
   );
