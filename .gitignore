@@ -1,0 +1,29 @@
+# Rust
+/target
+Cargo.lock.bak
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Node / frontend
+gui/node_modules
+gui/dist
+gui/src-tauri/target
+
+# Tauri build artifacts
+gui/src-tauri/gen
+
+# Local run artifacts — real user data, not source
+checkpoints/
+provenance.sqlite3
+*.sqlite3-journal
+
+# CI/CD pipeline reports (scripts/ci/pipeline.mjs) — local run history, not source
+ci-reports/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
