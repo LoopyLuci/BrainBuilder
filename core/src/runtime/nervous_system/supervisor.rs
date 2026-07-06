@@ -145,7 +145,21 @@ impl Supervisor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
     use std::time::Duration;
+
+    // Every test below that actually forks a child (anything using
+    // `Command::spawn` combined with `pre_exec`/`process_group`, which forces
+    // Rust's std off the posix_spawn fast path and onto real fork()+exec())
+    // takes this lock first. Rust's test harness runs tests in parallel
+    // threads by default, and forking while another thread holds some
+    // library's internal lock (malloc, etc.) is a well-known real hazard —
+    // observed directly on a macOS CI runner as a one-off `cat` exec failing
+    // with EINVAL while a structurally identical sibling test passed in the
+    // same run. Serializing just these tests against each other (unrelated
+    // non-spawning tests elsewhere still run concurrently) removes that race
+    // without masking a real defect.
+    static SPAWN_TEST_GUARD: Mutex<()> = Mutex::new(());
 
     #[test]
     fn denies_a_command_touching_an_ungranted_path() {
@@ -157,6 +171,7 @@ mod tests {
 
     #[test]
     fn kills_a_process_that_exceeds_its_timeout() {
+        let _guard = SPAWN_TEST_GUARD.lock().unwrap();
         let caps = Capabilities::none().with_timeout(Duration::from_millis(200));
         let mut cmd = long_running_command();
         let result = Supervisor::run_checked(&mut cmd, &caps, &[], None);
@@ -187,6 +202,7 @@ mod tests {
     #[cfg(not(windows))]
     #[test]
     fn rlimit_as_ceiling_is_enforced_by_the_kernel_on_unix() {
+        let _guard = SPAWN_TEST_GUARD.lock().unwrap();
         let caps = Capabilities::none().with_memory_limit(64 * 1024); // 64 KiB
         let mut cmd = Command::new("/bin/sh");
         cmd.args(["-c", "echo should_not_run"]);
@@ -207,6 +223,7 @@ mod tests {
     #[cfg(not(windows))]
     #[test]
     fn kill_process_tree_reaches_a_grandchild_via_the_process_group() {
+        let _guard = SPAWN_TEST_GUARD.lock().unwrap();
         let marker = std::env::temp_dir().join(format!("bb_pgrp_test_{}", std::process::id()));
         let _ = std::fs::remove_file(&marker);
 
@@ -236,6 +253,7 @@ mod tests {
     #[cfg(target_os = "macos")]
     #[test]
     fn sandbox_exec_allows_reading_a_path_the_capability_grants() {
+        let _guard = SPAWN_TEST_GUARD.lock().unwrap();
         let dir = std::env::temp_dir().join(format!("bb_sbx_allow_{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let file = dir.join("ok.txt");
@@ -257,6 +275,7 @@ mod tests {
     #[cfg(target_os = "macos")]
     #[test]
     fn sandbox_exec_denies_reading_a_path_outside_the_grant() {
+        let _guard = SPAWN_TEST_GUARD.lock().unwrap();
         let allowed = std::env::temp_dir().join(format!("bb_sbx_ok_{}", std::process::id()));
         let denied = std::env::temp_dir().join(format!("bb_sbx_deny_{}", std::process::id()));
         std::fs::create_dir_all(&allowed).unwrap();
