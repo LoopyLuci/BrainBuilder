@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import { MetricPoint } from '../api/metrics';
+import { Diagnostic, diagnoseTraining } from '../api/tauri';
+import { DiagnosticsList } from '../intent/DiagnosticsList';
 import { Panel } from '../ui/Panel';
 
 const WIDTH = 400;
@@ -44,6 +46,7 @@ function LossChart({ points }: { points: MetricPoint[] }) {
 
 export function TrainingDashboard() {
   const [metrics, setMetrics] = useState<MetricPoint[]>([]);
+  const [trainingDiags, setTrainingDiags] = useState<Diagnostic[]>([]);
 
   useEffect(() => {
     const unlisten = listen<MetricPoint>('metrics-update', (event) => {
@@ -58,6 +61,21 @@ export function TrainingDashboard() {
       unlisten.then((fn) => fn());
     };
   }, []);
+
+  // Interpret the loss curve in plain English, debounced so rapid metric
+  // updates coalesce into one check (each new point resets the timer, so the
+  // analysis runs ~0.6s after training pauses or finishes).
+  useEffect(() => {
+    if (metrics.length < 3) {
+      setTrainingDiags([]);
+      return;
+    }
+    const losses = metrics.map((m) => m.loss);
+    const timer = setTimeout(() => {
+      diagnoseTraining(losses).then(setTrainingDiags).catch(() => {});
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [metrics]);
 
   const latest = metrics[metrics.length - 1];
   const first = metrics[0];
@@ -77,6 +95,11 @@ export function TrainingDashboard() {
                 : '↑ loss increasing'}
             </div>
           )}
+        </div>
+      )}
+      {trainingDiags.length > 0 && (
+        <div style={{ marginTop: 10 }}>
+          <DiagnosticsList diagnostics={trainingDiags} />
         </div>
       )}
     </Panel>

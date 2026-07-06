@@ -38,8 +38,12 @@ impl super::trainer::Trainer for StandardTrainer {
 
         // Learned parameters persist across the whole training loop (every
         // epoch, every batch) — a fresh optimizer/weight init per batch
-        // would never converge.
-        let mut weights: HashMap<String, Tensor> = HashMap::new();
+        // would never converge. Seeded from any pretrained weights the plan
+        // loaded (transfer learning): those ports start from the real
+        // pretrained tensor instead of `torch.randn`, and frozen ones (a
+        // `lora_linear` base `weight`) are never handed to the optimizer, so
+        // they stay fixed while the adapters/head learn.
+        let mut weights: HashMap<String, Tensor> = plan.preset_weights.clone();
         let mut step = 0usize;
 
         let epochs = plan.epochs;

@@ -52,6 +52,11 @@ memmap2 = "0.9"
 # Real local LLM authoring (llm::ollama) — a plain HTTP client against
 # Ollama's local REST API (http://localhost:11434), no cloud dependency.
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+# Real image decoding/resizing for folder-of-images ingestion (data::vision) —
+# turns a personal photo library into trainable tensors. Default features are
+# disabled and only the common personal-photo formats are enabled, to keep the
+# dependency footprint (and codec attack surface on user-supplied files) small.
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "bmp", "gif"] }
 
 # Windows Job Objects (nervous_system::JobObject) — real OS-level process
 # containment for sandboxed subprocesses.

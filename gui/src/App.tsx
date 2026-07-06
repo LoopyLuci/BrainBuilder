@@ -10,6 +10,7 @@ import { PredictPanel } from './predict/PredictPanel';
 import { ClusterConsole } from './cluster/ClusterConsole';
 import { LLMAuthor } from './llm/LLMAuthor';
 import { ModelHub } from './models/ModelHub';
+import { IntentPanel } from './intent/IntentPanel';
 import { Header } from './shell/Header';
 import { Tabs } from './ui/Tabs';
 
@@ -24,6 +25,7 @@ function App() {
           <div className="side-rail">
             <Tabs
               tabs={[
+                { id: 'build', label: 'Build', content: <IntentPanel /> },
                 { id: 'inspector', label: 'Inspector', content: <Inspector /> },
                 { id: 'data', label: 'Data', content: <DataPanel /> },
                 { id: 'author', label: 'Author', content: <LLMAuthor /> },

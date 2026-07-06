@@ -17,6 +17,14 @@ pub struct ExecutionPlan {
     pub graph: BBIRGraph,
     pub operations: Vec<ExecutableOp>,
     pub device_assignments: std::collections::HashMap<String, String>,
+    /// Parameter ports pre-seeded from a real pretrained file (transfer
+    /// learning): keyed by the same namespaced port name the trainer binds
+    /// (`node_id:port`), value is the loaded tensor. The trainer starts its
+    /// weight map from these instead of random-initializing them; for a port
+    /// the descriptor marks non-trainable (e.g. `lora_linear`'s base
+    /// `weight`), the optimizer never touches it, so it stays frozen — a real
+    /// frozen pretrained backbone with trainable adapters/head around it.
+    pub preset_weights: std::collections::HashMap<String, Tensor>,
     arena: Arc<SharedArena>,
 }
 
@@ -634,11 +642,85 @@ pub fn compile(graph: &BBIRGraph, ctx: &AppContext) -> Result<ExecutionPlan> {
         .map(|e| e as usize)
         .unwrap_or(10);
 
+    let preset_weights = load_preset_weights(graph, &ops, ctx.arena.as_ref())?;
+
     Ok(ExecutionPlan {
         epochs,
         graph: graph.clone(),
         operations: ops,
         device_assignments: std::collections::HashMap::new(),
+        preset_weights,
         arena: ctx.arena.clone(),
     })
+}
+
+/// Load any pretrained weights a node asked for into the plan's
+/// `preset_weights`, keyed by the namespaced parameter port the trainer binds.
+/// A node opts in with a `pretrained` hyperparameter:
+///
+/// ```json
+/// "pretrained": { "file": "model.safetensors", "tensor": "encoder.weight", "port": "weight" }
+/// ```
+///
+/// `port` defaults to `"weight"`. This is the transfer-learning seam: pair it
+/// with a `lora_linear` node (whose base `weight` is non-trainable) and the
+/// loaded tensor becomes a real frozen pretrained layer, adapted by the LoRA
+/// parameters the optimizer *does* train. The loaded tensor's shape is checked
+/// against the port's descriptor-resolved shape (when known) so a mismatched
+/// pretrained tensor fails loudly at compile time, not deep inside the worker.
+fn load_preset_weights(
+    graph: &BBIRGraph,
+    ops: &[ExecutableOp],
+    arena: &SharedArena,
+) -> Result<std::collections::HashMap<String, Tensor>> {
+    let err = |msg: String| crate::interop::protocol::BrainBuilderError::ConfigError(msg);
+    let mut preset = std::collections::HashMap::new();
+
+    for node in &graph.nodes {
+        let Some(pretrained) = node.hyperparams.get("pretrained") else {
+            continue;
+        };
+        // Ignore a `null`/absent value gracefully (a GUI may serialize the
+        // key with no value); only act on a real object.
+        let Some(spec) = pretrained.as_object() else {
+            continue;
+        };
+        let file = spec
+            .get("file")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| err(format!("node `{}` has a `pretrained` block without a string `file`", node.id)))?;
+        let tensor_name = spec
+            .get("tensor")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| err(format!("node `{}` has a `pretrained` block without a string `tensor`", node.id)))?;
+        let port = spec.get("port").and_then(|v| v.as_str()).unwrap_or("weight");
+
+        let loaded = crate::models::safetensors_loader::load_named_tensors(
+            std::path::Path::new(file),
+            &[tensor_name],
+            arena,
+        )?;
+        let loaded_tensor = loaded
+            .get(tensor_name)
+            .ok_or_else(|| err(format!("pretrained tensor `{tensor_name}` not found in `{file}`")))?;
+
+        let key = format!("{}:{}", node.id, port);
+
+        // If the descriptor + hyperparameters pinned an exact shape for this
+        // port, the pretrained tensor must match it.
+        if let Some(op) = ops.iter().find(|o| o.node_id == node.id) {
+            if let Some(expected) = op.resolved_param_shapes.get(&key) {
+                if expected != &loaded_tensor.shape {
+                    return Err(err(format!(
+                        "pretrained tensor `{tensor_name}` has shape {:?}, but node `{}` port `{port}` expects {:?}",
+                        loaded_tensor.shape, node.id, expected
+                    )));
+                }
+            }
+        }
+
+        preset.insert(key, loaded_tensor.tensor.clone());
+    }
+
+    Ok(preset)
 }

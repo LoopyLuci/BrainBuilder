@@ -29,6 +29,12 @@ export interface DataSourceConfig {
   // hyperparameter (not auto-synced yet).
   sequence_length?: number;
   vocab_size?: number;
+  // Only meaningful when source_type === "image_folder" — see core/src/data/vision.rs.
+  image_size?: number;
+  grayscale?: boolean;
+  // Only meaningful when source_type === "text_column" — see core/src/data/tabular_text.rs.
+  text_column?: string;
+  label_column?: string;
 }
 
 export interface TrainingConfig {
@@ -79,6 +85,80 @@ export async function validateGraph(graph: BBIRGraph): Promise<void> {
 
 export async function getComponents(): Promise<string[]> {
   return invoke('get_components');
+}
+
+// --- Task-first Intent layer (core/src/intent.rs) ---------------------------
+// The on-ramp for someone who thinks in outcomes, not graphs: pick a task,
+// point at data, get back a validated, trainable model proposal.
+
+export type TaskKind = 'classification' | 'regression';
+
+export interface DataSpec {
+  source_type: string; // 'image_folder' | 'text_column' | 'file'
+  path: string;
+  image_size?: number;
+  grayscale?: boolean;
+  text_column?: string;
+  label_column?: string;
+  vocab_size?: number;
+}
+
+export interface IntentRequest {
+  task: TaskKind;
+  data: DataSpec;
+}
+
+export interface ProposedModel {
+  graph: BBIRGraph;
+  class_names: string[];
+  feature_count: number;
+  num_outputs: number;
+  rationale: string;
+}
+
+// Inspect the real data and return a validated, ready-to-train model proposal.
+// Throws (rejects) with a plain-English message if the data can't support the
+// chosen task (e.g. only one class for classification).
+export async function proposeModel(request: IntentRequest): Promise<ProposedModel> {
+  const json = await invoke<string>('propose_model', { requestJson: JSON.stringify(request) });
+  return JSON.parse(json);
+}
+
+export interface TransferRequest {
+  task: TaskKind;
+  data: DataSpec;
+  pretrained_file: string;
+  pretrained_tensor: string;
+}
+
+// Adapt a real pretrained .safetensors backbone (frozen) to the user's data
+// with a fresh trainable head. Rejects with a plain-English message if the
+// backbone's input dimension doesn't match the data's feature count.
+export async function proposeTransferModel(request: TransferRequest): Promise<ProposedModel> {
+  const json = await invoke<string>('propose_transfer_model', { requestJson: JSON.stringify(request) });
+  return JSON.parse(json);
+}
+
+// --- Plain-English diagnostics (core/src/diagnostics.rs) --------------------
+
+export type DiagnosticSeverity = 'error' | 'warning' | 'info';
+
+export interface Diagnostic {
+  severity: DiagnosticSeverity;
+  title: string;
+  explanation: string;
+  suggestion: string;
+}
+
+// Data-time checks (class imbalance, tiny classes, feature/target leakage) run
+// against the real data before training.
+export async function diagnoseData(request: IntentRequest): Promise<Diagnostic[]> {
+  return invoke('diagnose_data', { requestJson: JSON.stringify(request) });
+}
+
+// Training-time check: interpret a loss curve in plain English.
+export async function diagnoseTraining(losses: number[]): Promise<Diagnostic[]> {
+  return invoke('diagnose_training', { losses });
 }
 
 export async function getComponentDescriptors(): Promise<ComponentSummary[]> {

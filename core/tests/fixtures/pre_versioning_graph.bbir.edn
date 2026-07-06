@@ -1,0 +1,1 @@
+{:graph-id "legacy-0001", :name "pre-versioning-example", :nodes [{:id "n1", :component "scale", :label "Scale", :hyperparams {}, :ports { :input-ports ["x", "w"], :output-ports ["y"], }, :position {:x 250, :y 150, }, }], :edges [], :training nil, }

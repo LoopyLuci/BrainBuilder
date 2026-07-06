@@ -202,6 +202,27 @@ pub struct DataSourceConfig {
     /// step, not a silent gap.
     #[serde(default)]
     pub vocab_size: Option<usize>,
+    /// Only meaningful when `source_type == "image_folder"`: the square edge
+    /// length every image is resized to before flattening into feature
+    /// columns (see `data::vision`). `None` uses the personal-first default
+    /// (32). The downstream classifier's `in_features` must equal
+    /// `image_size^2 * channels`; the Intent layer sizes this automatically.
+    #[serde(default)]
+    pub image_size: Option<usize>,
+    /// Only meaningful when `source_type == "image_folder"`: collapse images
+    /// to a single grayscale channel instead of 3 RGB channels. `None` = RGB.
+    #[serde(default)]
+    pub grayscale: Option<bool>,
+    /// Only meaningful when `source_type == "text_column"`: which column of a
+    /// tabular file holds the free text to tokenize (everything else is
+    /// treated as usual). Paired with `vocab_size`/`sequence_length`.
+    #[serde(default)]
+    pub text_column: Option<String>,
+    /// Only meaningful when `source_type == "text_column"`: which column holds
+    /// the class label for each row. If absent, the last column is the target
+    /// (the same last-column-is-target convention the trainer already uses).
+    #[serde(default)]
+    pub label_column: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

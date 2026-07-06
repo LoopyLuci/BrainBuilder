@@ -8,6 +8,8 @@ pub mod data;
 pub mod utils;
 pub mod models;
 pub mod llm;
+pub mod intent;
+pub mod diagnostics;
 
 use std::sync::Arc;
 

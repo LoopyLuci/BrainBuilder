@@ -2,6 +2,16 @@
    component in the app should compose from these classes instead of inline
    styles, so visual changes happen in one place. */
 
+/* ---------- Card ---------- */
+/* A subtle inset surface for grouping a result/summary inside a panel
+   (e.g. the Intent layer's model-proposal readout). */
+.bb-card {
+  padding: var(--space-3);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
 /* ---------- Panel ---------- */
 .bb-panel {
   padding: var(--space-3);

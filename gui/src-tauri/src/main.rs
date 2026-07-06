@@ -159,6 +159,75 @@ async fn generate_graph(description: String, model: String, state: State<'_, App
     serde_json::to_string(&graph).map_err(|e| e.to_string())
 }
 
+/// The task-first Intent layer's front door: given a goal (classify/regress)
+/// and a pointer at real data, inspect the data and return a validated,
+/// trainable model proposal — the on-ramp for someone who thinks in outcomes,
+/// not graphs. Returns the whole `ProposedModel` (graph + class names + sizes
+/// + a plain-English rationale) as JSON.
+///
+/// Same non-`Send` registry-lock dance as `generate_graph`: inspect the data
+/// asynchronously (through DataFusion) with no lock held, then acquire the
+/// registry guard only for the synchronous, no-await finalize + validate step.
+#[command]
+async fn propose_model(request_json: String, state: State<'_, AppState>) -> Result<String, String> {
+    let request: brainbuilder_core::intent::IntentRequest =
+        serde_json::from_str(&request_json).map_err(|e| e.to_string())?;
+
+    let shape = brainbuilder_core::intent::inspect_data(&request).await.map_err(|e| e.to_string())?;
+
+    let orchestrator = state.orchestrator.lock().await;
+    let registry = orchestrator
+        .context
+        .registry
+        .read()
+        .map_err(|_| "component registry lock poisoned".to_string())?;
+    let proposal =
+        brainbuilder_core::intent::finalize_proposal(&request, shape, &registry).map_err(|e| e.to_string())?;
+    serde_json::to_string(&proposal).map_err(|e| e.to_string())
+}
+
+/// Transfer-learning front door: adapt a real pretrained `.safetensors`
+/// backbone to the user's data (frozen backbone + fresh trainable head).
+/// Returns a validated `ProposedModel` as JSON. Same non-`Send` registry-lock
+/// split as `propose_model`: inspect the file + data asynchronously, then
+/// finalize + validate under the lock with no await.
+#[command]
+async fn propose_transfer_model(request_json: String, state: State<'_, AppState>) -> Result<String, String> {
+    let request: brainbuilder_core::intent::TransferRequest =
+        serde_json::from_str(&request_json).map_err(|e| e.to_string())?;
+
+    let shape = brainbuilder_core::intent::inspect_transfer(&request).await.map_err(|e| e.to_string())?;
+
+    let orchestrator = state.orchestrator.lock().await;
+    let registry = orchestrator
+        .context
+        .registry
+        .read()
+        .map_err(|_| "component registry lock poisoned".to_string())?;
+    let proposal = brainbuilder_core::intent::finalize_transfer(&request, shape, &registry).map_err(|e| e.to_string())?;
+    serde_json::to_string(&proposal).map_err(|e| e.to_string())
+}
+
+/// Data-time diagnostics: read the real data the user pointed at and return a
+/// plain-English list of statistical problems (class imbalance, tiny classes,
+/// numeric feature/target leakage) before they commit to a training run — the
+/// "will this even work?" check that shape validation can't give. No registry
+/// needed, so it's purely async I/O.
+#[command]
+async fn diagnose_data(request_json: String) -> Result<Vec<brainbuilder_core::diagnostics::Diagnostic>, String> {
+    let request: brainbuilder_core::intent::IntentRequest =
+        serde_json::from_str(&request_json).map_err(|e| e.to_string())?;
+    brainbuilder_core::intent::diagnose_data(&request).await.map_err(|e| e.to_string())
+}
+
+/// Training-time diagnostics: interpret a loss curve in plain English (diverged
+/// / not learning / learning well) with a concrete suggested fix. Pure — the
+/// GUI passes the losses it already streamed from the Metrics tab.
+#[command]
+async fn diagnose_training(losses: Vec<f32>) -> Result<Vec<brainbuilder_core::diagnostics::Diagnostic>, String> {
+    Ok(brainbuilder_core::diagnostics::analyze_loss_curve(&losses))
+}
+
 /// Real local models already on this machine: the HuggingFace hub cache
 /// (always scanned), plus any user-configured extra directories (e.g. a
 /// personal `D:\Models\general` folder that isn't hub-cache-shaped — see
@@ -424,6 +493,10 @@ fn main() {
             get_distributed_training_status,
             get_observer_url,
             generate_graph,
+            propose_model,
+            propose_transfer_model,
+            diagnose_data,
+            diagnose_training,
             list_local_models,
             inspect_safetensors,
             inspect_onnx,

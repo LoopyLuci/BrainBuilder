@@ -76,6 +76,10 @@ fn edn_roundtrip_preserves_numeric_hyperparams() {
                 preprocessing: vec![],
                 sequence_length: None,
                 vocab_size: None,
+                image_size: None,
+                grayscale: None,
+                text_column: None,
+                label_column: None,
             },
             reproducibility: None,
         }),
@@ -89,21 +93,26 @@ fn edn_roundtrip_preserves_numeric_hyperparams() {
     assert_eq!(hyperparams.get("epochs").and_then(|v| v.as_i64()), Some(30));
 }
 
-/// Real backward-compatibility check: the app's own bundled first-run
-/// example (`gui/examples/first_run.bbir.edn`) was saved before
-/// `schema_version` existed at all — no `:schema-version` key anywhere in
-/// the file. A person's real graphs saved before this change look exactly
-/// like this. `BBIRGraph::from_edn` must still parse it (defaulting to
-/// version 1, the only format that predates the field) rather than erroring
-/// out or panicking the moment an older save is opened in a newer build.
+/// Real backward-compatibility check: a graph saved before `schema_version`
+/// existed at all — no `:schema-version` key anywhere in the file. A person's
+/// real graphs saved before this change look exactly like this.
+/// `BBIRGraph::from_edn` must still parse it (defaulting to version 1, the
+/// only format that predates the field) rather than erroring out or panicking
+/// the moment an older save is opened in a newer build.
+///
+/// This uses a dedicated, frozen fixture (`fixtures/pre_versioning_graph.bbir.edn`)
+/// rather than the shipped `gui/examples/first_run.bbir.edn`, because the app
+/// now *writes* `:schema-version` — so the bundled example legitimately gets
+/// regenerated with the field, which would silently invalidate the "genuinely
+/// predates the field" premise. A frozen fixture can't drift.
 #[test]
 fn loads_a_real_pre_versioning_saved_graph_and_defaults_its_schema_version() {
-    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../gui/examples/first_run.bbir.edn");
-    let edn = std::fs::read_to_string(&path).expect("bundled first-run example must exist");
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/pre_versioning_graph.bbir.edn");
+    let edn = std::fs::read_to_string(&path).expect("pre-versioning fixture must exist");
     assert!(!edn.contains("schema-version"), "fixture should genuinely predate schema_version");
 
     let graph = BBIRGraph::from_edn(&edn).expect("a pre-versioning saved graph must still load");
     assert_eq!(graph.schema_version, 1);
-    assert_eq!(graph.name, "first-run-example");
+    assert_eq!(graph.name, "pre-versioning-example");
     assert_eq!(graph.nodes.len(), 1);
 }
