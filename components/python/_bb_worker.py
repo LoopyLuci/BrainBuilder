@@ -51,6 +51,31 @@ def _detect_device():
 _DEVICE = _detect_device()
 
 
+def _apply_seed():
+    """Real reproducibility: if BRAINBUILDER_SEED is set, seed PyTorch's RNG at
+    worker startup so every `torch.randn` weight initialization (see
+    `random_tensor`) is deterministic across runs. Without this, a graph's
+    initial weights differ every run, so training *speed* — and, for a
+    borderline architecture, whether a fixed step budget converges at all —
+    varies run to run (the root cause of the historically-flaky
+    branching_graph test). This is the mechanism behind BBIR's
+    `ReproducibilityConfig.seed`; the Rust side sets the env var before
+    spawning this worker."""
+    raw = os.environ.get("BRAINBUILDER_SEED")
+    if raw is None or raw == "":
+        return
+    try:
+        torch.manual_seed(int(raw))
+    except ValueError:
+        # A non-integer seed is a caller error, not something to crash the
+        # whole worker over — leave the RNG unseeded (matching the no-seed
+        # default) rather than take down every subsequent request.
+        pass
+
+
+_apply_seed()
+
+
 def call_with_hyperparams(fn, positional, hyperparams):
     """Calls `fn(*positional, **kwargs)`, where kwargs is `hyperparams`
     filtered down to only the names `fn` actually declares — so a node's

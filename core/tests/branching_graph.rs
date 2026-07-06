@@ -39,6 +39,13 @@ fn edge(from_node: &str, from_port: &str, to_node: &str, to_port: &str) -> BBIRE
 fn diamond_shaped_graph_with_colliding_port_names_trains_correctly() {
     let components_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../components");
     std::env::set_var("PYTHONPATH", components_dir.join("python"));
+    // Seed weight init so this run is deterministic (the worker calls
+    // torch.manual_seed on startup when BRAINBUILDER_SEED is set — see
+    // _bb_worker.py::_apply_seed). This removes the run-to-run convergence
+    // variance that used to make this test flaky on shared CI runners, without
+    // weakening what it checks. Set before `Orchestrator::new`, which spawns
+    // the worker that reads it.
+    std::env::set_var("BRAINBUILDER_SEED", "1234");
 
     let csv_dir = std::env::temp_dir().join("bb_branching_graph");
     std::fs::create_dir_all(&csv_dir).unwrap();
@@ -142,14 +149,13 @@ fn diamond_shaped_graph_with_colliding_port_names_trains_correctly() {
     let points = points.lock().unwrap();
     let first_loss = points.first().unwrap().loss;
     let last_loss = points.last().unwrap().loss;
-    // Real random weight init (unseeded — see the comment above) makes
-    // convergence *speed* vary run to run for this particular composed
-    // architecture, so the bar here is deliberately modest: it must clearly
-    // learn *something* (rules out the original bug this regression-tests,
-    // where loss was bit-for-bit identical every step because epochs were
-    // silently never re-iterating the data), not "converge fully in exactly
-    // this many steps every time" — that stronger claim isn't reliable
-    // without seeding random init, a separate, real, un-addressed gap.
+    // Weight init is now seeded (BRAINBUILDER_SEED, set at the top), so this
+    // run is deterministic — the historical run-to-run convergence variance
+    // that made this test flaky is gone. The bar still targets what this test
+    // is really about: it must clearly learn *something* (rules out the
+    // original bug this regression-tests, where loss was bit-for-bit identical
+    // every step because epochs silently never re-iterated the data), while
+    // the namespacing check below is the core regression guard.
     assert!(
         last_loss < first_loss * 0.9,
         "expected the diamond graph's loss to measurably drop, not stay flat: first={first_loss}, last={last_loss}"
