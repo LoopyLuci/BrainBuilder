@@ -11,11 +11,14 @@
 //! `write` syscall pair) — see `PythonBridge::{read_tensor,write_tensor}`
 //! and the worker's own `mmap`-based counterparts in `_bb_worker.py`. Every
 //! invocation across all three runtimes is recorded to `audit` (the
-//! observability tap), queryable from the GUI's Console panel. Remaining
-//! documented gap: OS-level process containment (Windows Job Objects, real;
-//! Linux/macOS: `RLIMIT_AS` + process-group kill via `job_object.rs`'s Unix
-//! path — written but unverified in this all-Windows dev environment,
-//! cgroups/seccomp/App-Sandbox hardening beyond that is a real follow-up).
+//! observability tap), queryable from the GUI's Console panel. OS-level
+//! process containment on every target: Windows Job Objects; Linux
+//! `RLIMIT_AS` + process-group kill (verified on a real Linux CI runner);
+//! macOS gets that same rlimit/process-group containment plus a real
+//! `sandbox-exec` profile built from each runtime's `Capabilities`
+//! (deny-by-default file reads outside the grant, network denied unless
+//! allowed) — see `job_object.rs`. cgroups/seccomp hardening beyond that
+//! remains a real follow-up.
 pub mod audit;
 pub mod capability;
 pub mod job_object;

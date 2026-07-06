@@ -64,17 +64,20 @@ impl Supervisor {
             }
         }
 
+        // Hardening runs *before* stdio is configured: on macOS,
+        // `harden_before_spawn` rewraps `command` entirely (to run under a
+        // `sandbox-exec` profile), which would silently discard any stdio
+        // config applied first. Setting stdio afterward, on whatever
+        // `Command` value hardening left behind, is correct on every
+        // platform since none of them read stdio state to decide how to
+        // harden.
+        let memory_limit = caps.memory_limit_bytes().unwrap_or(FALLBACK_MEMORY_LIMIT_BYTES);
+        job_object::harden_before_spawn(command, Some(memory_limit), caps);
+
         if stdin_data.is_some() {
             command.stdin(Stdio::piped());
         }
         command.stdout(Stdio::piped()).stderr(Stdio::piped());
-
-        // Memory ceiling is computed before spawn: Unix needs it pre-fork
-        // (an rlimit set on the child via `pre_exec`, applied by
-        // `harden_before_spawn` below), while Windows applies its Job
-        // Object memory limit after spawn (`JobObject::new`/`assign`).
-        let memory_limit = caps.memory_limit_bytes().unwrap_or(FALLBACK_MEMORY_LIMIT_BYTES);
-        job_object::harden_before_spawn(command, Some(memory_limit));
 
         let mut child: Child = command
             .spawn()
@@ -222,5 +225,60 @@ mod tests {
             "grandchild survived the process-group kill and created the marker file"
         );
         let _ = std::fs::remove_file(&marker);
+    }
+
+    // macOS-only: proves the `sandbox-exec` profile in job_object.rs is real
+    // OS-level enforcement, not just a Rust-side check. `touched_paths` is
+    // left empty on both tests below, so `Supervisor::run_checked`'s own
+    // portable `caps.check_read` pre-spawn check never runs — any denial or
+    // allowance observed here comes from the kernel-enforced sandbox profile
+    // alone.
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn sandbox_exec_allows_reading_a_path_the_capability_grants() {
+        let dir = std::env::temp_dir().join(format!("bb_sbx_allow_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("ok.txt");
+        std::fs::write(&file, "visible-content").unwrap();
+
+        let caps = Capabilities::none().allow_read(&dir);
+        let mut cmd = Command::new("cat");
+        cmd.arg(&file);
+        let output = Supervisor::run_checked(&mut cmd, &caps, &[], None)
+            .expect("cat should succeed under the sandbox for a granted path");
+        assert!(
+            String::from_utf8_lossy(&output.stdout).contains("visible-content"),
+            "expected to read the granted file's real contents"
+        );
+
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn sandbox_exec_denies_reading_a_path_outside_the_grant() {
+        let allowed = std::env::temp_dir().join(format!("bb_sbx_ok_{}", std::process::id()));
+        let denied = std::env::temp_dir().join(format!("bb_sbx_deny_{}", std::process::id()));
+        std::fs::create_dir_all(&allowed).unwrap();
+        std::fs::create_dir_all(&denied).unwrap();
+        let secret = denied.join("secret.txt");
+        std::fs::write(&secret, "should-not-be-readable").unwrap();
+
+        // Grants a real, different directory — proves the sandbox profile
+        // is scoped, not wide open.
+        let caps = Capabilities::none().allow_read(&allowed);
+        let mut cmd = Command::new("cat");
+        cmd.arg(&secret);
+        let result = Supervisor::run_checked(&mut cmd, &caps, &[], None);
+        let denied_by_sandbox = match result {
+            Err(_) => true,
+            Ok(out) => {
+                !out.status.success() || !String::from_utf8_lossy(&out.stdout).contains("should-not-be-readable")
+            }
+        };
+        assert!(denied_by_sandbox, "expected sandbox-exec to deny reading a path outside the granted allowlist");
+
+        std::fs::remove_dir_all(&allowed).ok();
+        std::fs::remove_dir_all(&denied).ok();
     }
 }

@@ -14,7 +14,7 @@
 use crate::interop::arena::SharedArena;
 use crate::interop::dlpack_support::{cpu_context, dtype_to_dlpack};
 use crate::interop::protocol::BrainBuilderError;
-use crate::runtime::nervous_system::{Capabilities, ComponentRuntime, JobObject};
+use crate::runtime::nervous_system::{job_object, Capabilities, ComponentRuntime, JobObject};
 use crate::runtime::scheduler::ExecutableOp;
 use crate::{Result, Tensor};
 use serde_json::{json, Value};
@@ -76,11 +76,21 @@ impl Drop for Worker {
 }
 
 impl Worker {
-    fn spawn(_scratch_dir: &Path) -> Result<Self> {
+    fn spawn(_scratch_dir: &Path, caps: &Capabilities) -> Result<Self> {
         let worker_script =
             Path::new(env!("CARGO_MANIFEST_DIR")).join("../components/python/_bb_worker.py");
-        let mut child = Command::new("python")
-            .arg(&worker_script)
+        let mut command = Command::new("python");
+        command.arg(&worker_script);
+        // Same OS-level containment `Supervisor` gives Racket/Clojure's
+        // one-shot invocations, applied here to the worker's own long-lived
+        // process: Linux/macOS get a process group + RLIMIT_AS ceiling
+        // pre-exec, and macOS additionally runs the worker under a real
+        // `sandbox-exec` profile scoped to exactly `caps`'s granted read
+        // paths (Windows applies its equivalent, `JobObject`, post-spawn
+        // below). Must run before the stdio setup: macOS's hardening
+        // rewraps the whole `Command` to wrap it in `sandbox-exec`.
+        job_object::harden_before_spawn(&mut command, Some(worker_memory_limit_bytes()), caps);
+        let mut child = command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -126,8 +136,6 @@ impl PythonBridge {
         std::fs::create_dir_all(&scratch_dir)
             .map_err(|e| BrainBuilderError::Python(format!("failed to create IPC scratch dir: {e}")))?;
 
-        let worker = Worker::spawn(&scratch_dir)?;
-
         // The worker imports components by module name off PYTHONPATH
         // (inherited from this process's environment, same as before). Its
         // own capability grant: read/write only its scratch dir, plus
@@ -135,6 +143,9 @@ impl PythonBridge {
         // no network. `timeout` doubles as the per-request timeout in
         // `request()` (a stuck/hung component call gets the worker killed
         // and transparently respawned, rather than blocking forever).
+        // Computed before the first spawn so `Worker::spawn` can harden the
+        // worker process itself against exactly this grant (see
+        // `job_object::harden_before_spawn`'s macOS sandbox-exec profile).
         let mut caps = Capabilities::none()
             .allow_read(scratch_dir.clone())
             .with_timeout(std::time::Duration::from_secs(60));
@@ -143,6 +154,8 @@ impl PythonBridge {
                 caps = caps.allow_read(entry);
             }
         }
+
+        let worker = Worker::spawn(&scratch_dir, &caps)?;
 
         Ok(Self {
             arena,
@@ -177,7 +190,7 @@ impl PythonBridge {
 
         let write_result = writeln!(worker.stdin, "{req}").and_then(|()| worker.stdin.flush());
         if write_result.is_err() {
-            *worker = Worker::spawn(&self.scratch_dir)?;
+            *worker = Worker::spawn(&self.scratch_dir, &self.caps)?;
             audit::record(AuditEvent {
                 runtime: "python",
                 outcome: "worker_crashed",
@@ -193,7 +206,7 @@ impl PythonBridge {
         let line = match worker.lines.recv_timeout(timeout) {
             Ok(Ok(line)) => line,
             Ok(Err(e)) => {
-                *worker = Worker::spawn(&self.scratch_dir)?;
+                *worker = Worker::spawn(&self.scratch_dir, &self.caps)?;
                 audit::record(AuditEvent {
                     runtime: "python",
                     outcome: "worker_crashed",
@@ -205,7 +218,7 @@ impl PythonBridge {
                 )));
             }
             Err(RecvTimeoutError::Timeout) => {
-                *worker = Worker::spawn(&self.scratch_dir)?;
+                *worker = Worker::spawn(&self.scratch_dir, &self.caps)?;
                 audit::record(AuditEvent {
                     runtime: "python",
                     outcome: "timeout_killed",
@@ -217,7 +230,7 @@ impl PythonBridge {
                 )));
             }
             Err(RecvTimeoutError::Disconnected) => {
-                *worker = Worker::spawn(&self.scratch_dir)?;
+                *worker = Worker::spawn(&self.scratch_dir, &self.caps)?;
                 audit::record(AuditEvent {
                     runtime: "python",
                     outcome: "worker_crashed",

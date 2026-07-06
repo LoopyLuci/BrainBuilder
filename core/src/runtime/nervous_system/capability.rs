@@ -53,6 +53,13 @@ impl Capabilities {
         self.memory_limit_bytes
     }
 
+    /// The granted read paths, in grant order — used on macOS to build the
+    /// `sandbox-exec` profile that mirrors this same allowlist at the OS
+    /// level (see `job_object.rs`'s macOS `harden_before_spawn`).
+    pub fn read_paths(&self) -> &[PathBuf] {
+        &self.read_paths
+    }
+
     /// Errors unless `path` is inside (or equal to) one of the granted
     /// `read_paths`. Canonicalizes both sides so `..`/symlinks can't be used
     /// to escape the grant.
