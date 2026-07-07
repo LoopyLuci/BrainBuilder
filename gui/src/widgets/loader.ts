@@ -72,11 +72,37 @@ async function importPluginModule(entry: string): Promise<{ register?: unknown }
   }
 }
 
-function persistEnabled(ids: string[]) {
+// Persist the *manifests* of currently-loaded plugins (not just their ids) so
+// they can be re-loaded verbatim on the next launch. Only successfully-loaded
+// plugins are stored, so a plugin that errored won't be re-attempted forever.
+function persistLoaded(plugins: Record<string, LoadedPlugin>) {
   try {
-    localStorage.setItem(LOADED_KEY, JSON.stringify(ids));
+    const manifests = Object.values(plugins)
+      .filter((p) => p.status === 'loaded')
+      .map((p) => p.manifest);
+    localStorage.setItem(LOADED_KEY, JSON.stringify(manifests));
   } catch {
     /* ignore */
+  }
+}
+
+// Re-load every plugin that was active at last shutdown. Called once at
+// startup (App bootstrap) after the built-in widgets register, so a user's
+// hot-loaded panels survive a restart without a rebuild.
+export async function restorePlugins(): Promise<void> {
+  let manifests: WidgetManifest[] = [];
+  try {
+    const raw = localStorage.getItem(LOADED_KEY);
+    if (raw) manifests = JSON.parse(raw);
+  } catch {
+    return;
+  }
+  const { load } = usePluginLoader.getState();
+  for (const manifest of manifests) {
+    // Ignore anything that isn't a well-formed manifest (older format, etc.).
+    if (manifest && typeof manifest.id === 'string' && typeof manifest.entry === 'string') {
+      await load(manifest);
+    }
   }
 }
 
@@ -97,7 +123,7 @@ export const usePluginLoader = create<PluginState>((set, get) => ({
       }
       mod.register(buildHost(manifest));
       set((s) => ({ plugins: { ...s.plugins, [manifest.id]: { manifest, status: 'loaded' } } }));
-      persistEnabled(Object.keys(get().plugins).concat(manifest.id));
+      persistLoaded(get().plugins);
     } catch (e) {
       set((s) => ({
         plugins: { ...s.plugins, [manifest.id]: { manifest, status: 'error', error: String(e) } },
@@ -113,7 +139,7 @@ export const usePluginLoader = create<PluginState>((set, get) => ({
     set((s) => {
       const next = { ...s.plugins };
       delete next[id];
-      persistEnabled(Object.keys(next));
+      persistLoaded(next);
       return { plugins: next };
     });
   },

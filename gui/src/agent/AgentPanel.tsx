@@ -12,6 +12,7 @@ import {
   agentStatus,
 } from './api';
 import { useProviderStore } from '../state/providerStore';
+import { getNervousSystemAudit, NervousSystemAuditRecord } from '../api/tauri';
 import { logError, logInfo } from '../console/logStore';
 import { Panel } from '../ui/Panel';
 import { Button } from '../ui/Button';
@@ -32,7 +33,20 @@ export function AgentPanel() {
   // Partial while streaming; the final agentRun result overwrites it whole.
   const [report, setReport] = useState<Partial<AgentRunReport> | null>(null);
   const [progress, setProgress] = useState<string | null>(null);
+  // The sandbox audit entries for the agent's own subprocess — proof of the
+  // capability scoping (FS to the worktree, network to the provider only).
+  const [audit, setAudit] = useState<NervousSystemAuditRecord[]>([]);
   const selector = useProviderStore((s) => s.selector);
+
+  // Pull the nervous-system audit trail and keep only the agent's runs.
+  const refreshAudit = async () => {
+    try {
+      const rows = await getNervousSystemAudit(50);
+      setAudit(rows.filter((r) => r.runtime.toLowerCase().includes('agent')));
+    } catch {
+      /* audit is best-effort observability, never fatal to the panel */
+    }
+  };
 
   useEffect(() => {
     agentStatus().then(setSession).catch(() => setSession(null));
@@ -63,6 +77,7 @@ export function AgentPanel() {
         case 'done':
           setProgress(null);
           setReport((r) => ({ ...r, merged: p.merged }));
+          void refreshAudit();
           break;
       }
     });
@@ -195,6 +210,26 @@ export function AgentPanel() {
                 <pre style={preStyle}>{report.gate_output}</pre>
               )}
               {report.agent_output && <pre style={preStyle}>{report.agent_output}</pre>}
+            </div>
+          )}
+
+          {audit.length > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <div className="bb-label" style={{ marginBottom: 4 }}>
+                Sandbox trace{' '}
+                <span className="bb-text-muted" style={{ fontSize: 10 }}>
+                  (the agent ran capability-gated)
+                </span>
+              </div>
+              <ul className="bb-list">
+                {audit.map((r, i) => (
+                  <li key={i} className="bb-list-item bb-text-muted" style={{ fontSize: 11, fontFamily: 'var(--font-mono)' }}>
+                    <span className={`bb-chip ${r.outcome === 'allowed' ? 'bb-chip--accent' : ''}`}>{r.outcome}</span>{' '}
+                    {r.runtime}
+                    {typeof r.duration_ms === 'number' ? ` · ${r.duration_ms}ms` : ''} · {r.detail}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </>

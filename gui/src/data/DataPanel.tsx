@@ -7,9 +7,23 @@ import { useGraphStore } from '../state/graphStore';
 import { logError, logInfo } from '../console/logStore';
 import { Panel } from '../ui/Panel';
 import { Button } from '../ui/Button';
+import { SchemaForm, FormSchema, FormValues } from '../widgets/SchemaForm';
 
 const LOSSES = ['mse', 'cross_entropy'];
 const OPTIMIZERS = ['sgd', 'adam'];
+
+// The core training controls, expressed as a schema instead of hand-written
+// JSX — the same procedural-UI path the Inspector and plugins use. New knobs
+// appear by adding a field here (or from a descriptor), not by writing markup.
+const TRAINING_SCHEMA: FormSchema = {
+  fields: [
+    { name: 'loss', label: 'Loss', type: 'select', options: LOSSES },
+    { name: 'optimizer', label: 'Optimizer', type: 'select', options: OPTIMIZERS },
+    { name: 'lr', label: 'Learning rate', type: 'number', step: 0.001 },
+    { name: 'epochs', label: 'Epochs', type: 'number' },
+    { name: 'batch_size', label: 'Batch size', type: 'number' },
+  ],
+};
 // Hidden-width hyperparameters the architecture search resizes — must mirror
 // the backend's autotune::SCALABLE_WIDTH_KEYS so the applied model matches the
 // tuned one.
@@ -128,6 +142,25 @@ export function DataPanel() {
   const lr = (training.hyperparams?.lr as number) ?? 0.01;
   const epochs = (training.hyperparams?.epochs as number) ?? 10;
 
+  const trainingValues: FormValues = {
+    loss: training.loss,
+    optimizer: training.optimizer,
+    lr,
+    epochs,
+    batch_size: training.data_source.batch_size,
+  };
+  // Distribute the flat form values back into the nested TrainingConfig
+  // (lr/epochs live under hyperparams; batch_size under data_source).
+  const onTrainingChange = (v: FormValues) => {
+    setTraining({
+      ...training,
+      loss: String(v.loss),
+      optimizer: String(v.optimizer),
+      hyperparams: { ...training.hyperparams, lr: Number(v.lr), epochs: Number(v.epochs) },
+      data_source: { ...training.data_source, batch_size: Number(v.batch_size) },
+    });
+  };
+
   return (
     <Panel title="Data & Training">
       <Button variant="secondary" onClick={pickDataset}>
@@ -197,56 +230,7 @@ export function DataPanel() {
         </div>
       )}
 
-      <div className="bb-form-grid">
-        <label className="bb-label">Loss</label>
-        <select className="bb-select" value={training.loss} onChange={(e) => setTraining({ ...training, loss: e.target.value })}>
-          {LOSSES.map((l) => (
-            <option key={l} value={l}>
-              {l}
-            </option>
-          ))}
-        </select>
-
-        <label className="bb-label">Optimizer</label>
-        <select
-          className="bb-select"
-          value={training.optimizer}
-          onChange={(e) => setTraining({ ...training, optimizer: e.target.value })}
-        >
-          {OPTIMIZERS.map((o) => (
-            <option key={o} value={o}>
-              {o}
-            </option>
-          ))}
-        </select>
-
-        <label className="bb-label">Learning rate</label>
-        <input
-          className="bb-input"
-          type="number"
-          step="0.001"
-          value={lr}
-          onChange={(e) => setTraining({ ...training, hyperparams: { ...training.hyperparams, lr: Number(e.target.value) } })}
-        />
-
-        <label className="bb-label">Epochs</label>
-        <input
-          className="bb-input"
-          type="number"
-          value={epochs}
-          onChange={(e) => setTraining({ ...training, hyperparams: { ...training.hyperparams, epochs: Number(e.target.value) } })}
-        />
-
-        <label className="bb-label">Batch size</label>
-        <input
-          className="bb-input"
-          type="number"
-          value={training.data_source.batch_size}
-          onChange={(e) =>
-            setTraining({ ...training, data_source: { ...training.data_source, batch_size: Number(e.target.value) } })
-          }
-        />
-      </div>
+      <SchemaForm schema={TRAINING_SCHEMA} values={trainingValues} onChange={onTrainingChange} />
 
       <div style={{ borderTop: '1px solid var(--border, rgba(0,0,0,0.1))', paddingTop: 8, marginTop: 4 }}>
         <p className="bb-text-muted" style={{ margin: '0 0 6px' }}>

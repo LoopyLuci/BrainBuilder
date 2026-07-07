@@ -3,12 +3,17 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Header } from './shell/Header';
 import { SlotRenderer } from './widgets/SlotRenderer';
 import { registerBuiltinWidgets } from './widgets/builtins';
+import { restorePlugins } from './widgets/loader';
 
 // Register the first-party panels once, at module load, before React renders.
 // Everything the shell shows now comes from the widget registry — App.tsx no
 // longer hardcodes which panels exist, so panels (built-in or hot-loaded
 // plugins) can be added, removed, or swapped at runtime without editing here.
 registerBuiltinWidgets();
+// Re-load any runtime plugins the user had active at last shutdown, so their
+// hot-loaded panels survive a restart. Fire-and-forget: failures are captured
+// per-plugin in the loader's own error state, never fatal to boot.
+void restorePlugins();
 
 function App() {
   return (
