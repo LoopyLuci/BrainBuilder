@@ -27,10 +27,11 @@ export function SynthesizePanel() {
     try {
       const r = await synthesizeComponent(description, selector());
       setResult(r);
+      const repaired = (r.attempts ?? 1) > 1 ? ' (auto-repaired)' : '';
       logInfo(
         r.smoke.passed
-          ? `Synthesized "${r.name}" — smoke test passed (${JSON.stringify(r.smoke.actual_shape)}).`
-          : `Synthesized "${r.name}" — smoke test FAILED: ${r.smoke.detail}`,
+          ? `Synthesized "${r.name}"${repaired} — smoke test passed (${JSON.stringify(r.smoke.actual_shape)}).`
+          : `Synthesized "${r.name}"${repaired} — smoke test FAILED: ${r.smoke.detail}`,
       );
     } catch (e) {
       logError(`Component synthesis failed: ${e}`);
@@ -90,6 +91,7 @@ export function SynthesizePanel() {
             <span className="bb-text-muted" style={{ fontSize: 11 }}>
               {result.name}
             </span>
+            {(result.attempts ?? 1) > 1 && <span className="bb-chip">auto-repaired</span>}
           </div>
           {!result.smoke.passed && <div className="bb-text-error" style={{ fontSize: 11 }}>{result.smoke.detail}</div>}
           <pre

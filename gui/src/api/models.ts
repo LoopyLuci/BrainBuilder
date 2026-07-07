@@ -112,6 +112,8 @@ export interface SynthesisResult {
   python_code: string;
   smoke_test: SmokeTest;
   smoke: SmokeReport;
+  /** How many provider attempts it took (2 means one self-repair round). */
+  attempts?: number;
 }
 
 // Synthesize a new component from a description. Runs the static gauntlet +

@@ -18,6 +18,18 @@ export interface AgentRunReport {
   merged: boolean;
 }
 
+// Streamed phase updates emitted during an `agent_run` (Tauri `agent-progress`
+// event). Lets the panel show live status + the diff before the slower test
+// gate finishes, rather than one opaque wait.
+export interface AgentProgress {
+  phase: 'agent' | 'agent-output' | 'diff' | 'tests' | 'gate' | 'done';
+  message?: string;
+  diff?: string;
+  gate_passed?: boolean;
+  gate_output?: string;
+  merged?: boolean;
+}
+
 // Start an isolated agent session (git worktree + branch) in the chosen mode.
 export async function agentStart(mode: AutonomyMode): Promise<AgentSession> {
   return JSON.parse(await invoke<string>('agent_start', { mode }));

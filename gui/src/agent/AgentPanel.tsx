@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { listen } from '@tauri-apps/api/event';
 import {
   AgentSession,
   AgentRunReport,
+  AgentProgress,
   AutonomyMode,
   agentApprove,
   agentRevert,
@@ -27,11 +29,46 @@ export function AgentPanel() {
   const [mode, setMode] = useState<AutonomyMode>('propose-approve');
   const [task, setTask] = useState('');
   const [busy, setBusy] = useState(false);
-  const [report, setReport] = useState<AgentRunReport | null>(null);
+  // Partial while streaming; the final agentRun result overwrites it whole.
+  const [report, setReport] = useState<Partial<AgentRunReport> | null>(null);
+  const [progress, setProgress] = useState<string | null>(null);
   const selector = useProviderStore((s) => s.selector);
 
   useEffect(() => {
     agentStatus().then(setSession).catch(() => setSession(null));
+  }, []);
+
+  // Subscribe to streamed phase updates so the panel fills in live: status
+  // line, the diff as soon as it's computed, then the gate result.
+  useEffect(() => {
+    const un = listen<AgentProgress>('agent-progress', (e) => {
+      const p = e.payload;
+      switch (p.phase) {
+        case 'agent':
+          setProgress(p.message ?? 'Working…');
+          break;
+        case 'agent-output':
+          setReport((r) => ({ ...r, agent_output: p.message }));
+          break;
+        case 'diff':
+          setProgress('Reviewing the diff…');
+          setReport((r) => ({ ...r, diff: p.diff }));
+          break;
+        case 'tests':
+          setProgress(p.message ?? 'Running tests…');
+          break;
+        case 'gate':
+          setReport((r) => ({ ...r, gate_passed: p.gate_passed, gate_output: p.gate_output }));
+          break;
+        case 'done':
+          setProgress(null);
+          setReport((r) => ({ ...r, merged: p.merged }));
+          break;
+      }
+    });
+    return () => {
+      un.then((f) => f());
+    };
   }, []);
 
   const start = async () => {
@@ -50,13 +87,15 @@ export function AgentPanel() {
     if (!task.trim()) return;
     setBusy(true);
     setReport(null);
+    setProgress('Starting…');
     try {
       const r = await agentRun(task, selector());
-      setReport(r);
+      setReport(r); // authoritative final report
       logInfo(`Agent step done — tests ${r.gate_passed ? 'passed' : 'failed'}, ${r.merged ? 'merged' : 'not merged'}.`);
     } catch (e) {
       logError(`Agent run failed: ${e}`);
     } finally {
+      setProgress(null);
       setBusy(false);
     }
   };
@@ -130,16 +169,30 @@ export function AgentPanel() {
             </Button>
           </div>
 
+          {progress && (
+            <div className="bb-text-muted" style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span className="bb-chip">running</span>
+              {progress}
+            </div>
+          )}
+
           {report && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <span className={`bb-chip ${report.gate_passed ? 'bb-chip--accent' : ''}`}>
-                  tests {report.gate_passed ? 'passed' : 'failed'}
-                </span>
+                {report.gate_passed === undefined ? (
+                  <span className="bb-chip">tests pending</span>
+                ) : (
+                  <span className={`bb-chip ${report.gate_passed ? 'bb-chip--accent' : ''}`}>
+                    tests {report.gate_passed ? 'passed' : 'failed'}
+                  </span>
+                )}
                 {report.merged && <span className="bb-chip bb-chip--accent">merged</span>}
               </div>
               {report.diff && (
                 <pre style={preStyle}>{report.diff}</pre>
+              )}
+              {report.gate_output && !report.gate_passed && report.gate_passed !== undefined && (
+                <pre style={preStyle}>{report.gate_output}</pre>
               )}
               {report.agent_output && <pre style={preStyle}>{report.agent_output}</pre>}
             </div>

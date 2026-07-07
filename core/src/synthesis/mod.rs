@@ -105,6 +105,24 @@ order, and MUST return a torch tensor. Use only `torch` (already importable).\n\
     )
 }
 
+/// Build the *repair* user-message for a second synthesis attempt: show the
+/// model its own failed output and the exact reason it failed, and ask for a
+/// corrected object. Paired with the same system prompt as the first try, this
+/// turns most first-shot failures (a shape mismatch, a missing entry fn, a name
+/// collision) into a usable component instead of a dead end — the difference
+/// between a zero-knowledge user succeeding and giving up.
+pub fn build_repair_request(description: &str, previous_json: &str, failure: &str) -> String {
+    format!(
+        "Your previous attempt to synthesize a component FAILED validation and was NOT accepted.\n\n\
+Original request:\n{description}\n\n\
+Your previous output:\n{previous_json}\n\n\
+It failed with this error:\n{failure}\n\n\
+Return a corrected single JSON object with the SAME keys, fixing exactly what the error \
+describes (adjust the descriptor, kernel, or smoke_test shapes as needed so they agree). \
+Output ONLY the JSON object, no prose."
+    )
+}
+
 /// Parse + statically validate the model's output. This is the first two gates
 /// of the gauntlet (parse + structure); it never runs code. `registry` is used
 /// only to reject a name collision with an existing component.
@@ -366,6 +384,14 @@ mod tests {
         "python_code": "import torch\n\ndef forward(input):\n    return torch.tanh(input) * 2.0\n",
         "smoke_test": {"input_shapes": [[2, 4]], "expected_shape": [2, 4]}
     }"#;
+
+    #[test]
+    fn repair_request_carries_the_failure_and_prior_output() {
+        let msg = build_repair_request("a swish activation", "{\"name\":\"x\"}", "shape mismatch: got [2,3] expected [2,4]");
+        assert!(msg.contains("a swish activation"), "must restate the original request");
+        assert!(msg.contains("{\"name\":\"x\"}"), "must echo the failed output");
+        assert!(msg.contains("shape mismatch"), "must include the failure detail");
+    }
 
     #[test]
     fn accepts_a_well_formed_synthesis() {

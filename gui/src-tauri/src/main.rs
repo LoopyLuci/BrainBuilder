@@ -251,30 +251,65 @@ async fn synthesize_component(description: String, selector: String, state: Stat
     let system = brainbuilder_core::synthesis::build_synthesis_prompt(&existing);
 
     let (provider, model) = provider_registry().resolve(&selector).map_err(|e| e.to_string())?;
-    let raw = provider.generate_json(&model, &system, &description).await.map_err(|e| e.to_string())?;
 
-    let component = {
-        let orchestrator = state.orchestrator.lock().await;
-        let registry = orchestrator.context.registry.read().map_err(|_| "component registry lock poisoned".to_string())?;
-        brainbuilder_core::synthesis::parse_synthesis_output(&raw, &registry).map_err(|e| e.to_string())?
-    };
+    // Self-repair loop: on a validation or smoke-test failure, feed the model
+    // its own output + the exact error and let it try once more before we
+    // surface a failure. Most first-shot misses (a shape mismatch, a missing
+    // entry fn) are mechanically fixable, so this markedly raises the success
+    // rate for a non-expert without ever relaxing the gauntlet.
+    const MAX_ATTEMPTS: usize = 2;
+    let mut user_msg = description.clone();
+    let mut last_error = String::from("synthesis produced no result");
+    for attempt in 0..MAX_ATTEMPTS {
+        let is_last = attempt + 1 == MAX_ATTEMPTS;
+        let raw = provider.generate_json(&model, &system, &user_msg).await.map_err(|e| e.to_string())?;
 
-    // Third gate: run the kernel in the nervous-system sandbox on tiny tensors.
-    let smoke = brainbuilder_core::synthesis::run_smoke_test(&component).map_err(|e| e.to_string())?;
+        // Static gates (parse + structure) under the registry lock; drop it
+        // before any await so the non-`Send` guard never crosses one.
+        let parsed = {
+            let orchestrator = state.orchestrator.lock().await;
+            let registry = orchestrator.context.registry.read().map_err(|_| "component registry lock poisoned".to_string())?;
+            brainbuilder_core::synthesis::parse_synthesis_output(&raw, &registry)
+        };
+        let component = match parsed {
+            Ok(c) => c,
+            Err(e) => {
+                last_error = e.to_string();
+                if is_last {
+                    return Err(format!("synthesis failed after {MAX_ATTEMPTS} attempts: {last_error}"));
+                }
+                user_msg = brainbuilder_core::synthesis::build_repair_request(&description, &raw, &last_error);
+                continue;
+            }
+        };
 
-    // Return the serializable artifacts + smoke report; the descriptor is
-    // re-parsed on install, so nothing untrusted is trusted across the hop.
-    let payload = serde_json::json!({
-        "name": component.name,
-        "descriptor_edn": component.descriptor_edn,
-        "python_code": component.python_code,
-        // Echo the exact smoke-test shapes so the install call can round-trip
-        // them back verbatim (parse_synthesis_output requires them to line up
-        // with the descriptor's input ports).
-        "smoke_test": component.smoke_test,
-        "smoke": smoke,
-    });
-    serde_json::to_string(&payload).map_err(|e| e.to_string())
+        // Third gate: run the kernel in the nervous-system sandbox on tiny tensors.
+        let smoke = brainbuilder_core::synthesis::run_smoke_test(&component).map_err(|e| e.to_string())?;
+
+        if smoke.passed || is_last {
+            // Return the serializable artifacts + smoke report; the descriptor
+            // is re-parsed on install, so nothing untrusted is trusted across
+            // the hop. `attempts` lets the UI note a successful self-repair.
+            let payload = serde_json::json!({
+                "name": component.name,
+                "descriptor_edn": component.descriptor_edn,
+                "python_code": component.python_code,
+                // Echo the exact smoke-test shapes so the install call can
+                // round-trip them back verbatim (parse_synthesis_output
+                // requires them to line up with the descriptor's input ports).
+                "smoke_test": component.smoke_test,
+                "smoke": smoke,
+                "attempts": attempt + 1,
+            });
+            return serde_json::to_string(&payload).map_err(|e| e.to_string());
+        }
+
+        // Smoke failed with an attempt left — repair and retry.
+        last_error = smoke.detail.clone();
+        user_msg = brainbuilder_core::synthesis::build_repair_request(&description, &raw, &last_error);
+    }
+
+    Err(format!("synthesis failed after {MAX_ATTEMPTS} attempts: {last_error}"))
 }
 
 /// Install a previously-synthesized component. Never trusts the round-trip:
@@ -430,17 +465,32 @@ async fn agent_status(state: State<'_, AppState>) -> Result<Option<String>, Stri
 /// policy. Returns a JSON report {agent_output, diff, gate_passed, gate_output,
 /// merged}.
 #[command]
-async fn agent_run(task: String, selector: String, state: State<'_, AppState>) -> Result<String, String> {
+async fn agent_run(task: String, selector: String, window: tauri::Window, state: State<'_, AppState>) -> Result<String, String> {
     let session = {
         let guard = state.agent.lock().await;
         guard.clone().ok_or_else(|| "no active agent session — start one first".to_string())?
     };
 
-    // Blocking git/subprocess work off the async runtime.
+    // Blocking git/subprocess work off the async runtime. Each phase emits an
+    // `agent-progress` event so the panel shows a live status + the diff as
+    // soon as it's computed (before the slower test gate finishes), instead of
+    // one opaque wait. The final `Ok` still returns the whole report as the
+    // authoritative source of truth.
     let report = tokio::task::spawn_blocking(move || {
+        let emit = |payload: serde_json::Value| {
+            let _ = window.emit("agent-progress", payload);
+        };
+
+        emit(serde_json::json!({ "phase": "agent", "message": "OpenCode is editing in the isolated worktree…" }));
         let agent_output = session.run_agent_step(&task, &selector).unwrap_or_else(|e| format!("[agent step error] {e}"));
+        emit(serde_json::json!({ "phase": "agent-output", "message": agent_output }));
+
         let diff = session.diff().unwrap_or_default();
+        emit(serde_json::json!({ "phase": "diff", "diff": diff }));
+
+        emit(serde_json::json!({ "phase": "tests", "message": "Running the test gate in the worktree…" }));
         let gate = session.run_test_gate();
+        emit(serde_json::json!({ "phase": "gate", "gate_passed": gate.passed, "gate_output": gate.output }));
 
         // Merge policy: propose never auto-merges; auto merges on green; full
         // merges regardless (test failures still recorded in the gate output).
@@ -450,6 +500,7 @@ async fn agent_run(task: String, selector: String, state: State<'_, AppState>) -
                 merged = true;
             }
         }
+        emit(serde_json::json!({ "phase": "done", "merged": merged }));
 
         serde_json::json!({
             "agent_output": agent_output,
