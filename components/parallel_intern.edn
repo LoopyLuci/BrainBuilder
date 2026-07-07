@@ -1,0 +1,13 @@
+{:component/id ""
+ :component/name "parallel_intern"
+ :meta-type "stateful-module"
+ :version "1.0.0"
+ :tags ["dspark" "speculative" "drafter"]
+ :interface/inputs [{:name "input" :tensor {:shape [:batch :features] :dtype "float32"}}
+                     {:name "heads_weight" :role "parameter" :tensor {:shape [:draft-len :vocab :features] :dtype "float32"}}]
+ :interface/outputs [{:name "output" :tensor {:shape [:batch :draft-len :vocab] :dtype "float32"}}]
+ :hyperparameters {"features" {:type "int" :default 1024}
+                    "vocab" {:type "int" :default 32000}
+                    "draft_len" {:type "int" :default 16}}
+ :implementation [{:language "python" :entry "forward"}]
+ :compatibility {:devices ["cpu" "cuda"] :dtypes ["float32"] :autograd true}}

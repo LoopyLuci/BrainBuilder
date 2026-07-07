@@ -10,6 +10,7 @@ import { ClusterConsole } from '../cluster/ClusterConsole';
 import { LLMAuthor } from '../llm/LLMAuthor';
 import { ModelHub } from '../models/ModelHub';
 import { IntentPanel } from '../intent/IntentPanel';
+import { TemplatesPanel } from '../templates/TemplatesPanel';
 import { SynthesizePanel } from '../synthesis/SynthesizePanel';
 import { AgentPanel } from '../agent/AgentPanel';
 import { PluginsPanel } from './PluginsPanel';
@@ -24,6 +25,7 @@ export function registerBuiltinWidgets() {
 
   // Side rail (tabs).
   registerWidget({ id: 'build', title: 'Build', slot: 'side', component: IntentPanel, order: 10 });
+  registerWidget({ id: 'templates', title: 'Templates', slot: 'side', component: TemplatesPanel, order: 15 });
   registerWidget({ id: 'inspector', title: 'Inspector', slot: 'side', component: Inspector, order: 20 });
   registerWidget({ id: 'data', title: 'Data', slot: 'side', component: DataPanel, order: 30 });
   registerWidget({ id: 'author', title: 'Author', slot: 'side', component: LLMAuthor, order: 40 });
