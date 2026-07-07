@@ -9,6 +9,7 @@ import { GraphToolbar } from './GraphToolbar';
 import { useAutosave } from './useAutosave';
 import { logError, logInfo } from '../console/logStore';
 import { Button } from '../ui/Button';
+import { CanvasEmptyState } from './CanvasEmptyState';
 
 const nodeTypes = { default: CustomNode };
 
@@ -84,6 +85,7 @@ export function InfiniteCanvas() {
         <Background />
         <Controls />
       </ReactFlow>
+      {nodes.length === 0 && <CanvasEmptyState />}
     </div>
   );
 }
