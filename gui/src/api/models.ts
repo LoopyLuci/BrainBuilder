@@ -179,6 +179,21 @@ export async function probeGpuAdapter(name: string): Promise<string> {
   return invoke('probe_gpu_adapter', { name });
 }
 
+// Tell the backend which GPU native `rust` ops should run on (empty = auto/CPU).
+export async function setBackendPreferredGpu(name: string): Promise<void> {
+  return invoke('set_preferred_gpu', { name });
+}
+
+// Push the persisted GPU preference to the backend. Called once at startup so
+// the choice survives a restart and applies before the first graph runs.
+// No-op outside the Tauri app (invoke unavailable).
+export function syncPreferredGpuToBackend(): void {
+  const pref = getPreferredGpu();
+  setBackendPreferredGpu(pref).catch(() => {
+    /* not in the Tauri runtime, or backend not ready — non-fatal */
+  });
+}
+
 // --- Auto-tuning ---
 
 export interface TrialResult {

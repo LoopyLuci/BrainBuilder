@@ -5,6 +5,7 @@ import {
   probeGpuAdapter,
   getPreferredGpu,
   setPreferredGpu,
+  setBackendPreferredGpu,
 } from '../api/models';
 import { logError, logInfo } from '../console/logStore';
 import { Panel } from '../ui/Panel';
@@ -30,7 +31,9 @@ export function GpuPicker() {
 
   const choose = (name: string) => {
     setPreferred(name);
-    setPreferredGpu(name);
+    setPreferredGpu(name); // persist app-side
+    // Push to the backend so native ops route to it on the next run.
+    setBackendPreferredGpu(name).catch((e) => logError(`Couldn't apply GPU preference: ${e}`));
     logInfo(name ? `Preferred GPU set to "${name}".` : 'Preferred GPU cleared (auto-select).');
   };
 

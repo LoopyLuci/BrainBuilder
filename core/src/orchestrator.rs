@@ -16,6 +16,10 @@ pub struct Orchestrator {
     pub context: Arc<AppContext>,
     trainer_controller: TrainerController,
     python: PythonBridge,
+    /// User-selected GPU for native (`rust`) component ops, by adapter-name
+    /// substring (e.g. "7900 XTX"); `None` = auto/CPU. Set from the GUI's GPU
+    /// picker and consumed when running a graph forward (see `predict`).
+    preferred_gpu: std::sync::Mutex<Option<String>>,
 }
 
 impl Orchestrator {
@@ -45,7 +49,19 @@ impl Orchestrator {
             context,
             trainer_controller,
             python,
+            preferred_gpu: std::sync::Mutex::new(None),
         })
+    }
+
+    /// Set (or clear, with `None`/empty) the preferred GPU for native ops. A
+    /// name that doesn't match any adapter degrades to CPU at resolve time, so
+    /// this never fails.
+    pub fn set_preferred_gpu(&self, name: Option<String>) {
+        let cleaned = name.and_then(|n| {
+            let t = n.trim().to_string();
+            if t.is_empty() { None } else { Some(t) }
+        });
+        *self.preferred_gpu.lock().unwrap() = cleaned;
     }
 
     /// Structural + shape validation only, no execution — lets the GUI catch
@@ -105,7 +121,11 @@ impl Orchestrator {
         } else {
             std::collections::HashMap::new()
         };
-        plan.forward(&inputs, &weights, &self.python)
+        // Run native (`rust`) ops on the user's preferred GPU when one is set +
+        // available, else CPU. Python/torch components use torch's own device.
+        let preferred = self.preferred_gpu.lock().unwrap().clone();
+        let device = crate::runtime::device_select::resolve_device(preferred.as_deref());
+        plan.forward(&inputs, &weights, &self.python, device.as_ref())
     }
 
     pub fn has_checkpoint(&self, graph_id: &str) -> bool {

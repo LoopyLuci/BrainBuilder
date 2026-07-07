@@ -2,6 +2,7 @@ pub mod trainer;
 pub mod standard_trainer;
 pub mod scheduler;
 pub mod device;
+pub mod device_select;
 pub mod arrow_bridge;
 pub mod cpu_backend;
 pub mod nervous_system;

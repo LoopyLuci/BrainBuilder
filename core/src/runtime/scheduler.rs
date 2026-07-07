@@ -1,6 +1,5 @@
 use crate::bbir::BBIRGraph;
 use crate::component::descriptor::ShapeExpr;
-use crate::runtime::cpu_backend::CpuDevice;
 use crate::runtime::device::Device;
 use crate::AppContext;
 use crate::Result;
@@ -173,6 +172,7 @@ impl ExecutionPlan {
         data_inputs: &[Tensor],
         weights: &std::collections::HashMap<String, Tensor>,
         bridge: &PythonBridge,
+        device: &dyn Device,
     ) -> Result<Vec<Tensor>> {
         let mut intermediate = self.bind_data_ports(data_inputs.to_vec())?;
         for port in self.weight_ports() {
@@ -195,7 +195,7 @@ impl ExecutionPlan {
                 "python" => bridge.call_component(&op.component, &op.entry, op_inputs, &op.hyperparams)?,
                 "rust" => {
                     let refs: Vec<&Tensor> = op_inputs.iter().collect();
-                    CpuDevice.exec(&op.entry, &refs)?
+                    device.exec(&op.entry, &refs)?
                 }
                 other => {
                     return Err(crate::interop::protocol::BrainBuilderError::UnsupportedLanguage(

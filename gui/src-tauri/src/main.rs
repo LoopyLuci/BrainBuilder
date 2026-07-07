@@ -200,6 +200,16 @@ async fn probe_gpu_adapter(name: String) -> Result<String, String> {
     .map_err(|e| e.to_string())?
 }
 
+/// Set the preferred GPU (by adapter-name substring) that native `rust` ops run
+/// on. An empty string clears it (auto/CPU). Persisted app-side; consumed by the
+/// orchestrator when running a graph forward.
+#[command]
+async fn set_preferred_gpu(name: String, state: State<'_, AppState>) -> Result<(), String> {
+    let orchestrator = state.orchestrator.lock().await;
+    orchestrator.set_preferred_gpu(if name.trim().is_empty() { None } else { Some(name) });
+    Ok(())
+}
+
 /// The models a given provider can serve right now — a live reachability probe
 /// for Ollama, the published roster for OpenCode.
 #[command]
@@ -925,6 +935,7 @@ fn main() {
             list_provider_models,
             list_gpu_adapters,
             probe_gpu_adapter,
+            set_preferred_gpu,
             set_provider_credentials,
             has_provider_credentials,
             propose_model,
