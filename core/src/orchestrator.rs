@@ -61,7 +61,18 @@ impl Orchestrator {
             let t = n.trim().to_string();
             if t.is_empty() { None } else { Some(t) }
         });
-        *self.preferred_gpu.lock().unwrap() = cleaned;
+        *self.preferred_gpu.lock().unwrap() = cleaned.clone();
+
+        // Extend the same choice to the torch training path. wgpu adapters are
+        // named (e.g. "Radeon RX 7900 XTX") but torch selects by device *type*,
+        // so a picked GPU maps to torch "cuda" (the API namespace ROCm/AMD and
+        // NVIDIA both use); clearing maps to auto-detect. The worker validates
+        // and falls back to CPU if that device isn't actually usable, so this
+        // never wedges training.
+        let torch_device = cleaned.map(|_| "cuda".to_string());
+        if let Err(e) = self.python.set_device(torch_device) {
+            log::warn!("couldn't apply torch device preference: {e}");
+        }
     }
 
     /// Structural + shape validation only, no execution — lets the GUI catch

@@ -38,12 +38,27 @@ def _detect_device():
     exercised by this repo's test suite; treat the CUDA/MPS branches as real
     code following PyTorch's own documented device API, not yet proven on a
     real GPU by this project."""
+    def _cuda_ok():
+        return torch.cuda.is_available()
+
+    def _mps_ok():
+        return getattr(torch.backends, "mps", None) is not None and torch.backends.mps.is_available()
+
     override = os.environ.get("BRAINBUILDER_DEVICE")
     if override:
-        return torch.device(override)
-    if torch.cuda.is_available():
+        # Validate the override so forcing an accelerator that isn't actually
+        # present (e.g. BRAINBUILDER_DEVICE=cuda on a box torch can't see a GPU
+        # on) degrades to auto-detect instead of crashing at first tensor use.
+        dev = torch.device(override)
+        if dev.type == "cuda" and not _cuda_ok():
+            pass  # fall through to auto-detect
+        elif dev.type == "mps" and not _mps_ok():
+            pass
+        else:
+            return dev
+    if _cuda_ok():
         return torch.device("cuda")
-    if getattr(torch.backends, "mps", None) is not None and torch.backends.mps.is_available():
+    if _mps_ok():
         return torch.device("mps")
     return torch.device("cpu")
 

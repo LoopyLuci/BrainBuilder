@@ -46,6 +46,10 @@ pub struct PythonBridge {
     arena: Arc<SharedArena>,
     scratch_dir: PathBuf,
     caps: Capabilities,
+    /// The torch device string (`"cuda"`, `"cpu"`, `"mps"`, ...) the worker is
+    /// launched with via `BRAINBUILDER_DEVICE`. `None` = let the worker
+    /// auto-detect. Set from the GUI's GPU picker; a respawn applies it.
+    device: Mutex<Option<String>>,
     worker: Mutex<Worker>,
 }
 
@@ -76,11 +80,16 @@ impl Drop for Worker {
 }
 
 impl Worker {
-    fn spawn(_scratch_dir: &Path, caps: &Capabilities) -> Result<Self> {
+    fn spawn(_scratch_dir: &Path, caps: &Capabilities, device: Option<&str>) -> Result<Self> {
         let worker_script =
             Path::new(env!("CARGO_MANIFEST_DIR")).join("../components/python/_bb_worker.py");
         let mut command = Command::new("python");
         command.arg(&worker_script);
+        // Force the worker's torch device when the user picked a GPU (validated
+        // + graceful-fallback inside `_detect_device`). Absent = auto-detect.
+        if let Some(dev) = device {
+            command.env("BRAINBUILDER_DEVICE", dev);
+        }
         // Same OS-level containment `Supervisor` gives Racket/Clojure's
         // one-shot invocations, applied here to the worker's own long-lived
         // process: Linux/macOS get a process group + RLIMIT_AS ceiling
@@ -155,14 +164,47 @@ impl PythonBridge {
             }
         }
 
-        let worker = Worker::spawn(&scratch_dir, &caps)?;
+        let worker = Worker::spawn(&scratch_dir, &caps, None)?;
 
         Ok(Self {
             arena,
             scratch_dir,
             caps,
+            device: Mutex::new(None),
             worker: Mutex::new(worker),
         })
+    }
+
+    /// Select the torch device the worker runs on (`Some("cuda")` to force the
+    /// GPU, `None` to auto-detect). Respawns the worker so the next component
+    /// call runs on the chosen device. Invalid/absent accelerators degrade to
+    /// auto-detect inside the worker, so this can't wedge training.
+    pub fn set_device(&self, device: Option<String>) -> Result<()> {
+        let cleaned = device.and_then(|d| {
+            let t = d.trim().to_string();
+            if t.is_empty() { None } else { Some(t) }
+        });
+        {
+            let mut guard = self
+                .device
+                .lock()
+                .map_err(|_| BrainBuilderError::Python("python device lock poisoned".into()))?;
+            if *guard == cleaned {
+                return Ok(()); // no change — don't churn the worker
+            }
+            *guard = cleaned.clone();
+        }
+        let mut worker = self
+            .worker
+            .lock()
+            .map_err(|_| BrainBuilderError::Python("python worker lock poisoned".into()))?;
+        *worker = Worker::spawn(&self.scratch_dir, &self.caps, cleaned.as_deref())?;
+        Ok(())
+    }
+
+    /// The device string the worker is currently launched with (for respawns).
+    fn current_device(&self) -> Option<String> {
+        self.device.lock().ok().and_then(|g| g.clone())
     }
 
     fn temp_path(&self, tag: &str) -> PathBuf {
@@ -190,7 +232,7 @@ impl PythonBridge {
 
         let write_result = writeln!(worker.stdin, "{req}").and_then(|()| worker.stdin.flush());
         if write_result.is_err() {
-            *worker = Worker::spawn(&self.scratch_dir, &self.caps)?;
+            *worker = Worker::spawn(&self.scratch_dir, &self.caps, self.current_device().as_deref())?;
             audit::record(AuditEvent {
                 runtime: "python",
                 outcome: "worker_crashed",
@@ -206,7 +248,7 @@ impl PythonBridge {
         let line = match worker.lines.recv_timeout(timeout) {
             Ok(Ok(line)) => line,
             Ok(Err(e)) => {
-                *worker = Worker::spawn(&self.scratch_dir, &self.caps)?;
+                *worker = Worker::spawn(&self.scratch_dir, &self.caps, self.current_device().as_deref())?;
                 audit::record(AuditEvent {
                     runtime: "python",
                     outcome: "worker_crashed",
@@ -218,7 +260,7 @@ impl PythonBridge {
                 )));
             }
             Err(RecvTimeoutError::Timeout) => {
-                *worker = Worker::spawn(&self.scratch_dir, &self.caps)?;
+                *worker = Worker::spawn(&self.scratch_dir, &self.caps, self.current_device().as_deref())?;
                 audit::record(AuditEvent {
                     runtime: "python",
                     outcome: "timeout_killed",
@@ -230,7 +272,7 @@ impl PythonBridge {
                 )));
             }
             Err(RecvTimeoutError::Disconnected) => {
-                *worker = Worker::spawn(&self.scratch_dir, &self.caps)?;
+                *worker = Worker::spawn(&self.scratch_dir, &self.caps, self.current_device().as_deref())?;
                 audit::record(AuditEvent {
                     runtime: "python",
                     outcome: "worker_crashed",
