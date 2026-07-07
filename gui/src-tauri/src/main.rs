@@ -332,21 +332,52 @@ async fn autotune(graph_json: String, budget: usize, state: State<'_, AppState>)
         let learning_rate = autotune::lr_of(&cfg);
         trial_graph.training = Some(cfg);
 
-        // Capture the final loss by draining the metrics broadcast this trial
-        // emits. Trials run sequentially, so points don't interleave.
+        // Capture the trial's best (lowest) loss by consuming the metrics
+        // broadcast *concurrently* while training runs. Draining only after
+        // completion risked losing points: the channel is bounded (200), so a
+        // trial that emits more than that between our reads would overflow and
+        // the late `try_recv` would see `Lagged` and stop early, scoring the
+        // trial `None` (spuriously "failed"). Consuming as points arrive keeps
+        // the receiver from ever lagging. Trials run sequentially, so points
+        // don't interleave across trials.
         let mut rx = subscribe_metrics();
+        let (stop_tx, mut stop_rx) = tokio::sync::oneshot::channel::<()>();
+        let collector = tokio::spawn(async move {
+            use tokio::sync::broadcast::error::RecvError;
+            let mut best: Option<f32> = None;
+            let mut note = |loss: f32| {
+                best = Some(best.map_or(loss, |b| if loss < b { loss } else { b }));
+            };
+            loop {
+                tokio::select! {
+                    biased;
+                    // Prefer draining metrics before honoring the stop signal so
+                    // the final points of a trial are never missed.
+                    r = rx.recv() => match r {
+                        Ok(p) => note(p.loss),
+                        Err(RecvError::Lagged(_)) => continue,
+                        Err(RecvError::Closed) => break,
+                    },
+                    _ = &mut stop_rx => {
+                        while let Ok(p) = rx.try_recv() {
+                            note(p.loss);
+                        }
+                        break;
+                    }
+                }
+            }
+            best
+        });
+
         let orchestrator = state.orchestrator.lock().await;
         let run = orchestrator.execute_graph(trial_graph).await;
         drop(orchestrator);
 
+        // Signal the collector to finish and fold in any buffered points.
+        let _ = stop_tx.send(());
+        let collected = collector.await.unwrap_or(None);
         let score = match run {
-            Ok(()) => {
-                let mut last = None;
-                while let Ok(point) = rx.try_recv() {
-                    last = Some(point.loss);
-                }
-                last
-            }
+            Ok(()) => collected,
             Err(_) => None,
         };
 

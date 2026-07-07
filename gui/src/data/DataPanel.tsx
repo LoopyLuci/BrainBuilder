@@ -233,11 +233,32 @@ export function DataPanel() {
         </Button>
         {trials && (
           <ul className="bb-list" style={{ marginTop: 6 }}>
-            {trials.slice(0, 4).map((t) => (
-              <li key={t.index} className="bb-list-item bb-text-muted" style={{ fontSize: 11, fontFamily: 'var(--font-mono)' }}>
-                lr={t.learning_rate} {t.optimizer} batch={t.batch_size} → {t.score === null ? 'failed' : `loss ${t.score.toFixed(4)}`}
-              </li>
-            ))}
+            {trials.map((t, i) => {
+              // Trials arrive ranked best-first; the first with a usable score
+              // is the winner whose config we applied above.
+              const isBest = t.score !== null && !trials.slice(0, i).some((p) => p.score !== null);
+              return (
+                <li
+                  key={t.index}
+                  className="bb-list-item"
+                  style={{
+                    fontSize: 11,
+                    fontFamily: 'var(--font-mono)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    color: isBest ? 'var(--text)' : 'var(--text-muted, inherit)',
+                  }}
+                >
+                  <span className="bb-text-muted" style={{ width: 18 }}>#{i + 1}</span>
+                  <span style={{ flex: 1 }}>
+                    lr={t.learning_rate} {t.optimizer} batch={t.batch_size} →{' '}
+                    {t.score === null ? 'failed' : `loss ${t.score.toFixed(4)}`}
+                  </span>
+                  {isBest && <span className="bb-chip bb-chip--accent">✓ applied</span>}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

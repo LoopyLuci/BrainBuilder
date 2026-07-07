@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { usePluginLoader } from './loader';
+import { useWidgetRegistry } from './registry';
+import { useLayoutStore } from '../state/layoutStore';
 import { WidgetManifest } from './types';
 import { Panel } from '../ui/Panel';
 import { Button } from '../ui/Button';
@@ -29,9 +31,22 @@ const BUNDLED_EXAMPLES: WidgetManifest[] = [
 // URL/path. Loading a plugin registers its widgets live; unloading removes them
 // — no rebuild, no reload. This is the user-facing control surface for the
 // full runtime plugin-loading capability.
+// Widgets that must never be hideable, or the user could strand themselves —
+// the Plugins panel is the only way back, and the canvas is the workspace.
+const PROTECTED_WIDGETS = new Set(['plugins', 'canvas', 'palette']);
+
 export function PluginsPanel() {
   const { plugins, load, unload } = usePluginLoader();
   const [entry, setEntry] = useState('');
+
+  // Live list of every registered widget (built-in + plugin) for the layout
+  // manager below. Subscribing to the map keeps this current as plugins load.
+  const widgetsMap = useWidgetRegistry((s) => s.widgets);
+  const hidden = useLayoutStore((s) => s.hidden);
+  const toggleHidden = useLayoutStore((s) => s.toggle);
+  const manageable = Object.values(widgetsMap)
+    .filter((w) => (w.slot === 'side' || w.slot === 'bottom') && !PROTECTED_WIDGETS.has(w.id))
+    .sort((a, b) => a.slot.localeCompare(b.slot) || (a.order ?? 100) - (b.order ?? 100));
 
   const loadFromEntry = async () => {
     const trimmed = entry.trim();
@@ -62,6 +77,35 @@ export function PluginsPanel() {
 
   return (
     <Panel title="Plugins" subtitle="Load UI widgets at runtime — capability-gated, no rebuild.">
+      <div style={{ marginBottom: 8 }}>
+        <div className="bb-label" style={{ marginBottom: 4 }}>Panels</div>
+        <div className="bb-text-muted" style={{ fontSize: 11, marginBottom: 4 }}>
+          Show or hide any panel — your choice persists across reloads.
+        </div>
+        <ul className="bb-list">
+          {manageable.map((w) => {
+            const isHidden = hidden.has(w.id);
+            return (
+              <li
+                key={w.id}
+                className="bb-list-item"
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <span style={{ fontWeight: 600, opacity: isHidden ? 0.5 : 1 }}>{w.title}</span>
+                  <span className="bb-text-muted" style={{ fontSize: 11, marginLeft: 6 }}>
+                    {w.slot}{w.source === 'plugin' ? ' · plugin' : ''}
+                  </span>
+                </div>
+                <Button variant="ghost" onClick={() => toggleHidden(w.id)}>
+                  {isHidden ? 'Show' : 'Hide'}
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
       <div style={{ marginBottom: 8 }}>
         <div className="bb-label" style={{ marginBottom: 4 }}>Bundled examples</div>
         <ul className="bb-list">

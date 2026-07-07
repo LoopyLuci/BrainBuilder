@@ -18,6 +18,7 @@ export function SynthesizePanel() {
   const [result, setResult] = useState<SynthesisResult | null>(null);
   const selector = useProviderStore((s) => s.selector);
   const setDescriptors = useGraphStore((s) => s.setDescriptors);
+  const addNode = useGraphStore((s) => s.addNode);
 
   const synthesize = async () => {
     if (!description.trim()) return;
@@ -38,18 +39,29 @@ export function SynthesizePanel() {
     }
   };
 
-  const accept = async () => {
+  // Install the synthesized component and (when `place`) immediately drop it on
+  // the canvas — so a user sees describe → smoke-green → node-on-canvas without
+  // ever hunting through the palette or knowing EDN exists.
+  const accept = async (place: boolean) => {
     if (!result) return;
+    const name = result.name;
     setBusy(true);
     try {
       await installSynthesizedComponent(result);
-      // Refresh the palette so the new component appears live.
+      // Refresh the palette so the new component appears live. addNode below
+      // reads the descriptor from this same store, so it must run first.
       setDescriptors(await getComponentDescriptors());
-      logInfo(`Installed "${result.name}" — it's now in the Components palette.`);
+      if (place) {
+        // Drop near the top-left of the canvas; the user can drag from there.
+        addNode(name, { x: 120, y: 120 });
+        logInfo(`Installed "${name}" and placed it on the canvas.`);
+      } else {
+        logInfo(`Installed "${name}" — it's now in the Components palette.`);
+      }
       setResult(null);
       setDescription('');
     } catch (e) {
-      logError(`Installing "${result.name}" failed: ${e}`);
+      logError(`Installing "${name}" failed: ${e}`);
     } finally {
       setBusy(false);
     }
@@ -94,9 +106,16 @@ export function SynthesizePanel() {
           >
             {result.python_code}
           </pre>
-          <Button variant="primary" onClick={accept} disabled={busy || !result.smoke.passed}>
-            {result.smoke.passed ? 'Add to palette' : 'Cannot add (smoke test failed)'}
-          </Button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <Button variant="primary" onClick={() => accept(true)} disabled={busy || !result.smoke.passed}>
+              {result.smoke.passed ? 'Add to canvas' : 'Cannot add (smoke test failed)'}
+            </Button>
+            {result.smoke.passed && (
+              <Button variant="secondary" onClick={() => accept(false)} disabled={busy}>
+                Palette only
+              </Button>
+            )}
+          </div>
         </div>
       )}
     </Panel>

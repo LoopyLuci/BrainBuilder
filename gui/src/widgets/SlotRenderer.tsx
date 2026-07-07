@@ -1,4 +1,5 @@
 import { useWidgetRegistry } from './registry';
+import { useLayoutStore } from '../state/layoutStore';
 import { WidgetBoundary } from './WidgetBoundary';
 import { WidgetSlot } from './types';
 import { Tabs, TabDef } from '../ui/Tabs';
@@ -10,8 +11,10 @@ import { Tabs, TabDef } from '../ui/Tabs';
 export function SlotRenderer({ slot, asTabs }: { slot: WidgetSlot; asTabs?: boolean }) {
   // Subscribe to the widgets map so runtime (un)registration re-renders.
   const widgetsMap = useWidgetRegistry((s) => s.widgets);
+  // Subscribe to the hidden set so toggling visibility re-renders the slot.
+  const hidden = useLayoutStore((s) => s.hidden);
   const widgets = Object.values(widgetsMap)
-    .filter((w) => w.slot === slot)
+    .filter((w) => w.slot === slot && !hidden.has(w.id))
     .sort((a, b) => (a.order ?? 100) - (b.order ?? 100));
 
   if (widgets.length === 0) return null;
