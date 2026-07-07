@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import * as React from 'react';
 import { registerWidget, useWidgetRegistry } from './registry';
 import { PluginHost, WidgetManifest, PluginCapability } from './types';
 import { useGraphStore } from '../state/graphStore';
@@ -28,6 +29,7 @@ interface PluginState {
 function buildHost(manifest: WidgetManifest): PluginHost {
   const caps = new Set<PluginCapability>(manifest.capabilities ?? []);
   const host: PluginHost = {
+    react: React,
     registerWidget: (def) => {
       if (!caps.has('register-widget')) {
         throw new Error(`plugin "${manifest.id}" tried to register a widget without the 'register-widget' capability`);
@@ -43,6 +45,24 @@ function buildHost(manifest: WidgetManifest): PluginHost {
     };
   }
   return host;
+}
+
+// Import a plugin module from a URL/path. We fetch the source as text and
+// instantiate it via a Blob URL rather than importing the path directly: this
+// bypasses the bundler entirely (the Vite dev server otherwise rewrites
+// dynamic imports of public-dir JS with a `?import` suffix that 404s), works
+// identically in a production Tauri build, and gives us the source text as a
+// natural place to inspect/validate untrusted plugin code before running it.
+async function importPluginModule(entry: string): Promise<{ register?: unknown }> {
+  const res = await fetch(entry);
+  if (!res.ok) throw new Error(`couldn't fetch plugin at ${entry} (HTTP ${res.status})`);
+  const code = await res.text();
+  const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
+  try {
+    return await import(/* @vite-ignore */ url);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 function persistEnabled(ids: string[]) {
@@ -64,8 +84,7 @@ export const usePluginLoader = create<PluginState>((set, get) => ({
       return;
     }
     try {
-      // Vite needs the hint to not try to statically resolve this import.
-      const mod = await import(/* @vite-ignore */ manifest.entry);
+      const mod = await importPluginModule(manifest.entry);
       if (typeof mod.register !== 'function') {
         throw new Error("plugin module has no exported `register(host)` function");
       }

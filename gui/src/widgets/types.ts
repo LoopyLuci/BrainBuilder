@@ -39,6 +39,11 @@ export type PluginCapability = 'register-widget' | 'read-graph' | 'author-llm';
 
 export interface PluginHost {
   registerWidget: (def: Omit<WidgetDef, 'source'>) => void;
+  /** The app's own React instance. A runtime-loaded plugin is raw JS that
+   * can't `import react` (Vite doesn't bundle it), and using a second React
+   * copy would break hooks — so the host hands over the one true React for
+   * the plugin to build UI with (`host.react.createElement`, hooks, etc.). */
+  react: typeof import('react');
   /** Only present if the plugin declared the matching capability. */
   readGraph?: () => { nodes: unknown[]; edges: unknown[] };
 }
