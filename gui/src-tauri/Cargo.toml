@@ -8,7 +8,10 @@ tauri-build = { version = "1", features = [] }
 
 [dependencies]
 tauri = { version = "1", features = ["shell-open", "dialog-all", "fs-create-dir", "fs-exists", "path-all"] }
-brainbuilder-core = { path = "../../core", features = ["gui", "onnx"] }
+# wgpu + pollster (not the `gpu` feature, which also pulls cudarc/CUDA toolkit)
+# enable the cross-platform GPU backend so the app can enumerate + bind GPUs
+# (the device picker) — e.g. an AMD RX 7900 XTX over Vulkan/DX12.
+brainbuilder-core = { path = "../../core", features = ["gui", "onnx", "wgpu", "pollster"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }

@@ -175,6 +175,31 @@ async fn list_llm_providers() -> Result<Vec<[String; 2]>, String> {
         .collect())
 }
 
+/// Every GPU wgpu can drive on this machine (Vulkan/DX12/Metal/GL), for the
+/// device picker. Empty on a machine with no compatible GPU.
+#[command]
+async fn list_gpu_adapters() -> Result<Vec<brainbuilder_core::runtime::wgpu_backend::GpuAdapterInfo>, String> {
+    // Enumeration touches the GPU driver; keep it off the async reactor.
+    tokio::task::spawn_blocking(brainbuilder_core::runtime::wgpu_backend::list_adapters)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Bind a specific GPU by name (substring, e.g. "7900 XTX") and report the
+/// adapter actually acquired — the live "does my card work?" probe. Returns the
+/// bound adapter's real name so the UI can confirm the intended device.
+#[command]
+async fn probe_gpu_adapter(name: String) -> Result<String, String> {
+    tokio::task::spawn_blocking(move || {
+        let want = if name.trim().is_empty() { None } else { Some(name.as_str()) };
+        brainbuilder_core::runtime::wgpu_backend::WgpuDevice::with_preferred(want)
+            .map(|d| d.adapter_name().to_string())
+            .map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// The models a given provider can serve right now — a live reachability probe
 /// for Ollama, the published roster for OpenCode.
 #[command]
@@ -898,6 +923,8 @@ fn main() {
             autotune,
             list_llm_providers,
             list_provider_models,
+            list_gpu_adapters,
+            probe_gpu_adapter,
             set_provider_credentials,
             has_provider_credentials,
             propose_model,

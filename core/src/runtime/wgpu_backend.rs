@@ -53,20 +53,78 @@ pub struct WgpuDevice {
     adapter_name: String,
 }
 
+/// A GPU wgpu can drive on this machine, as surfaced to the picker UI. `id` is
+/// a stable-enough selector (name + backend) the frontend can persist and pass
+/// back to bind that specific device — e.g. an AMD RX 7900 XTX over Vulkan vs.
+/// the same card over DX12, or an integrated GPU.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct GpuAdapterInfo {
+    pub name: String,
+    pub backend: String,
+    pub device_type: String,
+}
+
+impl GpuAdapterInfo {
+    fn from_info(info: &wgpu::AdapterInfo) -> Self {
+        Self {
+            name: info.name.clone(),
+            backend: format!("{:?}", info.backend),
+            device_type: format!("{:?}", info.device_type),
+        }
+    }
+}
+
+/// Enumerate every real GPU adapter wgpu can see across all backends
+/// (Vulkan/DX12/Metal/GL). Returns an empty list on a machine with no
+/// compatible GPU rather than erroring, so the picker can show "none found"
+/// instead of failing. This is the data behind the device picker — on the
+/// user's box an AMD RX 7900 XTX shows up here (typically under Vulkan/DX12).
+pub fn list_adapters() -> Vec<GpuAdapterInfo> {
+    let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+        backends: wgpu::Backends::all(),
+        ..Default::default()
+    });
+    instance
+        .enumerate_adapters(wgpu::Backends::all())
+        .iter()
+        .map(|a| GpuAdapterInfo::from_info(&a.get_info()))
+        .collect()
+}
+
 impl WgpuDevice {
     /// Picks whatever real adapter the OS/driver gives us first (the point
     /// of wgpu — no vendor-specific setup) and blocks synchronously on its
     /// async setup via `pollster`, since `Device::alloc`/`exec` are sync.
     pub fn new() -> Result<Self> {
+        Self::with_preferred(None)
+    }
+
+    /// Bind a specific adapter by name (substring match, case-insensitive) —
+    /// e.g. `Some("7900 XTX")` to force the discrete AMD card. Falls back to
+    /// the default high-performance adapter when `preferred` is `None` or no
+    /// adapter matches, so a stale/typo'd preference degrades gracefully rather
+    /// than failing to get a GPU at all.
+    pub fn with_preferred(preferred: Option<&str>) -> Result<Self> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             ..Default::default()
         });
-        let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::HighPerformance,
-            ..Default::default()
-        }))
-        .ok_or_else(|| BrainBuilderError::Hardware("no wgpu-compatible GPU adapter found".into()))?;
+
+        let adapter = preferred
+            .and_then(|want| {
+                let needle = want.to_lowercase();
+                instance
+                    .enumerate_adapters(wgpu::Backends::all())
+                    .into_iter()
+                    .find(|a| a.get_info().name.to_lowercase().contains(&needle))
+            })
+            .or_else(|| {
+                pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+                    power_preference: wgpu::PowerPreference::HighPerformance,
+                    ..Default::default()
+                }))
+            })
+            .ok_or_else(|| BrainBuilderError::Hardware("no wgpu-compatible GPU adapter found".into()))?;
         let adapter_name = adapter.get_info().name;
 
         let (device, queue) = pollster::block_on(adapter.request_device(
@@ -209,5 +267,33 @@ impl Device for WgpuDevice {
     fn sync(&self) -> Result<()> {
         self.device.poll(wgpu::Maintain::Wait);
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod adapter_tests {
+    use super::*;
+
+    // Enumeration must never panic and must yield well-formed entries. On a
+    // headless CI box the list may be empty; on a real machine it lists the
+    // installed GPUs (e.g. an AMD RX 7900 XTX). Either way each entry is sane.
+    #[test]
+    fn list_adapters_is_well_formed() {
+        let adapters = list_adapters();
+        for a in &adapters {
+            assert!(!a.name.is_empty(), "adapter name should not be empty");
+            assert!(!a.backend.is_empty(), "adapter backend should not be empty");
+        }
+    }
+
+    // A preference that matches nothing must fall back rather than fail to bind
+    // a GPU — but only assert that when a GPU actually exists here.
+    #[test]
+    fn unmatched_preference_falls_back_when_a_gpu_exists() {
+        if list_adapters().is_empty() {
+            return; // no GPU in this environment; nothing to bind
+        }
+        let dev = WgpuDevice::with_preferred(Some("no-such-gpu-zzz"));
+        assert!(dev.is_ok(), "should fall back to the default adapter, not error");
     }
 }

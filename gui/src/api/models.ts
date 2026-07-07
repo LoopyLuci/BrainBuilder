@@ -141,6 +141,44 @@ export async function installSynthesizedComponent(result: SynthesisResult): Prom
   return invoke('install_synthesized_component', { componentJson });
 }
 
+// --- GPU device picker ---
+
+export interface GpuAdapterInfo {
+  name: string;
+  backend: string;
+  device_type: string;
+}
+
+const GPU_PREF_KEY = 'brainbuilder.gpu.preferredAdapter';
+
+export function getPreferredGpu(): string {
+  try {
+    return localStorage.getItem(GPU_PREF_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+export function setPreferredGpu(name: string): void {
+  try {
+    if (name) localStorage.setItem(GPU_PREF_KEY, name);
+    else localStorage.removeItem(GPU_PREF_KEY);
+  } catch {
+    /* non-fatal */
+  }
+}
+
+// Every GPU wgpu can drive on this machine (Vulkan/DX12/Metal/GL).
+export async function listGpuAdapters(): Promise<GpuAdapterInfo[]> {
+  return invoke('list_gpu_adapters');
+}
+
+// Bind a GPU by name (substring, e.g. "7900 XTX") and return the adapter
+// actually acquired — the live "does my card work?" probe.
+export async function probeGpuAdapter(name: string): Promise<string> {
+  return invoke('probe_gpu_adapter', { name });
+}
+
 // --- Auto-tuning ---
 
 export interface TrialResult {
