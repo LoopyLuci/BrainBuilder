@@ -107,6 +107,34 @@ config is applied with one click.
 
 ---
 
+## 5. GPU device picker — AMD RX 7900 XTX (Phase: hardware)
+
+Enumeration and binding are code-complete and unit-tested; confirming a
+*specific* card needs that card.
+
+1. [ ] Open **Models** → the **GPU** panel. Confirm the RX 7900 XTX appears in
+       the list (typically under **Vulkan** and/or **DX12**).
+2. [ ] Select it as the preferred device; confirm the choice persists across an
+       app restart.
+3. [ ] Click **Test this GPU** — confirm it reports `bound: …7900 XTX…` (the
+       `probe_gpu_adapter` command actually acquires the adapter).
+4. [ ] Build a small graph and run a training/exec pass on the wgpu backend;
+       confirm the WGSL compute path runs (see `core/tests/wgpu_backend.rs` for
+       the arithmetic-on-GPU proof against a real adapter).
+
+**Known limit:** tensors are CPU-resident between calls; a persistent
+GPU-buffer tensor model is a deliberate future redesign (documented in
+[wgpu_backend.rs](../core/src/runtime/wgpu_backend.rs)).
+
+## 6. Model inference & GGUF (hardware / external)
+
+- **ONNX inference** is real via the `ort` crate but needs a model file present;
+  load one in the Model Hub and run it on your machine.
+- **GGUF** is intentionally delegated to a local `ollama` (llama.cpp) install
+  rather than a from-scratch quantized engine — register a `.gguf` via the Model
+  Hub, then chat/generate. See
+  [gguf_router.rs](../core/src/models/gguf_router.rs) for the rationale.
+
 ## Honest limits
 
 - "Zero failures / zero downtime" is approached via **containment +
