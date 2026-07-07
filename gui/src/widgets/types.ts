@@ -46,4 +46,9 @@ export interface PluginHost {
   react: typeof import('react');
   /** Only present if the plugin declared the matching capability. */
   readGraph?: () => { nodes: unknown[]; edges: unknown[] };
+  /** Only present if the plugin declared 'author-llm'. Asks the app's currently
+   * selected LLM provider/model to author a BBIR graph from a description,
+   * returning the serialized graph. The key + provider stay app-side; the
+   * plugin never sees credentials or gets a raw `invoke`. */
+  authorGraph?: (description: string) => Promise<string>;
 }

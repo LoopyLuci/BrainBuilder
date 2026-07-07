@@ -9,57 +9,115 @@
 //! caller through a simple evaluator, so the reusable core is verifiable
 //! without a training runtime, and a synthetic objective stands in for real
 //! training in the unit tests.
-use crate::bbir::TrainingConfig;
+use crate::bbir::{BBIRGraph, TrainingConfig};
 use serde::Serialize;
 
 /// The knobs auto-tuning sweeps. Kept deliberately small — these are the levers
 /// that most often decide whether a model trains at all, and a compact grid
 /// keeps the search cheap enough to run on a laptop.
+///
+/// `width_scales` is the light **architecture** dimension: each scale multiplies
+/// the hidden-width hyperparameters of the graph's layers (see
+/// [`apply_width_scale`]), so the search can find not just a good training
+/// config but a better-sized model. `1.0` leaves the architecture untouched.
 #[derive(Debug, Clone)]
 pub struct SearchSpace {
     pub learning_rates: Vec<f64>,
     pub batch_sizes: Vec<usize>,
     pub optimizers: Vec<String>,
+    pub width_scales: Vec<f64>,
 }
 
 impl SearchSpace {
     /// A sensible default grid centered on the base config's current choices,
     /// spanning the learning rates and optimizers that matter most in practice.
+    /// Architecture is left alone by default (`width_scales = [1.0]`); call
+    /// [`SearchSpace::with_architecture_search`] to also sweep model width.
     pub fn default_around(base: &TrainingConfig) -> Self {
         let base_batch = base.data_source.batch_size.max(1);
         Self {
             learning_rates: vec![0.1, 0.01, 0.001, 0.0001],
             batch_sizes: vec![base_batch, (base_batch * 2).max(2)],
             optimizers: vec!["adam".to_string(), "sgd".to_string()],
+            width_scales: vec![1.0],
         }
+    }
+
+    /// Add a light architecture search: also try a narrower and a wider model
+    /// (half / double the hidden widths) alongside the given base. Opt-in
+    /// because it multiplies the grid and an ill-fitting scale simply fails its
+    /// trial (and ranks last), rather than being silently accepted.
+    pub fn with_architecture_search(mut self) -> Self {
+        self.width_scales = vec![0.5, 1.0, 2.0];
+        self
     }
 
     /// Total number of candidate configs this space expands to.
     pub fn size(&self) -> usize {
-        self.learning_rates.len() * self.batch_sizes.len() * self.optimizers.len()
+        self.learning_rates.len() * self.batch_sizes.len() * self.optimizers.len() * self.width_scales.len().max(1)
     }
 }
 
-/// Expand a search space into concrete candidate configs, each a clone of
-/// `base` with one grid point applied. Capped at `max_candidates` (a budget) so
-/// a large grid can't blow up the number of real training runs.
-pub fn candidate_configs(base: &TrainingConfig, space: &SearchSpace, max_candidates: usize) -> Vec<TrainingConfig> {
+/// One point in the search space: a training config plus the architecture width
+/// scale to apply to the graph before training it.
+#[derive(Debug, Clone)]
+pub struct Candidate {
+    pub config: TrainingConfig,
+    pub width_scale: f64,
+}
+
+/// Expand a search space into concrete candidates, each a clone of `base` with
+/// one grid point applied (and the width scale to apply to the graph). Capped at
+/// `max_candidates` (a budget) so a large grid can't blow up the number of real
+/// training runs.
+pub fn candidate_configs(base: &TrainingConfig, space: &SearchSpace, max_candidates: usize) -> Vec<Candidate> {
     let mut out = Vec::new();
+    let width_scales = if space.width_scales.is_empty() { &[1.0][..] } else { &space.width_scales[..] };
     for &lr in &space.learning_rates {
         for &batch in &space.batch_sizes {
             for opt in &space.optimizers {
-                if out.len() >= max_candidates {
-                    return out;
+                for &width_scale in width_scales {
+                    if out.len() >= max_candidates {
+                        return out;
+                    }
+                    let mut cfg = base.clone();
+                    cfg.optimizer = opt.clone();
+                    cfg.data_source.batch_size = batch;
+                    set_lr(&mut cfg, lr);
+                    out.push(Candidate { config: cfg, width_scale });
                 }
-                let mut cfg = base.clone();
-                cfg.optimizer = opt.clone();
-                cfg.data_source.batch_size = batch;
-                set_lr(&mut cfg, lr);
-                out.push(cfg);
             }
         }
     }
     out
+}
+
+/// Hidden-width hyperparameter names the architecture search is allowed to
+/// scale. Deliberately a curated allow-list: scaling something data-tied (an
+/// embedding's `vocab_size`, an output dimension) would break the graph, so we
+/// touch only the interior widths that are safe to grow/shrink.
+const SCALABLE_WIDTH_KEYS: &[&str] = &["hidden", "hidden_size", "units", "features", "out_features", "dim", "d_model"];
+
+/// Apply an architecture width scale to a graph in place: multiply every
+/// scalable integer hidden-width hyperparameter by `scale`, rounded, min 1. A
+/// `scale` of 1.0 is a no-op. An unlucky scale that produces an inconsistent
+/// graph just fails its trial downstream (scored `None`), so this can only
+/// *propose* architectures, never silently corrupt one.
+pub fn apply_width_scale(graph: &mut BBIRGraph, scale: f64) {
+    if (scale - 1.0).abs() < f64::EPSILON {
+        return;
+    }
+    for node in &mut graph.nodes {
+        let Some(map) = node.hyperparams.as_object_mut() else { continue };
+        for key in SCALABLE_WIDTH_KEYS {
+            if let Some(v) = map.get_mut(*key) {
+                if let Some(n) = v.as_u64() {
+                    let scaled = ((n as f64) * scale).round().max(1.0) as u64;
+                    *v = serde_json::json!(scaled);
+                }
+            }
+        }
+    }
 }
 
 /// Write a learning rate into a config's `hyperparams` JSON object, preserving
@@ -117,6 +175,9 @@ pub struct TrialResult {
     pub learning_rate: Option<f64>,
     pub batch_size: usize,
     pub optimizer: String,
+    /// Architecture width scale applied to the graph for this trial (1.0 = as
+    /// authored). Reported so the UI/leaderboard can show which size won.
+    pub width_scale: f64,
     /// Final loss (lower is better); `None` if the trial errored/diverged.
     pub score: Option<f32>,
 }
@@ -167,8 +228,8 @@ mod tests {
         let all = candidate_configs(&base, &space, 1000);
         assert_eq!(all.len(), space.size());
         // Learning rate is actually applied and other hyperparams preserved.
-        assert!(all.iter().all(|c| lr_of(c).is_some()));
-        assert!(all.iter().all(|c| c.hyperparams.get("epochs").is_some()));
+        assert!(all.iter().all(|c| lr_of(&c.config).is_some()));
+        assert!(all.iter().all(|c| c.config.hyperparams.get("epochs").is_some()));
         // Budget cap is honored.
         let capped = candidate_configs(&base, &space, 3);
         assert_eq!(capped.len(), 3);
@@ -200,9 +261,9 @@ mod tests {
     #[test]
     fn ranking_puts_the_best_first_and_failures_last() {
         let results = vec![
-            TrialResult { index: 0, learning_rate: Some(0.1), batch_size: 16, optimizer: "sgd".into(), score: Some(0.5) },
-            TrialResult { index: 1, learning_rate: Some(0.01), batch_size: 16, optimizer: "adam".into(), score: None },
-            TrialResult { index: 2, learning_rate: Some(0.001), batch_size: 16, optimizer: "adam".into(), score: Some(0.2) },
+            TrialResult { index: 0, learning_rate: Some(0.1), batch_size: 16, optimizer: "sgd".into(), width_scale: 1.0, score: Some(0.5) },
+            TrialResult { index: 1, learning_rate: Some(0.01), batch_size: 16, optimizer: "adam".into(), width_scale: 1.0, score: None },
+            TrialResult { index: 2, learning_rate: Some(0.001), batch_size: 16, optimizer: "adam".into(), width_scale: 2.0, score: Some(0.2) },
         ];
         let ranked = rank(&results);
         assert_eq!(ranked[0].index, 2); // lowest loss
@@ -228,11 +289,52 @@ mod tests {
 
         let mut alive: Vec<usize> = (0..candidates.len()).collect();
         for &survivors in halving_schedule(candidates.len()).iter().skip(1) {
-            let scores: Vec<(usize, f32)> = alive.iter().map(|&i| (i, objective(&candidates[i]))).collect();
+            let scores: Vec<(usize, f32)> = alive.iter().map(|&i| (i, objective(&candidates[i].config))).collect();
             alive = select_survivors(&scores, survivors);
         }
         assert_eq!(alive.len(), 1);
         let winner = &candidates[alive[0]];
-        assert_eq!(lr_of(winner), Some(0.001));
+        assert_eq!(lr_of(&winner.config), Some(0.001));
+    }
+
+    #[test]
+    fn architecture_search_multiplies_the_grid_and_carries_scales() {
+        let base = base_config();
+        let space = SearchSpace::default_around(&base).with_architecture_search();
+        let all = candidate_configs(&base, &space, 10_000);
+        // Three width scales widen the grid threefold vs. the config-only space.
+        assert_eq!(all.len(), space.size());
+        assert!(all.iter().any(|c| (c.width_scale - 0.5).abs() < 1e-9));
+        assert!(all.iter().any(|c| (c.width_scale - 2.0).abs() < 1e-9));
+    }
+
+    #[test]
+    fn width_scale_grows_only_curated_hidden_keys() {
+        use crate::bbir::{BBIRNode, PortInfo};
+        let node = |hp: serde_json::Value| BBIRNode {
+            id: "n".into(),
+            component: "linear".into(),
+            label: None,
+            hyperparams: hp,
+            ports: PortInfo { input_ports: vec![], output_ports: vec![] },
+            position: None,
+        };
+        let mut graph = BBIRGraph {
+            schema_version: 1,
+            graph_id: "g".into(),
+            name: "t".into(),
+            nodes: vec![node(serde_json::json!({ "hidden": 32, "vocab_size": 5000 }))],
+            edges: vec![],
+            training: None,
+        };
+        apply_width_scale(&mut graph, 2.0);
+        let hp = graph.nodes[0].hyperparams.as_object().unwrap();
+        assert_eq!(hp["hidden"].as_u64(), Some(64), "hidden width doubles");
+        assert_eq!(hp["vocab_size"].as_u64(), Some(5000), "data-tied dims are left alone");
+
+        // A scale of 1.0 is a no-op.
+        let mut g2 = graph.clone();
+        apply_width_scale(&mut g2, 1.0);
+        assert_eq!(g2.nodes[0].hyperparams["hidden"].as_u64(), Some(64));
     }
 }

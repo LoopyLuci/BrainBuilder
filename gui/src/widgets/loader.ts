@@ -3,6 +3,8 @@ import * as React from 'react';
 import { registerWidget, useWidgetRegistry } from './registry';
 import { PluginHost, WidgetManifest, PluginCapability } from './types';
 import { useGraphStore } from '../state/graphStore';
+import { useProviderStore } from '../state/providerStore';
+import { generateGraph } from '../api/models';
 
 // Runtime plugin loading. A plugin is an ES module exposing `register(host)`;
 // we validate its manifest, hand it a NARROW capability-gated host API (never
@@ -43,6 +45,11 @@ function buildHost(manifest: WidgetManifest): PluginHost {
       const { nodes, edges } = useGraphStore.getState();
       return { nodes, edges };
     };
+  }
+  if (caps.has('author-llm')) {
+    // Gated LLM access: the plugin can request a graph, but the provider,
+    // model, and API key stay app-side (never handed to the plugin).
+    host.authorGraph = (description: string) => generateGraph(description, useProviderStore.getState().selector());
   }
   return host;
 }

@@ -347,7 +347,7 @@ async fn install_synthesized_component(component_json: String, state: State<'_, 
 /// loss — so a zero-knowledge user gets a config that already works instead of
 /// guessing. Each trial's metrics still stream to the dashboard as it runs.
 #[command]
-async fn autotune(graph_json: String, budget: usize, state: State<'_, AppState>) -> Result<String, String> {
+async fn autotune(graph_json: String, budget: usize, search_arch: bool, state: State<'_, AppState>) -> Result<String, String> {
     use brainbuilder_core::autotune;
 
     let graph: BBIRGraph = serde_json::from_str(&graph_json).map_err(|e| e.to_string())?;
@@ -356,12 +356,19 @@ async fn autotune(graph_json: String, budget: usize, state: State<'_, AppState>)
         .clone()
         .ok_or_else(|| "graph has no training config to tune".to_string())?;
 
-    let space = autotune::SearchSpace::default_around(&base);
+    let space = {
+        let s = autotune::SearchSpace::default_around(&base);
+        if search_arch { s.with_architecture_search() } else { s }
+    };
     let candidates = autotune::candidate_configs(&base, &space, budget.max(1));
 
     let mut results = Vec::new();
-    for (index, cfg) in candidates.into_iter().enumerate() {
+    for (index, candidate) in candidates.into_iter().enumerate() {
+        let cfg = candidate.config;
+        let width_scale = candidate.width_scale;
         let mut trial_graph = graph.clone();
+        // Apply the architecture width scale to this trial's graph (no-op at 1.0).
+        autotune::apply_width_scale(&mut trial_graph, width_scale);
         let batch_size = cfg.data_source.batch_size;
         let optimizer = cfg.optimizer.clone();
         let learning_rate = autotune::lr_of(&cfg);
@@ -416,7 +423,7 @@ async fn autotune(graph_json: String, budget: usize, state: State<'_, AppState>)
             Err(_) => None,
         };
 
-        results.push(autotune::TrialResult { index, learning_rate, batch_size, optimizer, score });
+        results.push(autotune::TrialResult { index, learning_rate, batch_size, optimizer, width_scale, score });
     }
 
     let ranked = autotune::rank(&results);

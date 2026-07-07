@@ -25,6 +25,13 @@ const BUNDLED_EXAMPLES: WidgetManifest[] = [
     description: 'Live node/edge/component counts (uses the read-graph capability).',
     capabilities: ['register-widget', 'read-graph'],
   },
+  {
+    id: 'llm-author',
+    version: '1.0.0',
+    entry: '/plugins/llm-author.js',
+    description: 'Authors a graph via the app’s LLM (uses the author-llm capability).',
+    capabilities: ['register-widget', 'author-llm'],
+  },
 ];
 
 // Lists loaded runtime plugins and lets the user load a new one from a manifest

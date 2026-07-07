@@ -10,6 +10,10 @@ import { Button } from '../ui/Button';
 
 const LOSSES = ['mse', 'cross_entropy'];
 const OPTIMIZERS = ['sgd', 'adam'];
+// Hidden-width hyperparameters the architecture search resizes — must mirror
+// the backend's autotune::SCALABLE_WIDTH_KEYS so the applied model matches the
+// tuned one.
+const SCALABLE_WIDTH_KEYS = ['hidden', 'hidden_size', 'units', 'features', 'out_features', 'dim', 'd_model'];
 
 export function DataPanel() {
   const training = useGraphStore((s) => s.training);
@@ -71,13 +75,14 @@ export function DataPanel() {
   const graphId = useGraphStore((s) => s.graphId);
   const [tuning, setTuning] = useState(false);
   const [trials, setTrials] = useState<TrialResult[] | null>(null);
+  const [searchArch, setSearchArch] = useState(false);
 
   const runAutotune = async () => {
     setTuning(true);
     setTrials(null);
     try {
       const graphJson = JSON.stringify(convertToBBIR(nodes, edges, graphId, 'untitled', training));
-      const ranked = await autotune(graphJson, 8);
+      const ranked = await autotune(graphJson, searchArch ? 16 : 8, searchArch);
       setTrials(ranked);
       const best = ranked.find((t) => t.score !== null);
       if (best) {
@@ -88,7 +93,26 @@ export function DataPanel() {
           hyperparams: { ...training.hyperparams, lr: best.learning_rate ?? training.hyperparams?.lr },
           data_source: { ...training.data_source, batch_size: best.batch_size },
         });
-        logInfo(`Auto-tune picked lr=${best.learning_rate}, ${best.optimizer}, batch=${best.batch_size} (loss ${best.score?.toFixed(4)}).`);
+        // If a resized architecture won, apply that width to the graph too so
+        // the model the user trains matches the model that tuned best. Mirrors
+        // the backend's curated allow-list (autotune::SCALABLE_WIDTH_KEYS).
+        if (best.width_scale !== 1) {
+          for (const node of nodes) {
+            const hp = node.data.hyperparams ?? {};
+            let changed = false;
+            const next = { ...hp };
+            for (const key of SCALABLE_WIDTH_KEYS) {
+              const v = hp[key];
+              if (typeof v === 'number' && Number.isInteger(v)) {
+                next[key] = Math.max(1, Math.round(v * best.width_scale));
+                changed = true;
+              }
+            }
+            if (changed) updateNodeHyperparams(node.id, next);
+          }
+        }
+        const archNote = best.width_scale !== 1 ? `, width ×${best.width_scale}` : '';
+        logInfo(`Auto-tune picked lr=${best.learning_rate}, ${best.optimizer}, batch=${best.batch_size}${archNote} (loss ${best.score?.toFixed(4)}).`);
       } else {
         logError('Auto-tune finished but no trial produced a usable result.');
       }
@@ -228,9 +252,15 @@ export function DataPanel() {
         <p className="bb-text-muted" style={{ margin: '0 0 6px' }}>
           Not sure what to pick? Auto-tune runs a few short trials and applies the config that trains best.
         </p>
-        <Button variant="secondary" onClick={runAutotune} disabled={tuning || nodes.length === 0}>
-          {tuning ? 'Tuning…' : 'Auto-tune'}
-        </Button>
+        <div className="bb-row" style={{ alignItems: 'center', gap: 8 }}>
+          <Button variant="secondary" onClick={runAutotune} disabled={tuning || nodes.length === 0}>
+            {tuning ? 'Tuning…' : 'Auto-tune'}
+          </Button>
+          <label className="bb-text-muted" style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <input type="checkbox" checked={searchArch} onChange={(e) => setSearchArch(e.target.checked)} disabled={tuning} />
+            also try narrower / wider models
+          </label>
+        </div>
         {trials && (
           <ul className="bb-list" style={{ marginTop: 6 }}>
             {trials.map((t, i) => {
@@ -252,7 +282,8 @@ export function DataPanel() {
                 >
                   <span className="bb-text-muted" style={{ width: 18 }}>#{i + 1}</span>
                   <span style={{ flex: 1 }}>
-                    lr={t.learning_rate} {t.optimizer} batch={t.batch_size} →{' '}
+                    lr={t.learning_rate} {t.optimizer} batch={t.batch_size}
+                    {t.width_scale !== 1 ? ` ×${t.width_scale}w` : ''} →{' '}
                     {t.score === null ? 'failed' : `loss ${t.score.toFixed(4)}`}
                   </span>
                   {isBest && <span className="bb-chip bb-chip--accent">✓ applied</span>}

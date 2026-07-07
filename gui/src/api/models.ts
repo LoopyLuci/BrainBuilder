@@ -148,12 +148,14 @@ export interface TrialResult {
   learning_rate: number | null;
   batch_size: number;
   optimizer: string;
+  /** Architecture width scale applied for this trial (1.0 = as authored). */
+  width_scale: number;
   score: number | null;
 }
 
-// Sweep a small grid of training configs, running each as a real short trial,
-// and return them ranked best-first (lowest final loss). `graphJson` is the
-// full BBIR graph (with a training config).
-export async function autotune(graphJson: string, budget: number): Promise<TrialResult[]> {
-  return JSON.parse(await invoke<string>('autotune', { graphJson, budget }));
+// Sweep a small grid of training configs (and, when `searchArch`, a narrower +
+// wider model), running each as a real short trial, and return them ranked
+// best-first (lowest final loss). `graphJson` is the full BBIR graph.
+export async function autotune(graphJson: string, budget: number, searchArch: boolean): Promise<TrialResult[]> {
+  return JSON.parse(await invoke<string>('autotune', { graphJson, budget, searchArch }));
 }
