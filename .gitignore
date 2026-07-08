@@ -10,6 +10,8 @@ __pycache__/
 gui/node_modules
 gui/dist
 gui/src-tauri/target
+gui/test-results
+gui/playwright-report
 
 # Tauri build artifacts
 gui/src-tauri/gen

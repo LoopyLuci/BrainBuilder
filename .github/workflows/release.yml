@@ -14,7 +14,50 @@ on:
       - "v*"
 
 jobs:
+  # Fast pre-flight gate: the same core/frontend/contract checks CI runs,
+  # re-run here so a release tag can never publish installers built from a
+  # red tree. Deliberately narrow (no wgpu/DSpark/e2e — those are slower and
+  # covered by CI + `scripts/ship.ps1` before a human pushes the tag); this
+  # is the last automated backstop, not the only one.
+  gate:
+    name: Release gate (tests must be green)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: cargo test (brainbuilder-core, fast/no-torch tests only)
+        run: cargo test -p brainbuilder-core --lib --locked
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: gui/package-lock.json
+
+      - working-directory: gui
+        run: npm ci
+
+      - name: Frontend typecheck
+        working-directory: gui
+        run: npx tsc --noEmit
+
+      - name: Frontend unit tests (vitest)
+        working-directory: gui
+        run: npm run test
+
+      # testing/contracts/check_worker_protocol.py is the agreed location for
+      # the Rust<->Python worker-protocol drift check (see scripts/ship.ps1
+      # and testing/contracts/ for the source of truth). Referenced here
+      # unconditionally since it's expected to exist by the time this gate
+      # runs for a real release tag.
+      - name: Worker protocol contract check
+        run: python testing/contracts/check_worker_protocol.py
+
   release:
+    needs: gate
     strategy:
       fail-fast: false
       matrix:
