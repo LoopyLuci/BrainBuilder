@@ -32,6 +32,13 @@ class SpeculativeEngine:
             config.gpu_critical_load, config.gpu_idle_load,
         )
 
+        # Instrumentation only — not part of the generation contract. Counts
+        # every real boss-model forward pass (`_boss_step` fallback tokens and
+        # `_verify` rejection-sampling checks), so callers (e.g. a regression
+        # benchmark) can derive tokens-produced-per-boss-call as a cheap,
+        # seed-stable proxy for "is speculation still doing something useful."
+        self.boss_calls = 0
+
     @torch.no_grad()
     def generate(self, input_ids: torch.Tensor, max_new_tokens: int) -> torch.Tensor:
         current = input_ids
@@ -84,6 +91,7 @@ class SpeculativeEngine:
     def _verify(self, context: torch.Tensor, draft_ids: torch.Tensor) -> torch.Tensor:
         """The boss checks the whole draft in parallel; accept the longest
         contiguous prefix it agrees with (a mismatch at t+i rejects t+i..t+k)."""
+        self.boss_calls += 1
         full = torch.cat([context, draft_ids], dim=1)
         logits = self.boss_model(full).logits[:, context.shape[1] - 1:-1, :]
         boss_ids = torch.argmax(logits, dim=-1)
@@ -94,5 +102,6 @@ class SpeculativeEngine:
 
     def _boss_step(self, current: torch.Tensor) -> torch.Tensor:
         """One ordinary autoregressive token, when speculation yields nothing."""
+        self.boss_calls += 1
         logits = self.boss_model(current).logits[:, -1:, :]
         return torch.argmax(logits, dim=-1)

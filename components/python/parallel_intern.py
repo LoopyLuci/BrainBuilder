@@ -17,5 +17,10 @@ def forward(input, heads_weight):
     (later positions are guessed with less context) — pair this with
     low_rank_markov_head + confidence_head to counter it.
     """
+    if input.shape[-1] != heads_weight.shape[-1]:
+        raise ValueError(
+            f"parallel_intern: input features={input.shape[-1]} does not match "
+            f"heads_weight's features={heads_weight.shape[-1]}"
+        )
     # b=batch, d=draft_len, v=vocab, f=features
     return torch.einsum("bf,dvf->bdv", input, heads_weight)

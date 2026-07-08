@@ -171,7 +171,10 @@ def compute_loss(loss_fn, loss_name, prediction, target):
 
 def handle_call_component(req):
     mod = __import__(req["module"])
-    fn = getattr(mod, req["function"])
+    try:
+        fn = getattr(mod, req["function"])
+    except AttributeError:
+        raise ValueError(f"call_component: module `{req['module']}` has no function `{req['function']}`")
     result = call_with_hyperparams(fn, [read_tensor(d) for d in req["inputs"]], req.get("hyperparams"))
     return {"ok": True, "output": write_tensor(result, req["output_path"])}
 
@@ -327,6 +330,12 @@ def main():
             req = json.loads(line)
             handler = HANDLERS.get(req.get("op"))
             resp = handler(req) if handler else {"ok": False, "error": f"unknown op `{req.get('op')}`"}
+        except KeyError as e:
+            # A required field is missing from the Rust side's request (protocol
+            # mismatch, not a tensor-math failure) — `str(KeyError)` alone is just
+            # the bare key name (e.g. `'module'`), which is unhelpful without the
+            # op it was missing from.
+            resp = {"ok": False, "error": f"request for op `{req.get('op')}` is missing required field {e}"}
         except Exception as e:  # noqa: BLE001 - report any failure back over the protocol
             resp = {"ok": False, "error": str(e)}
         sys.stdout.write(json.dumps(resp) + "\n")
