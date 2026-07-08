@@ -61,7 +61,13 @@ impl Orchestrator {
             let t = n.trim().to_string();
             if t.is_empty() { None } else { Some(t) }
         });
-        *self.preferred_gpu.lock().unwrap() = cleaned.clone();
+        match self.preferred_gpu.lock() {
+            Ok(mut guard) => *guard = cleaned.clone(),
+            Err(_) => {
+                log::warn!("preferred_gpu lock poisoned — GPU preference not updated");
+                return;
+            }
+        }
 
         // Extend the same choice to the torch training path. wgpu adapters are
         // named (e.g. "Radeon RX 7900 XTX") but torch selects by device *type*,
@@ -134,7 +140,9 @@ impl Orchestrator {
         };
         // Run native (`rust`) ops on the user's preferred GPU when one is set +
         // available, else CPU. Python/torch components use torch's own device.
-        let preferred = self.preferred_gpu.lock().unwrap().clone();
+        let preferred = self.preferred_gpu.lock().map_err(|_| {
+            crate::interop::protocol::BrainBuilderError::ConfigError("preferred_gpu lock poisoned".into())
+        })?.clone();
         let device = crate::runtime::device_select::resolve_device(preferred.as_deref());
         plan.forward(&inputs, &weights, &self.python, device.as_ref())
     }
@@ -182,5 +190,52 @@ impl Orchestrator {
             crate::interop::protocol::BrainBuilderError::ConfigError("registry lock poisoned".into())
         })?;
         Ok(registry.summaries())
+    }
+}
+
+#[cfg(test)]
+mod chaos_tests {
+    //! Regression test for the `preferred_gpu` poisoned-lock recovery.
+    //! Needs a real `Orchestrator` (spawns the python worker), same as every
+    //! other orchestrator-level integration test in `core/tests/` — not
+    //! `#[ignore]`d because this crate's existing convention only ignores
+    //! tests needing toolchains beyond python+torch (racket, clojure).
+    use super::*;
+    use std::panic::{self, AssertUnwindSafe};
+
+    #[test]
+    fn set_preferred_gpu_recovers_after_the_lock_is_poisoned() {
+        let components_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../components");
+        std::env::set_var("PYTHONPATH", components_dir.join("python"));
+        let orchestrator = Orchestrator::new(&components_dir).expect("orchestrator init failed");
+
+        // Poison `preferred_gpu`'s lock: hold it, then panic while held.
+        let result = panic::catch_unwind(AssertUnwindSafe(|| {
+            let _guard = orchestrator.preferred_gpu.lock().unwrap();
+            panic!("deliberately poisoning preferred_gpu's lock for the regression test");
+        }));
+        assert!(result.is_err(), "the poisoning panic should have been caught");
+        assert!(orchestrator.preferred_gpu.is_poisoned(), "lock should now report poisoned");
+
+        // Before the fix, `set_preferred_gpu`'s `match self.preferred_gpu.lock()`
+        // already handled the `Err` branch without panicking (it logs and
+        // returns) — this asserts that behavior still holds and doesn't
+        // regress into a panic.
+        orchestrator.set_preferred_gpu(Some("test-gpu".to_string()));
+
+        // `predict`'s lock use (`.map_err(...)`) must likewise return a clean
+        // `Err`, not panic, when the lock is poisoned. A minimal empty graph
+        // is enough to reach the lock before any real component execution.
+        let graph = crate::bbir::BBIRGraph {
+            schema_version: 1,
+            graph_id: "chaos-test-graph".into(),
+            name: "chaos-test-graph".into(),
+            nodes: vec![],
+            edges: vec![],
+            training: None,
+        };
+        let batch = arrow::record_batch::RecordBatch::new_empty(std::sync::Arc::new(arrow::datatypes::Schema::empty()));
+        let result = orchestrator.predict(graph, batch);
+        assert!(result.is_err(), "predict should return a clean Err, not panic, past the poisoned lock");
     }
 }

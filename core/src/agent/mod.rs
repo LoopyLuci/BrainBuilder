@@ -32,6 +32,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Duration;
 
+pub mod test_doctor;
+
 /// Where the human approval gate sits. The agent's edit/test loop is identical
 /// across all three; only the merge decision differs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -183,10 +185,18 @@ impl AgentSession {
 
     /// Revert + clean up: discard the worktree and delete the agent branch. The
     /// live checkout is untouched (nothing was merged), so this is a true undo.
+    /// Best-effort: a failure here (e.g. the worktree dir is locked by another
+    /// process, or the branch was already removed) must not stop the revert
+    /// from being reported as done, but it's logged so a leaked worktree/branch
+    /// is diagnosable instead of silently lingering on disk.
     pub fn revert(&self) -> Result<()> {
         // Remove the worktree (force, since it has uncommitted/committed work).
-        let _ = run_git(&self.repo_root, &["worktree", "remove", "--force", &self.worktree.to_string_lossy()]);
-        let _ = run_git(&self.repo_root, &["branch", "-D", &self.branch]);
+        if let Err(e) = run_git(&self.repo_root, &["worktree", "remove", "--force", &self.worktree.to_string_lossy()]) {
+            log::warn!("agent {}: failed to remove worktree {}: {e}", self.id, self.worktree.display());
+        }
+        if let Err(e) = run_git(&self.repo_root, &["branch", "-D", &self.branch]) {
+            log::warn!("agent {}: failed to delete branch {}: {e}", self.id, self.branch);
+        }
         Ok(())
     }
 }
@@ -305,6 +315,46 @@ mod tests {
         // Revert cleans up the worktree + branch.
         session.revert().expect("revert");
         assert!(!session.worktree.exists(), "worktree should be gone after revert");
+
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    // Regression test: `revert`'s git failures (worktree/branch cleanup) used
+    // to be silently dropped. This forces both git commands inside `revert`
+    // to fail (worktree path never created, branch name never created) and
+    // asserts `revert` still returns `Ok` (its documented best-effort
+    // contract) rather than surfacing the failure as an `Err` or panicking —
+    // the fix only added `log::warn!` calls, it did not change that
+    // contract.
+    #[test]
+    fn revert_still_reports_ok_when_its_git_cleanup_commands_fail() {
+        let tmp = std::env::temp_dir().join(format!("bb_agent_test_repo_revert_{}", short_id()));
+        std::fs::create_dir_all(&tmp).unwrap();
+        let git = |args: &[&str]| Command::new("git").current_dir(&tmp).args(args).output().unwrap();
+        git(&["init", "-q"]);
+        git(&["config", "user.email", "t@t.t"]);
+        git(&["config", "user.name", "t"]);
+        std::fs::write(tmp.join("a.txt"), "hello").unwrap();
+        git(&["add", "-A"]);
+        git(&["commit", "-qm", "init"]);
+
+        // A session whose worktree/branch were never actually created —
+        // `revert`'s `git worktree remove` and `git branch -D` will both
+        // fail against real git, exactly the scenario the fix's log::warn!
+        // calls are meant to surface instead of silently swallowing.
+        let session = AgentSession {
+            id: "nonexistent".into(),
+            mode: AutonomyMode::ProposeApprove,
+            branch: "agent/does-not-exist".into(),
+            worktree: tmp.join("no_such_worktree_dir"),
+            repo_root: tmp.clone(),
+        };
+
+        let result = session.revert();
+        assert!(
+            result.is_ok(),
+            "revert must stay best-effort (Ok) even when its git cleanup commands fail: {result:?}"
+        );
 
         std::fs::remove_dir_all(&tmp).ok();
     }

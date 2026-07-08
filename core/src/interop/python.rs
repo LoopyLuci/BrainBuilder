@@ -359,15 +359,39 @@ impl PythonBridge {
             .iter()
             .map(|v| v.as_i64().unwrap_or(1))
             .collect();
+        // The worker response's shape is external input (subprocess-controlled,
+        // and a crashed/malicious worker could send anything) — reject a
+        // negative dimension or an element count that would overflow before
+        // it ever reaches `alloc_managed_tensor`'s internal
+        // `Layout::from_size_align(...).unwrap()`/pointer arithmetic.
+        if shape.iter().any(|&d| d < 0) {
+            return Err(BrainBuilderError::Python(format!(
+                "worker response has a negative tensor dimension: {shape:?}"
+            )));
+        }
+        let numel: i64 = shape
+            .iter()
+            .try_fold(1i64, |acc, &d| acc.checked_mul(d))
+            .ok_or_else(|| {
+                BrainBuilderError::Python(format!("worker response tensor shape {shape:?} overflows element count"))
+            })?;
+        let byte_len = (numel as usize)
+            .checked_mul(std::mem::size_of::<f32>())
+            .ok_or_else(|| {
+                BrainBuilderError::Python(format!("worker response tensor shape {shape:?} overflows byte size"))
+            })?;
+        if byte_len > isize::MAX as usize {
+            return Err(BrainBuilderError::Python(format!(
+                "worker response tensor shape {shape:?} implies a {byte_len}-byte allocation, which exceeds what this platform can allocate"
+            )));
+        }
 
-        let tensor = self.arena.allocate(
-            &shape,
-            dtype_to_dlpack(crate::component::descriptor::DataType::Float32),
-            cpu_context(),
-        );
-        let numel: i64 = shape.iter().product();
         if numel == 0 {
-            return Ok(tensor);
+            return Ok(self.arena.allocate(
+                &shape,
+                dtype_to_dlpack(crate::component::descriptor::DataType::Float32),
+                cpu_context(),
+            ));
         }
         let file = std::fs::File::open(path)
             .map_err(|e| BrainBuilderError::Python(format!("failed to open tensor result file: {e}")))?;
@@ -375,9 +399,24 @@ impl PythonBridge {
             memmap2::Mmap::map(&file)
                 .map_err(|e| BrainBuilderError::Python(format!("failed to mmap tensor result file: {e}")))?
         };
+        // Validate the mapped file actually holds as many bytes as the
+        // declared shape implies *before* allocating the destination tensor
+        // or copying — a mismatched (short) result file would otherwise
+        // read past the end of `mmap` in the `copy_nonoverlapping` below.
+        if mmap.len() < byte_len {
+            return Err(BrainBuilderError::Python(format!(
+                "worker tensor result file `{path}` is {} bytes, short of the {byte_len} bytes implied by shape {shape:?}",
+                mmap.len()
+            )));
+        }
+        let tensor = self.arena.allocate(
+            &shape,
+            dtype_to_dlpack(crate::component::descriptor::DataType::Float32),
+            cpu_context(),
+        );
         unsafe {
             let dst = (*tensor.0).dl_tensor.data as *mut u8;
-            std::ptr::copy_nonoverlapping(mmap.as_ptr(), dst, mmap.len());
+            std::ptr::copy_nonoverlapping(mmap.as_ptr(), dst, byte_len);
         }
         Ok(tensor)
     }
@@ -659,5 +698,157 @@ impl PythonBridge {
     #[doc(hidden)]
     pub fn sleep_for_testing(&self, seconds: f64) -> Result<()> {
         self.request(json!({"op": "sleep", "seconds": seconds})).map(|_| ())
+    }
+
+    /// Test-only: kills the *current* worker process out from under the
+    /// bridge (as opposed to `sleep_for_testing`, which exercises the
+    /// *timeout* path — this exercises the "worker straight-up died"
+    /// paths in `request()`: the write-side `worker was gone` branch and
+    /// the reader-thread-disconnected branch). Real `taskkill`/`SIGKILL` on
+    /// a real child process, not a simulated failure.
+    #[doc(hidden)]
+    pub fn kill_worker_for_testing(&self) -> Result<()> {
+        let mut worker = self
+            .worker
+            .lock()
+            .map_err(|_| BrainBuilderError::Python("python worker lock poisoned".into()))?;
+        worker.child.kill().map_err(|e| BrainBuilderError::Python(format!("failed to kill worker for test: {e}")))?;
+        let _ = worker.child.wait();
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod chaos_tests {
+    //! Regression tests for a crafted/short worker response reaching
+    //! `read_tensor`: previously an unvalidated negative dim, an overflowing
+    //! element/byte count, or a result file shorter than the declared shape
+    //! implies could panic or read out of bounds. None of these need a real
+    //! python/torch worker — `read_tensor` only touches `self.arena`, so the
+    //! fixture below spawns a trivial (`cmd`/`sh`) child in place of the real
+    //! `_bb_worker.py` process just to satisfy `Worker`'s fields.
+    use super::*;
+
+    fn dummy_bridge() -> PythonBridge {
+        let scratch_dir = std::env::temp_dir().join(format!(
+            "brainbuilder_chaos_test_{}_{}",
+            std::process::id(),
+            TEMP_COUNTER.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir_all(&scratch_dir).unwrap();
+
+        // A trivial, fast-exiting child process stands in for the real
+        // worker — `read_tensor` never touches `worker`, so what's actually
+        // running behind the handle doesn't matter for these tests.
+        #[cfg(windows)]
+        let mut command = {
+            let mut c = Command::new("cmd");
+            c.args(["/C", "exit 0"]);
+            c
+        };
+        #[cfg(not(windows))]
+        let mut command = {
+            let mut c = Command::new("sh");
+            c.args(["-c", "exit 0"]);
+            c
+        };
+        let mut child = command
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .expect("failed to spawn dummy child for test fixture");
+        let stdin = child.stdin.take().unwrap();
+        let stdout = BufReader::new(child.stdout.take().unwrap());
+        let (tx, _rx_keep_alive_source) = std::sync::mpsc::channel();
+        // Leak the sender side into a background thread purely so `lines`
+        // has a receiver that won't immediately disconnect; these tests
+        // never call `request()`/`recv`, so nothing is ever sent.
+        std::thread::spawn(move || {
+            let mut stdout = stdout;
+            let mut line = String::new();
+            let _ = stdout.read_line(&mut line);
+            drop(tx);
+        });
+        let worker = Worker { child, stdin, lines: _rx_keep_alive_source, _job: None };
+
+        let caps = Capabilities::none().allow_read(scratch_dir.clone());
+        PythonBridge {
+            arena: Arc::new(SharedArena::new()),
+            scratch_dir,
+            caps,
+            device: Mutex::new(None),
+            worker: Mutex::new(worker),
+        }
+    }
+
+    #[test]
+    fn read_tensor_rejects_negative_dimension_instead_of_panicking() {
+        let bridge = dummy_bridge();
+        let desc = json!({"path": "unused", "shape": [-1, 4]});
+        let err = bridge.read_tensor(&desc).err().expect("negative dim must error, not panic");
+        assert!(err.to_string().contains("negative"), "unexpected error: {err}");
+    }
+
+    #[test]
+    fn read_tensor_rejects_element_count_overflow_instead_of_panicking() {
+        let bridge = dummy_bridge();
+        // Two dims whose product overflows i64 — a crashed/malicious worker
+        // could send this; the old code had no `checked_mul` here.
+        let desc = json!({"path": "unused", "shape": [i64::MAX, 2]});
+        let err = bridge.read_tensor(&desc).err().expect("overflowing element count must error, not panic");
+        assert!(err.to_string().contains("overflow"), "unexpected error: {err}");
+    }
+
+    #[test]
+    fn read_tensor_rejects_byte_size_beyond_isize_max_instead_of_panicking() {
+        let bridge = dummy_bridge();
+        // A shape whose element count is representable in i64 and whose
+        // implied byte size (elements * 4) does NOT overflow usize, but DOES
+        // exceed isize::MAX — the old code would reach
+        // `Layout::from_size_align(...).unwrap()` with this. (elements * 4
+        // must stay under usize::MAX to hit the isize::MAX check rather than
+        // the checked_mul-overflow check exercised by the previous test.)
+        let big = (isize::MAX as i64) / 4 + 1024;
+        let desc = json!({"path": "unused", "shape": [big]});
+        let err = bridge.read_tensor(&desc).err().expect("byte size beyond isize::MAX must error, not panic");
+        assert!(
+            err.to_string().contains("exceeds what this platform can allocate"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn read_tensor_rejects_a_short_result_file_instead_of_reading_out_of_bounds() {
+        let bridge = dummy_bridge();
+        // Declares a shape implying 16 bytes (4 f32s) but the backing file on
+        // disk is only 4 bytes — the old code mapped the file and copied
+        // `byte_len` bytes out of it regardless, reading past the mapping's
+        // end. Now `read_tensor` must check `mmap.len() >= byte_len` first.
+        let path = bridge.temp_path("short_result");
+        std::fs::write(&path, [0u8; 4]).unwrap();
+        let desc = json!({"path": path.to_string_lossy(), "shape": [4]});
+        let err = bridge.read_tensor(&desc).err().expect("short result file must error, not read OOB");
+        assert!(err.to_string().contains("short of"), "unexpected error: {err}");
+        std::fs::remove_file(&path).ok();
+    }
+
+    #[test]
+    fn read_tensor_still_succeeds_on_a_well_formed_response() {
+        // Confirms the new validation doesn't reject legitimate responses —
+        // a real regression here (over-tightening) would be just as bad as
+        // the original bug.
+        let bridge = dummy_bridge();
+        let path = bridge.temp_path("good_result");
+        let values: [f32; 4] = [1.0, 2.0, 3.0, 4.0];
+        let bytes: Vec<u8> = values.iter().flat_map(|f| f.to_le_bytes()).collect();
+        std::fs::write(&path, &bytes).unwrap();
+        let desc = json!({"path": path.to_string_lossy(), "shape": [2, 2]});
+        let tensor = bridge.read_tensor(&desc).expect("well-formed response should still succeed");
+        unsafe {
+            let data = std::slice::from_raw_parts((*tensor.0).dl_tensor.data as *const f32, 4);
+            assert_eq!(data, &values);
+        }
+        std::fs::remove_file(&path).ok();
     }
 }

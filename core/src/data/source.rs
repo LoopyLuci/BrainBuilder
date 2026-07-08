@@ -236,7 +236,11 @@ pub async fn load_batch(path: &str, limit: usize) -> Result<RecordBatch> {
         .limit(0, Some(limit))
         .map_err(|e| BrainBuilderError::ConfigError(e.to_string()))?;
     let batches = df.collect().await.map_err(|e| BrainBuilderError::ConfigError(e.to_string()))?;
-    arrow::compute::concat_batches(&batches[0].schema(), &batches)
+    let schema = batches
+        .first()
+        .map(|b| b.schema())
+        .ok_or_else(|| BrainBuilderError::ConfigError(format!("`{path}` contains no rows to load")))?;
+    arrow::compute::concat_batches(&schema, &batches)
         .map_err(|e| BrainBuilderError::ConfigError(e.to_string()))
 }
 
