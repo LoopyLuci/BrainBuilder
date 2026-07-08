@@ -95,9 +95,9 @@ jobs:
         # runtime libs as unused extra deps, not a functional difference for
         # what these tests exercise).
         run: |
-          pip install torch --index-url https://download.pytorch.org/whl/cpu && exit 0
+          pip install torch --index-url https://download.pytorch.org/whl/cpu && pip install psutil && exit 0
           echo "PyTorch CDN unreachable, falling back to plain PyPI..."
-          pip install torch
+          pip install torch psutil
       # Racket/Clojure/JDK toolchains (needed by interop_smoke.rs and the
       # component-designer round-trip tests) aren't installed here — a real,
       # documented gap in CI coverage, not a silent one. Those two tests still

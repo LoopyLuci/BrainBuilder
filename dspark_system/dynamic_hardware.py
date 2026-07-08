@@ -8,9 +8,15 @@ degraded reading is visible in logs rather than silently masquerading as a
 real GPU number.
 """
 import logging
-import psutil
 
 logger = logging.getLogger(__name__)
+
+try:
+    import psutil
+    _HAS_PSUTIL = True
+except Exception as e:  # ImportError, or a broken partial install
+    _HAS_PSUTIL = False
+    logger.warning("psutil unavailable (%s) — SPS will use a fixed mid-point load estimate instead of real CPU load.", e)
 
 try:
     import pynvml
@@ -61,6 +67,8 @@ class SPSManager:
         but logs a warning the first time it happens (not on every call — this
         runs once per generation step, so per-call logging would spam)."""
         if not self._nvml_ready:
+            if not _HAS_PSUTIL:
+                return 0.5
             return psutil.cpu_percent(interval=None) / 100.0
         try:
             handle = pynvml.nvmlDeviceGetHandleByIndex(0)
