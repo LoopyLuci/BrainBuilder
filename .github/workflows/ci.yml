@@ -54,6 +54,9 @@ jobs:
         run: npm ci
       - working-directory: gui
         run: npx tsc --noEmit
+      - name: Frontend unit tests (vitest)
+        working-directory: gui
+        run: npm run test
       - working-directory: gui
         run: npm run build
 
@@ -100,6 +103,13 @@ jobs:
       # documented gap in CI coverage, not a silent one. Those two tests still
       # run locally via `cargo test -- --include-ignored` on a dev machine
       # that has `racket`/`clojure`/a JDK on PATH.
+      - name: DSpark engine smoke test (speculative-decoding reference)
+        # torch is installed above; the engine runs on tiny random stand-in
+        # models, so this exercises the full SPS/cutoff/rejection loop offline.
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: python dspark_system/test_smoke.py
+
       - name: cargo test (brainbuilder-core, python/torch-dependent tests)
         run: |
           cargo test -p brainbuilder-core --locked -- --include-ignored \

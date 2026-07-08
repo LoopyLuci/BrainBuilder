@@ -155,6 +155,51 @@ mod shape_resolution_tests {
         let shape = ShapeExpr::Symbolic(serde_json::json!(["outFeatures", "inFeatures"]));
         assert_eq!(resolve_shape_expr(&shape, &serde_json::json!({"out_features": 4})), None);
     }
+
+    // The DSpark drafter components carry rank-3 parameter shapes (e.g.
+    // parallel_intern's heads_weight [:draft-len :vocab :features]). Prove every
+    // one of their parameter ports resolves to a concrete, fully-sized tensor
+    // from the descriptor's default hyperparameters — i.e. they are trainable
+    // when wired, not just placeable, and the resolver handles >2-D shapes.
+    #[test]
+    fn dspark_component_parameter_shapes_resolve_to_concrete_dims() {
+        use crate::component::registry::ComponentRegistry;
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../components");
+        let mut reg = ComponentRegistry::new();
+        reg.load_from_dir(&dir).expect("load real components");
+
+        // (component, hyperparams, expected concrete shape per parameter port)
+        let cases: &[(&str, serde_json::Value, &[(&str, Vec<i64>)])] = &[
+            (
+                "parallel_intern",
+                serde_json::json!({ "features": 256, "vocab": 1000, "draft_len": 8 }),
+                &[("heads_weight", vec![8, 1000, 256])],
+            ),
+            (
+                "low_rank_markov_head",
+                serde_json::json!({ "features": 256, "rank": 32, "vocab": 1000 }),
+                &[("compress_weight", vec![32, 256]), ("expand_weight", vec![1000, 32])],
+            ),
+            (
+                "confidence_head",
+                serde_json::json!({ "features": 256, "proj": 128 }),
+                &[("hidden_weight", vec![128, 256]), ("score_weight", vec![1, 128])],
+            ),
+        ];
+
+        for (name, hp, expected) in cases {
+            let desc = reg.get_by_name(name).unwrap_or_else(|| panic!("{name} should be registered"));
+            for (port_name, want) in *expected {
+                let port = desc
+                    .inputs
+                    .iter()
+                    .find(|p| p.name == *port_name)
+                    .unwrap_or_else(|| panic!("{name} has no port {port_name}"));
+                let resolved = resolve_shape_expr(&port.tensor.shape, hp);
+                assert_eq!(resolved.as_deref(), Some(&want[..]), "{name}.{port_name} shape");
+            }
+        }
+    }
 }
 
 impl ExecutionPlan {
