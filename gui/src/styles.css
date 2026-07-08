@@ -198,6 +198,152 @@ body {
   text-align: center;
   margin-top: 2px;
 }
+/* Guided tutorial overlay: a full-viewport dimmed scrim with an SVG-masked
+   cutout spotlighting the current step's real target, plus a floating
+   instruction card. z-index sits above everything, including modals opened
+   by the widget it's pointing at. */
+.bb-tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+}
+.bb-tutorial-overlay__scrim {
+  position: absolute;
+  inset: 0;
+}
+.bb-tutorial-overlay__ring {
+  position: absolute;
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  box-shadow: 0 0 0 4px var(--accent-subtle);
+  transition: top 0.15s ease, left 0.15s ease, width 0.15s ease, height 0.15s ease;
+}
+.bb-tutorial-card {
+  position: fixed;
+  width: 340px;
+  max-width: calc(100vw - 24px);
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 16px;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bb-tutorial-card__progress {
+  font-size: var(--text-xs, 11px);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.bb-tutorial-card__title {
+  margin: 0;
+  font-size: var(--text-lg, 16px);
+}
+.bb-tutorial-card__body {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.bb-tutorial-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* Inline "?" help badge + popover, used next to jargon anywhere in the app. */
+.bb-helptip {
+  position: relative;
+  display: inline-block;
+}
+.bb-helptip__trigger {
+  width: 16px;
+  height: 16px;
+  line-height: 14px;
+  border-radius: 50%;
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 4px;
+}
+.bb-helptip__trigger:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.bb-helptip__popover {
+  position: absolute;
+  z-index: 20;
+  top: 22px;
+  left: 0;
+  width: 240px;
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bb-helptip__popover p {
+  margin: 0;
+  font-size: var(--text-sm, 13px);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.bb-helptip__close {
+  align-self: flex-end;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: var(--text-sm, 13px);
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Blocking confirmation gate for destructive/irreversible actions (see
+   ui/confirmStore.ts). Cancel is always the keyboard-focused default. */
+.bb-confirm-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bb-confirm-card {
+  width: min(380px, 90vw);
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 18px;
+}
+.bb-confirm-title {
+  margin: 0 0 8px;
+  font-size: var(--text-lg, 16px);
+}
+.bb-confirm-body {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.bb-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
 .bb-node__handle {
   width: 9px !important;
   height: 9px !important;

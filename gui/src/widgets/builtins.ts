@@ -14,6 +14,7 @@ import { TemplatesPanel } from '../templates/TemplatesPanel';
 import { SynthesizePanel } from '../synthesis/SynthesizePanel';
 import { AgentPanel } from '../agent/AgentPanel';
 import { PluginsPanel } from './PluginsPanel';
+import { LearnPanel } from '../tutorial/LearnPanel';
 
 // Registers all first-party panels as widgets. This replaces the hardcoded
 // panel wiring that used to live inline in App.tsx — every panel is now a
@@ -23,7 +24,9 @@ export function registerBuiltinWidgets() {
   registerWidget({ id: 'palette', title: 'Components', slot: 'palette', component: ComponentPalette, order: 10 });
   registerWidget({ id: 'canvas', title: 'Canvas', slot: 'canvas', component: InfiniteCanvas, order: 10 });
 
-  // Side rail (tabs).
+  // Side rail (tabs). Learn goes first — a brand-new user should land on
+  // "how do I use this" before "build a model", not after.
+  registerWidget({ id: 'learn', title: 'Learn', slot: 'side', component: LearnPanel, order: 5 });
   registerWidget({ id: 'build', title: 'Build', slot: 'side', component: IntentPanel, order: 10 });
   registerWidget({ id: 'templates', title: 'Templates', slot: 'side', component: TemplatesPanel, order: 15 });
   registerWidget({ id: 'inspector', title: 'Inspector', slot: 'side', component: Inspector, order: 20 });

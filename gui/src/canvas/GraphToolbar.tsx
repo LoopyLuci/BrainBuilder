@@ -5,6 +5,7 @@ import { convertToBBIR, convertFromBBIR } from './utils';
 import { saveGraph, loadGraph } from '../api/tauri';
 import { logError, logInfo } from '../console/logStore';
 import { Button } from '../ui/Button';
+import { confirmAction } from '../ui/confirmStore';
 
 export function GraphToolbar() {
   const graphId = useGraphStore((s) => s.graphId);
@@ -37,6 +38,16 @@ export function GraphToolbar() {
   };
 
   const onLoad = async () => {
+    if (nodes.length > 0) {
+      const ok = await confirmAction({
+        title: 'Replace what you have on screen?',
+        body:
+          "Loading a different file will remove what's currently on the canvas. This can't be undone with " +
+          "Ctrl+Z once you load. Save your current work first if you're not sure.",
+        confirmLabel: 'Yes, load the other file',
+      });
+      if (!ok) return;
+    }
     let selected: string | string[] | null;
     try {
       selected = await open({
@@ -59,7 +70,15 @@ export function GraphToolbar() {
     }
   };
 
-  const onNew = () => {
+  const onNew = async () => {
+    if (nodes.length > 0) {
+      const ok = await confirmAction({
+        title: 'Start a blank canvas?',
+        body: "This clears everything you've built here so far, and Ctrl+Z won't bring it back. If you want to keep this model, click Cancel and use Save first.",
+        confirmLabel: 'Yes, start blank',
+      });
+      if (!ok) return;
+    }
     setGraph([], []);
   };
 

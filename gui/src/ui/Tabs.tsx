@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 
 export interface TabDef {
   id: string;
@@ -8,8 +8,25 @@ export interface TabDef {
   badge?: 'dot' | 'error';
 }
 
-export function Tabs({ tabs, defaultTab }: { tabs: TabDef[]; defaultTab?: string }) {
+export function Tabs({
+  tabs,
+  defaultTab,
+  forceActive,
+}: {
+  tabs: TabDef[];
+  defaultTab?: string;
+  /** When set (and changes), switches the active tab — used by the guided
+   * tutorial to bring a step's target tab to the front. The user can still
+   * click any other tab afterward; this only nudges the initial switch. */
+  forceActive?: string;
+}) {
   const [active, setActive] = useState(defaultTab ?? tabs[0]?.id);
+
+  useEffect(() => {
+    if (forceActive && tabs.some((t) => t.id === forceActive)) setActive(forceActive);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forceActive]);
+
   const activeTab = tabs.find((t) => t.id === active) ?? tabs[0];
 
   return (
@@ -19,6 +36,7 @@ export function Tabs({ tabs, defaultTab }: { tabs: TabDef[]; defaultTab?: string
           <button
             key={tab.id}
             role="tab"
+            data-tutorial={`tab-${tab.id}`}
             aria-selected={tab.id === activeTab?.id}
             className={`bb-tabs__tab ${tab.id === activeTab?.id ? 'bb-tabs__tab--active' : ''}`}
             onClick={() => setActive(tab.id)}

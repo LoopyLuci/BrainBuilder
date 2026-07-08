@@ -5,6 +5,8 @@ import { SlotRenderer } from './widgets/SlotRenderer';
 import { registerBuiltinWidgets } from './widgets/builtins';
 import { restorePlugins } from './widgets/loader';
 import { syncPreferredGpuToBackend } from './api/models';
+import { TutorialOverlay } from './tutorial/TutorialOverlay';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 
 // Register the first-party panels once, at module load, before React renders.
 // Everything the shell shows now comes from the widget registry — App.tsx no
@@ -25,10 +27,10 @@ function App() {
       <div className="app-shell">
         <Header />
         <div className="app-layout">
-          <div className="palette">
+          <div className="palette" data-tutorial="palette">
             <SlotRenderer slot="palette" />
           </div>
-          <div className="canvas-container">
+          <div className="canvas-container" data-tutorial="canvas">
             <SlotRenderer slot="canvas" />
           </div>
           <div className="side-rail">
@@ -39,6 +41,8 @@ function App() {
           </div>
         </div>
       </div>
+      <TutorialOverlay />
+      <ConfirmDialog />
     </DndProvider>
   );
 }

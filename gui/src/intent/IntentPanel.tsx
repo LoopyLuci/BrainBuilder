@@ -16,6 +16,7 @@ import { logError, logInfo } from '../console/logStore';
 import { Panel } from '../ui/Panel';
 import { Button } from '../ui/Button';
 import { DiagnosticsList } from './DiagnosticsList';
+import { HelpTip } from '../help/HelpTip';
 
 // The task-first on-ramp: describe your goal in plain terms and point at your
 // data — BrainBuilder inspects the data, proposes a validated, trainable model
@@ -62,8 +63,19 @@ export function IntentPanel() {
     }
   };
 
+  // What's stopping "Build my model" from being clickable right now, in plain
+  // language — shown under the button so a stuck user always knows the exact
+  // next thing to do, instead of a disabled button with no explanation.
+  const blockedReason = !path.trim()
+    ? `Choose ${sourceType === 'image_folder' ? 'a folder' : 'a file'} above first.`
+    : sourceType === 'text_column' && !textColumn.trim()
+    ? 'Type the name of the text column above first.'
+    : useTransfer && (!pretrainedFile.trim() || !pretrainedTensor.trim())
+    ? "You've turned on transfer learning — choose a pretrained model file and its tensor name, or turn transfer learning off."
+    : null;
+
   const propose = async () => {
-    if (!path.trim()) return;
+    if (blockedReason) return;
     setBusy(true);
     setError(null);
     setProposal(null);
@@ -118,32 +130,35 @@ export function IntentPanel() {
         and puts it on the canvas ready to train — no ML knowledge needed.
       </p>
 
-      <label className="bb-label">I want to…</label>
+      <label className="bb-label" data-tutorial="intent-task">I want to…</label>
       <select className="bb-input" value={task} onChange={(e) => setTask(e.target.value as TaskKind)}>
         <option value="classification">Sort my data into categories (classify)</option>
         <option value="regression">Predict a number</option>
       </select>
+      <HelpTip term={task === 'regression' ? 'regression' : 'classification'} />
 
-      <label className="bb-label">My data is…</label>
-      <select
-        className="bb-input"
-        value={sourceType}
-        onChange={(e) => {
-          setSourceType(e.target.value as SourceType);
-          setPath('');
-          setProposal(null);
-        }}
-      >
-        {(Object.keys(SOURCE_LABELS) as SourceType[]).map((s) => (
-          <option key={s} value={s}>
-            {SOURCE_LABELS[s]}
-          </option>
-        ))}
-      </select>
+      <div data-tutorial="intent-data">
+        <label className="bb-label">My data is…</label>
+        <select
+          className="bb-input"
+          value={sourceType}
+          onChange={(e) => {
+            setSourceType(e.target.value as SourceType);
+            setPath('');
+            setProposal(null);
+          }}
+        >
+          {(Object.keys(SOURCE_LABELS) as SourceType[]).map((s) => (
+            <option key={s} value={s}>
+              {SOURCE_LABELS[s]}
+            </option>
+          ))}
+        </select>
 
-      <div className="bb-row">
-        <input className="bb-input" value={path} readOnly placeholder="Choose your data…" />
-        <Button onClick={pick}>{sourceType === 'image_folder' ? 'Choose folder' : 'Choose file'}</Button>
+        <div className="bb-row">
+          <input className="bb-input" value={path} readOnly placeholder="Choose your data…" />
+          <Button onClick={pick}>{sourceType === 'image_folder' ? 'Choose folder' : 'Choose file'}</Button>
+        </div>
       </div>
 
       {sourceType === 'image_folder' && (
@@ -173,7 +188,9 @@ export function IntentPanel() {
             className="bb-input"
             value={textColumn}
             onChange={(e) => setTextColumn(e.target.value)}
-            placeholder="Text column name (e.g. review)"
+            placeholder="Text column name (e.g. review) — required"
+            aria-required="true"
+            style={!textColumn.trim() ? { borderColor: 'var(--warning, #c90)' } : undefined}
           />
           <input
             className="bb-input"
@@ -195,7 +212,7 @@ export function IntentPanel() {
 
       <label className="bb-label" style={{ margin: '4px 0 0' }}>
         <input type="checkbox" checked={useTransfer} onChange={(e) => setUseTransfer(e.target.checked)} /> Start from a
-        pretrained model (transfer learning)
+        pretrained model (transfer learning) <HelpTip term="transfer-learning" />
       </label>
       {useTransfer && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -223,11 +240,27 @@ export function IntentPanel() {
         </div>
       )}
 
-      <Button variant="primary" onClick={propose} disabled={busy || !path.trim()}>
+      <Button
+        variant="primary"
+        data-tutorial="intent-build-btn"
+        onClick={propose}
+        disabled={busy || !!blockedReason}
+        title={blockedReason ?? undefined}
+      >
         {busy ? 'Inspecting your data…' : 'Build my model'}
       </Button>
+      {!busy && blockedReason && (
+        <p className="bb-text-muted" style={{ margin: 0, fontSize: 12 }}>{blockedReason}</p>
+      )}
 
-      {error && <p className="bb-text-error" style={{ margin: 0 }}>{error}</p>}
+      {error && (
+        <div className="bb-card" style={{ marginTop: 4, borderColor: 'var(--error, #d33)' }}>
+          <p className="bb-text-error" style={{ margin: 0 }}>{error}</p>
+          <p className="bb-text-muted" style={{ margin: '4px 0 0' }}>
+            Nothing was changed — fix the data above and click "Build my model" again.
+          </p>
+        </div>
+      )}
 
       {proposal && (
         <div className="bb-card" style={{ marginTop: 8 }}>

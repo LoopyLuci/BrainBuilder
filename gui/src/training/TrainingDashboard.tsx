@@ -4,6 +4,7 @@ import { MetricPoint } from '../api/metrics';
 import { Diagnostic, diagnoseTraining } from '../api/tauri';
 import { DiagnosticsList } from '../intent/DiagnosticsList';
 import { Panel } from '../ui/Panel';
+import { HelpTip } from '../help/HelpTip';
 
 const WIDTH = 400;
 const HEIGHT = 140;
@@ -86,7 +87,8 @@ export function TrainingDashboard() {
       {latest && (
         <div>
           <div>
-            Epoch {latest.epoch}, Step {latest.step}: Loss = {latest.loss.toFixed(4)}
+            Epoch <HelpTip term="epoch" /> {latest.epoch}, Step {latest.step}: Loss <HelpTip term="loss" /> ={' '}
+            {latest.loss.toFixed(4)}
           </div>
           {first && metrics.length > 1 && (
             <div className={latest.loss < first.loss ? 'bb-text-success' : 'bb-text-error'}>
