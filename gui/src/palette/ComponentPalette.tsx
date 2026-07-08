@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useDrag } from 'react-dnd';
 import { getComponentDescriptors, ComponentSummary } from '../api/tauri';
 import { useGraphStore } from '../state/graphStore';
+import { logError } from '../console/logStore';
 
 function DraggableComponent({ summary }: { summary: ComponentSummary }) {
   const addNode = useGraphStore((s) => s.addNode);
@@ -28,14 +29,20 @@ export function ComponentPalette() {
   const [components, setComponents] = useState<ComponentSummary[]>([]);
   const [filter, setFilter] = useState('');
   const setDescriptors = useGraphStore((s) => s.setDescriptors);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     getComponentDescriptors()
       .then((list) => {
         setComponents(list);
         setDescriptors(list);
+        setError(null);
       })
-      .catch(console.error);
+      .catch((e) => {
+        const msg = `Loading components failed: ${e}`;
+        setError(msg);
+        logError(msg);
+      });
   }, [setDescriptors]);
 
   const filtered = useMemo(() => {
@@ -57,7 +64,8 @@ export function ComponentPalette() {
         placeholder="Filter components…"
         style={{ marginBottom: 8 }}
       />
-      {filtered.length === 0 && (
+      {error && <div className="bb-text-error">{error}</div>}
+      {filtered.length === 0 && !error && (
         <div className="bb-empty">{filter.trim() ? `No components match "${filter}"` : 'No components available'}</div>
       )}
       {filtered.map((c) => (

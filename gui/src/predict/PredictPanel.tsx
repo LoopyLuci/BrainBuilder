@@ -18,7 +18,12 @@ export function PredictPanel() {
 
   useEffect(() => {
     let cancelled = false;
-    const check = () => hasCheckpoint(graphId).then((exists) => !cancelled && setCheckpointExists(exists));
+    const check = () =>
+      hasCheckpoint(graphId)
+        .then((exists) => !cancelled && setCheckpointExists(exists))
+        .catch(() => {
+          /* best-effort polling — a transient failure just retries next tick */
+        });
     check();
     // No "training complete" event exists yet — poll until a checkpoint
     // shows up (training saves one at the end of the run) so the button

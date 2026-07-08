@@ -144,6 +144,7 @@ export function ClusterConsole() {
       setStatus(await getClusterStatus());
     } catch (e) {
       setError(String(e));
+      logError(`Fetching cluster status failed: ${e}`);
     }
   };
 
@@ -161,6 +162,7 @@ export function ClusterConsole() {
       setStatus(await createCluster(displayName));
     } catch (e) {
       setError(String(e));
+      logError(`Creating cluster failed: ${e}`);
     } finally {
       setBusy(false);
     }
@@ -173,6 +175,7 @@ export function ClusterConsole() {
       setPairingCode(await generatePairingCode());
     } catch (e) {
       setError(String(e));
+      logError(`Generating pairing code failed: ${e}`);
     } finally {
       setBusy(false);
     }
@@ -186,6 +189,7 @@ export function ClusterConsole() {
       setJoinCode('');
     } catch (e) {
       setError(String(e));
+      logError(`Joining cluster failed: ${e}`);
     } finally {
       setBusy(false);
     }

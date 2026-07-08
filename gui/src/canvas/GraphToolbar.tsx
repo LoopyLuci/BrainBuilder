@@ -3,6 +3,7 @@ import { save, open } from '@tauri-apps/api/dialog';
 import { useGraphStore } from '../state/graphStore';
 import { convertToBBIR, convertFromBBIR } from './utils';
 import { saveGraph, loadGraph } from '../api/tauri';
+import { logError, logInfo } from '../console/logStore';
 import { Button } from '../ui/Button';
 
 export function GraphToolbar() {
@@ -19,21 +20,43 @@ export function GraphToolbar() {
   const future = useGraphStore((s) => s.future);
 
   const onSave = async () => {
-    const path = await save({ filters: [{ name: 'BrainBuilder Graph', extensions: ['bbir.edn'] }] });
+    let path: string | null;
+    try {
+      path = await save({ filters: [{ name: 'BrainBuilder Graph', extensions: ['bbir.edn'] }] });
+    } catch (e) {
+      logError(`Couldn't open the save dialog: ${e}`);
+      return;
+    }
     if (!path) return;
-    await saveGraph(path, convertToBBIR(nodes, edges, graphId, 'untitled', training));
+    try {
+      await saveGraph(path, convertToBBIR(nodes, edges, graphId, 'untitled', training));
+      logInfo(`Graph saved to ${path}.`);
+    } catch (e) {
+      logError(`Saving the graph failed: ${e}`);
+    }
   };
 
   const onLoad = async () => {
-    const selected = await open({
-      multiple: false,
-      filters: [{ name: 'BrainBuilder Graph', extensions: ['edn'] }],
-    });
+    let selected: string | string[] | null;
+    try {
+      selected = await open({
+        multiple: false,
+        filters: [{ name: 'BrainBuilder Graph', extensions: ['edn'] }],
+      });
+    } catch (e) {
+      logError(`Couldn't open the load dialog: ${e}`);
+      return;
+    }
     if (typeof selected !== 'string') return;
-    const graph = await loadGraph(selected);
-    const { nodes: n, edges: e } = convertFromBBIR(graph, descriptors);
-    setGraph(n, e, graph.graph_id);
-    if (graph.training) setTraining(graph.training);
+    try {
+      const graph = await loadGraph(selected);
+      const { nodes: n, edges: e } = convertFromBBIR(graph, descriptors);
+      setGraph(n, e, graph.graph_id);
+      if (graph.training) setTraining(graph.training);
+      logInfo(`Loaded graph "${graph.name}" (${n.length} nodes).`);
+    } catch (e) {
+      logError(`Loading the graph failed: ${e}`);
+    }
   };
 
   const onNew = () => {

@@ -4,6 +4,7 @@ import { createDir, exists } from '@tauri-apps/api/fs';
 import { useGraphStore } from '../state/graphStore';
 import { convertToBBIR, convertFromBBIR } from './utils';
 import { saveGraph, loadGraph } from '../api/tauri';
+import { logError } from '../console/logStore';
 
 const AUTOSAVE_INTERVAL_MS = 30_000;
 const AUTOSAVE_FILENAME = 'autosave.bbir.edn';
@@ -50,7 +51,7 @@ export function useAutosave() {
           if (graph.training) setTraining(graph.training);
         }
       } catch (err) {
-        console.error('Startup graph restore failed:', err);
+        logError(`Startup graph restore failed: ${err}`);
       }
     })();
   }, [descriptorsReady, descriptors, setGraph, setTraining]);
@@ -62,7 +63,7 @@ export function useAutosave() {
         const path = await autosavePath();
         await saveGraph(path, convertToBBIR(nodes, edges, graphId, 'autosave', training));
       } catch (err) {
-        console.error('Autosave failed:', err);
+        logError(`Autosave failed: ${err}`);
       }
     }, AUTOSAVE_INTERVAL_MS);
     return () => clearInterval(interval);

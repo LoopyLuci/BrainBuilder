@@ -82,6 +82,7 @@ export function DataPanel() {
     } catch (e) {
       setError(String(e));
       setPreview(null);
+      logError(`Previewing dataset failed: ${e}`);
     }
   };
 
