@@ -775,4 +775,70 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'distributed-training',
+    title: 'Train Across Multiple Devices',
+    blurb: 'Pair your devices into a Cluster and split one training run across all of them at once.',
+    difficulty: 'advanced',
+    minutes: 7,
+    steps: [
+      {
+        title: 'One model, several computers',
+        body:
+          "Every model so far trained on this one device. The Cluster tab lets several devices — other " +
+          "computers on the same network — train the exact same model together, each handling a slice of the " +
+          "data and combining what they learn every round. This needs at least one other device to try for " +
+          "real, but the setup works the same either way.",
+        target: '[data-tutorial="tab-cluster"]',
+        focusTab: { slot: 'bottom', tabId: 'cluster' },
+      },
+      {
+        title: 'Create your Cluster',
+        body:
+          'Give this device a name and click "Create My Cluster" — this device becomes the Manager, the one ' +
+          "that coordinates everyone else. Every device you add later joins this same Cluster.",
+        target: '[data-tutorial="cluster-create-btn"]',
+      },
+      {
+        title: 'Invite another device',
+        body:
+          'As the Manager, click "Generate Pairing Code" — a 6-digit code valid for 5 minutes. Type that code ' +
+          'into the "Join" box on the other device\'s Cluster tab (using this same BrainBuilder app) to add ' +
+          'it.',
+        target: '[data-tutorial="cluster-pairing-btn"]',
+      },
+      {
+        title: 'See who\'s connected',
+        body:
+          "Every paired device shows up in this list, along with its hardware — CPU cores and RAM. This is " +
+          "how you check everyone actually joined before starting a training run.",
+        target: '[data-tutorial="cluster-devices"]',
+      },
+      {
+        title: '(Optional) Check it from your phone',
+        body:
+          "If an address shows up under \"Phone / Tablet Access\", open it in any browser on the same Wi-Fi " +
+          "to watch the Cluster's live status — no app install needed, view-only, handy for checking progress " +
+          "without sitting at the computer.",
+        target: '[data-tutorial="cluster-observer"]',
+      },
+      {
+        title: 'Host a training run on the Cluster',
+        body:
+          'Build a model on the canvas like normal, set how many other devices to wait for, then click "Host ' +
+          'Training on Cluster". Each joined device works on its own slice of the data and everyone\'s real ' +
+          'gradients get averaged together every round — genuinely faster training, not a simulation.',
+        target: '[data-tutorial="cluster-host-btn"]',
+      },
+      {
+        title: 'Watch it train',
+        body:
+          "Switch to the Metrics tab — the loss chart updates the exact same way a single-device run does. " +
+          "Training across a Cluster looks identical from here; the only difference is how many machines are " +
+          "doing the work underneath.",
+        target: '[data-tutorial="tab-metrics"]',
+        focusTab: { slot: 'bottom', tabId: 'metrics' },
+      },
+    ],
+  },
 ];

@@ -127,6 +127,23 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       "real files until you say so. BrainBuilder's self-building agent always works in a worktree, so you can " +
       'review or throw away everything it did with zero risk to your actual work.',
   },
+  cluster: {
+    term: 'Cluster',
+    short: 'A group of paired devices that train one model together.',
+    long:
+      "A Cluster is a set of devices — computers on the same network — paired together so they can train " +
+      'the same model as a team. One device is the Manager, coordinating the rest. Splitting the work across ' +
+      'a Cluster can train a model faster than any one device could alone.',
+  },
+  gradient: {
+    term: 'Gradient',
+    short: "The direction and size of the nudge each number gets during training.",
+    long:
+      'A gradient is the answer to "which way, and how much, should I adjust this number to be a little less ' +
+      'wrong?" — one is calculated for every learnable number in the model, every training step. In a ' +
+      'Cluster, each device calculates its own gradients and they get averaged together each round, so every ' +
+      "device's nudge counts.",
+  },
   embedding: {
     term: 'Embedding',
     short: 'Turning a word into a list of numbers the model can learn from.',

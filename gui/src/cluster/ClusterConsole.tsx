@@ -105,12 +105,12 @@ function DistributedTraining() {
           style={{ width: 70 }}
           title="Number of other devices to wait for before training starts"
         />
-        <Button variant="primary" onClick={handleHost} disabled={busy || !!status}>
+        <Button variant="primary" data-tutorial="cluster-host-btn" onClick={handleHost} disabled={busy || !!status}>
           Host Training on Cluster
         </Button>
       </div>
       {jobs.length > 0 && (
-        <div style={{ marginTop: 8 }}>
+        <div style={{ marginTop: 8 }} data-tutorial="cluster-jobs">
           <div className="bb-label" style={{ marginBottom: 4 }}>
             Joinable Jobs
           </div>
@@ -213,10 +213,10 @@ export function ClusterConsole() {
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="This device's name"
           />
-          <Button variant="primary" onClick={handleCreate} disabled={busy}>
+          <Button variant="primary" data-tutorial="cluster-create-btn" onClick={handleCreate} disabled={busy}>
             Create My Cluster
           </Button>
-          <div className="bb-row">
+          <div className="bb-row" data-tutorial="cluster-join">
             <input
               className="bb-input"
               value={joinCode}
@@ -236,7 +236,7 @@ export function ClusterConsole() {
             {status.is_manager && <span className="bb-chip bb-chip--accent" style={{ marginLeft: 6 }}>Manager</span>}
           </div>
 
-          <div>
+          <div data-tutorial="cluster-devices">
             <div className="bb-label" style={{ marginBottom: 4 }}>
               Devices ({status.nodes.length})
             </div>
@@ -251,7 +251,7 @@ export function ClusterConsole() {
           </div>
 
           {status.is_manager && (
-            <div>
+            <div data-tutorial="cluster-pairing-btn">
               <Button variant="secondary" onClick={handleGenerateCode} disabled={busy}>
                 Generate Pairing Code
               </Button>
@@ -265,7 +265,7 @@ export function ClusterConsole() {
           )}
 
           {observerUrl && (
-            <div style={{ paddingTop: 8, borderTop: '1px solid var(--border-subtle)' }}>
+            <div data-tutorial="cluster-observer" style={{ paddingTop: 8, borderTop: '1px solid var(--border-subtle)' }}>
               <div className="bb-label" style={{ marginBottom: 4 }}>
                 Phone / Tablet Access
               </div>
