@@ -964,4 +964,63 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'hyperparameter-deep-dive',
+    title: 'Hyperparameters, Up Close',
+    blurb: "Every box has its own dials, and the Data tab has whole-run dials too — see both and what they control.",
+    difficulty: 'intermediate',
+    minutes: 6,
+    steps: [
+      {
+        title: 'Every box has its own settings',
+        body:
+          'Every box you drop on the canvas has its own hyperparameters — numbers and switches that shape how ' +
+          'that one box behaves. The Inspector tab is where you see and change them for whichever box is ' +
+          'currently selected.',
+        target: '[data-tutorial="tab-inspector"]',
+        focusTab: { slot: 'side', tabId: 'inspector' },
+      },
+      {
+        title: 'Nothing selected yet?',
+        body:
+          'Inspector stays empty until you pick a box. Click any box on your canvas to select it — its name ' +
+          "lights up and its settings appear here. If you've already got one selected, you'll see its dials " +
+          'instead of this message, which is fine too.',
+        target: '[data-tutorial="inspector-empty"]',
+      },
+      {
+        title: 'Dials appear automatically',
+        body:
+          "Once a box is selected, its dials show up here — pulled straight from that component's own " +
+          'definition. A convolution box shows convolution settings; an attention box shows attention ' +
+          "settings. You'll never see a setting that doesn't actually apply to the box you picked.",
+        target: '[data-tutorial="inspector-form"]',
+      },
+      {
+        title: "Three kinds of dials, none of them breakable",
+        body:
+          'A number field takes a count or a rate. A checkbox is a plain on/off switch. A dropdown offers a ' +
+          "fixed list of choices. Because switches and dropdowns can't hold an invalid value, and number " +
+          "fields only accept numbers, there's no way to type in a setting that would break your model.",
+        target: '[data-tutorial="inspector-form"]',
+      },
+      {
+        title: 'A different set of dials for the whole run',
+        body:
+          "These per-box dials are separate from the ones on the Data tab — learning rate, epochs, batch " +
+          "size, optimizer. Those apply to the entire training run, not to one box. Both are called " +
+          "hyperparameters; one is per-component, the other is per-run.",
+        target: '[data-tutorial="training-hyperparams"]',
+        focusTab: { slot: 'side', tabId: 'data' },
+      },
+      {
+        title: "Don't want to guess either kind by hand?",
+        body:
+          "You don't have to. Auto-tune, right here on the Data tab, experiments with the whole-run settings " +
+          "for you and applies whichever combination trained best — there's a dedicated tutorial that walks " +
+          'through it step by step if you want the full picture.',
+        target: '[data-tutorial="autotune-btn"]',
+      },
+    ],
+  },
 ];

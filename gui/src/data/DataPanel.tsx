@@ -231,7 +231,9 @@ export function DataPanel() {
         </div>
       )}
 
-      <SchemaForm schema={TRAINING_SCHEMA} values={trainingValues} onChange={onTrainingChange} />
+      <div data-tutorial="training-hyperparams">
+        <SchemaForm schema={TRAINING_SCHEMA} values={trainingValues} onChange={onTrainingChange} />
+      </div>
 
       <div style={{ borderTop: '1px solid var(--border, rgba(0,0,0,0.1))', paddingTop: 8, marginTop: 4 }}>
         <p className="bb-text-muted" style={{ margin: '0 0 6px' }}>

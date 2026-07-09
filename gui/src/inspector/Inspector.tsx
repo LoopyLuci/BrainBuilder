@@ -14,7 +14,9 @@ export function Inspector() {
   if (!selectedNode) {
     return (
       <Panel>
-        <div className="bb-empty">Select a node to edit its hyperparameters</div>
+        <div className="bb-empty" data-tutorial="inspector-empty">
+          Select a node to edit its hyperparameters
+        </div>
       </Panel>
     );
   }
@@ -39,7 +41,9 @@ export function Inspector() {
       )}
 
       {descriptor && descriptor.hyperparameters.length > 0 && (
-        <SchemaForm schema={schema} values={hyperparams} onChange={onChange} />
+        <div data-tutorial="inspector-form">
+          <SchemaForm schema={schema} values={hyperparams} onChange={onChange} />
+        </div>
       )}
     </Panel>
   );
