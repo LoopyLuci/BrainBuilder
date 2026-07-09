@@ -467,6 +467,57 @@ export const CURRICULUM: Tutorial[] = [
     ],
   },
   {
+    id: 'auto-tune',
+    title: 'Let BrainBuilder Pick Your Settings',
+    blurb: 'Skip the guesswork — auto-tune runs a few quick trials and applies whichever settings trained best.',
+    difficulty: 'intermediate',
+    minutes: 5,
+    steps: [
+      {
+        title: "Don't want to guess the settings?",
+        body:
+          "The Data tab has settings like learning rate, batch size, and optimizer — hyperparameters you'd " +
+          "otherwise have to guess at. Auto-tune tries several combinations for you and keeps whichever one " +
+          'actually trained best, on your real model and real data.',
+        target: '[data-tutorial="tab-data"]',
+        focusTab: { slot: 'side', tabId: 'data' },
+      },
+      {
+        title: "It's real training, just short",
+        body:
+          'Behind the "Auto-tune" button, BrainBuilder runs several short training trials, each with a ' +
+          "different learning rate, batch size, or optimizer. Every trial is genuinely trained, just for a " +
+          "few steps instead of a full run — enough to tell which setup is learning faster.",
+        target: '[data-tutorial="autotune-btn"]',
+      },
+      {
+        title: '(Optional) Also search the shape',
+        body:
+          'Check "also try narrower / wider models" to let auto-tune try slightly smaller and bigger versions ' +
+          "of your model too, not just the training settings — useful if you're not sure whether your model " +
+          'is the right size for your data.',
+        target: '[data-tutorial="autotune-search-arch"]',
+      },
+      {
+        title: 'Run it and read the results',
+        body:
+          'Click "Auto-tune" and wait for the trials to finish. You\'ll get a ranked list — the winner\'s ' +
+          'learning rate, batch size, and optimizer are applied automatically, ready for you to just click ' +
+          '"Export & Train" with.',
+        target: '[data-tutorial="autotune-results"]',
+      },
+      {
+        title: 'Train with the picked settings',
+        body:
+          "Switch to Metrics and train as usual. You're using real, tested settings instead of a guess — " +
+          "and now you know what \"learning rate\" and \"batch size\" actually do: they're exactly what " +
+          'auto-tune just experimented with on your behalf.',
+        target: '[data-tutorial="tab-metrics"]',
+        focusTab: { slot: 'bottom', tabId: 'metrics' },
+      },
+    ],
+  },
+  {
     id: 'from-scratch',
     title: 'Build From Scratch',
     blurb: 'Drag your own boxes onto the canvas, wire them together by hand, and train your own design.',

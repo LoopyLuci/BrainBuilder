@@ -238,16 +238,20 @@ export function DataPanel() {
           Not sure what to pick? Auto-tune runs a few short trials and applies the config that trains best.
         </p>
         <div className="bb-row" style={{ alignItems: 'center', gap: 8 }}>
-          <Button variant="secondary" onClick={runAutotune} disabled={tuning || nodes.length === 0}>
+          <Button variant="secondary" data-tutorial="autotune-btn" onClick={runAutotune} disabled={tuning || nodes.length === 0}>
             {tuning ? 'Tuning…' : 'Auto-tune'}
           </Button>
-          <label className="bb-text-muted" style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <label
+            className="bb-text-muted"
+            data-tutorial="autotune-search-arch"
+            style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}
+          >
             <input type="checkbox" checked={searchArch} onChange={(e) => setSearchArch(e.target.checked)} disabled={tuning} />
             also try narrower / wider models
           </label>
         </div>
         {trials && (
-          <ul className="bb-list" style={{ marginTop: 6 }}>
+          <ul className="bb-list" data-tutorial="autotune-results" style={{ marginTop: 6 }}>
             {trials.map((t, i) => {
               // Trials arrive ranked best-first; the first with a usable score
               // is the winner whose config we applied above.
