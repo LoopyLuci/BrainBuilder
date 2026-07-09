@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { useWidgetRegistry } from './registry';
 import { useLayoutStore } from '../state/layoutStore';
 import { WidgetBoundary } from './WidgetBoundary';
@@ -19,7 +20,26 @@ export function SlotRenderer({ slot, asTabs }: { slot: WidgetSlot; asTabs?: bool
   const tutorial = useTutorialStore((s) => s.activeTutorial());
   const stepIndex = useTutorialStore((s) => s.stepIndex);
   const step = tutorial?.steps[stepIndex];
-  const forceActive = step?.focusTab && step.focusTab.slot === slot ? step.focusTab.tabId : undefined;
+  const stepForceActive = step?.focusTab && step.focusTab.slot === slot ? step.focusTab.tabId : undefined;
+
+  // A tutorial step may have forced the side rail onto some other tab (e.g.
+  // Inspector) to point at it. When the tutorial ends, nothing un-forces
+  // that — so without this, finishing a tutorial silently strands the user
+  // off the Learn tab, and starting the next tutorial in the curriculum
+  // requires manually clicking back. Detect the active→inactive transition
+  // here and send the side rail back to Learn once.
+  const wasActive = useRef(false);
+  const [returnToLearn, setReturnToLearn] = useState(false);
+  useEffect(() => {
+    if (tutorial) {
+      wasActive.current = true;
+    } else if (wasActive.current) {
+      wasActive.current = false;
+      if (slot === 'side') setReturnToLearn(true);
+    }
+  }, [tutorial, slot]);
+
+  const forceActive = stepForceActive ?? (returnToLearn ? 'learn' : undefined);
 
   const widgets = Object.values(widgetsMap)
     .filter((w) => w.slot === slot && !hidden.has(w.id))
