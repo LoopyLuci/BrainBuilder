@@ -145,7 +145,7 @@ export function AgentPanel() {
     <Panel title="Self-Building Agent" subtitle="OpenCode works on BrainBuilder inside a sandboxed git worktree.">
       {!session ? (
         <>
-          <label className="bb-label">Autonomy</label>
+          <label className="bb-label" data-tutorial="agent-mode">Autonomy</label>
           <select className="bb-select" value={mode} onChange={(e) => setMode(e.target.value as AutonomyMode)}>
             {MODES.map((m) => (
               <option key={m.id} value={m.id}>
@@ -156,7 +156,7 @@ export function AgentPanel() {
           <p className="bb-text-muted" style={{ margin: 0, fontSize: 11 }}>
             {MODES.find((m) => m.id === mode)?.blurb}
           </p>
-          <Button variant="primary" onClick={start} disabled={busy}>
+          <Button variant="primary" data-tutorial="agent-start-btn" onClick={start} disabled={busy}>
             Start session
           </Button>
         </>
@@ -167,19 +167,20 @@ export function AgentPanel() {
           </div>
           <textarea
             className="bb-textarea"
+            data-tutorial="agent-task"
             value={task}
             onChange={(e) => setTask(e.target.value)}
             placeholder="e.g. add a `swish` activation component with a smoke test"
             rows={2}
           />
           <div className="bb-row">
-            <Button variant="primary" onClick={run} disabled={busy || !task.trim()}>
+            <Button variant="primary" data-tutorial="agent-run-btn" onClick={run} disabled={busy || !task.trim()}>
               {busy ? 'Running…' : 'Run task'}
             </Button>
-            <Button variant="secondary" onClick={approve} disabled={busy}>
+            <Button variant="secondary" data-tutorial="agent-approve-btn" onClick={approve} disabled={busy}>
               Approve + merge
             </Button>
-            <Button variant="ghost" onClick={revert} disabled={busy}>
+            <Button variant="ghost" data-tutorial="agent-revert-btn" onClick={revert} disabled={busy}>
               Discard
             </Button>
           </div>

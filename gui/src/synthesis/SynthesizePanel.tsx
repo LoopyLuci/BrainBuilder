@@ -72,18 +72,19 @@ export function SynthesizePanel() {
     <Panel title="Synthesize a Component" subtitle="Describe a new layer — it's generated, sandbox-tested, then added.">
       <textarea
         className="bb-textarea"
+        data-tutorial="synth-description"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         placeholder="e.g. a swish activation: x * sigmoid(x), same shape in and out"
         rows={3}
       />
       <ProviderSelector />
-      <Button variant="primary" onClick={synthesize} disabled={busy || !description.trim()}>
+      <Button variant="primary" data-tutorial="synth-button" onClick={synthesize} disabled={busy || !description.trim()}>
         {busy ? 'Working…' : 'Synthesize'}
       </Button>
 
       {result && (
-        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div data-tutorial="synth-result" style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span className={`bb-chip ${result.smoke.passed ? 'bb-chip--accent' : ''}`}>
               {result.smoke.passed ? 'Smoke test passed' : 'Smoke test failed'}
@@ -109,7 +110,12 @@ export function SynthesizePanel() {
             {result.python_code}
           </pre>
           <div style={{ display: 'flex', gap: 6 }}>
-            <Button variant="primary" onClick={() => accept(true)} disabled={busy || !result.smoke.passed}>
+            <Button
+              variant="primary"
+              data-tutorial="synth-accept-btn"
+              onClick={() => accept(true)}
+              disabled={busy || !result.smoke.passed}
+            >
               {result.smoke.passed ? 'Add to canvas' : 'Cannot add (smoke test failed)'}
             </Button>
             {result.smoke.passed && (

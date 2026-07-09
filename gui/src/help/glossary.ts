@@ -111,6 +111,22 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       'spreadsheet column. BrainBuilder turns each word into numbers the model can learn from, so it can ' +
       'sort or score text the same way it sorts pictures.',
   },
+  'smoke-test': {
+    term: 'Smoke test',
+    short: 'A quick trial run to check something basically works before trusting it.',
+    long:
+      "A smoke test feeds a new, computer-written piece of code a tiny fake input and checks the output has " +
+      "the right shape — like plugging in a lamp just to see if it turns on, before wiring it into anything " +
+      "important. BrainBuilder never adds AI-generated code to your palette unless its smoke test passes.",
+  },
+  worktree: {
+    term: 'Worktree',
+    short: 'A separate, safe copy of your project where risky changes happen first.',
+    long:
+      "A worktree is like a sandboxed duplicate of your project folder — changes made there don't touch your " +
+      "real files until you say so. BrainBuilder's self-building agent always works in a worktree, so you can " +
+      'review or throw away everything it did with zero risk to your actual work.',
+  },
   embedding: {
     term: 'Embedding',
     short: 'Turning a word into a list of numbers the model can learn from.',

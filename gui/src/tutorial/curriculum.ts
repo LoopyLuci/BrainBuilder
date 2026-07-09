@@ -617,4 +617,111 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'synthesize-component',
+    title: 'Invent a New Building Block',
+    blurb: "Describe a layer that doesn't exist yet, and watch BrainBuilder write, test, and add it for you.",
+    difficulty: 'advanced',
+    minutes: 6,
+    steps: [
+      {
+        title: "What if the box you need doesn't exist?",
+        body:
+          "Every box you've used so far — linear, embedding, attention — was hand-built ahead of time. The " +
+          'Synthesize tab does something different: it writes a brand-new box from a plain-English ' +
+          'description, using an AI language model, then proves it actually works before trusting it.',
+        target: '[data-tutorial="tab-synthesize"]',
+        focusTab: { slot: 'side', tabId: 'synthesize' },
+      },
+      {
+        title: 'Describe the box you want',
+        body:
+          'Type a description of a layer that doesn\'t exist in your palette — for example "a swish ' +
+          'activation: x times sigmoid of x, same shape in and out". Be specific about the math and the ' +
+          "shape, the same way you'd describe it to a person.",
+        target: '[data-tutorial="synth-description"]',
+      },
+      {
+        title: 'Click Synthesize and wait',
+        body:
+          "BrainBuilder asks the language model for both a description (what the box's settings and " +
+          "plugs look like) and real code, then runs everything through a sandboxed smoke test — a tiny fake " +
+          "input, checked for the right shape coming out — before it's ever trusted.",
+        target: '[data-tutorial="synth-button"]',
+      },
+      {
+        title: 'Read the result',
+        body:
+          "\"Smoke test passed\" means the generated code ran safely and produced the right shape — safe to " +
+          'add. "Failed" means BrainBuilder caught a problem itself and refuses to add it, protecting you ' +
+          "from broken AI-written code without you having to read a line of it yourself.",
+        target: '[data-tutorial="synth-result"]',
+      },
+      {
+        title: 'Add it to your palette',
+        body:
+          'If the smoke test passed, click "Add to canvas" — your new box appears in the Components shelf ' +
+          "immediately, right alongside the built-in ones, ready to wire into any model like any other box.",
+        target: '[data-tutorial="synth-accept-btn"]',
+      },
+    ],
+  },
+  {
+    id: 'self-building-agent',
+    title: 'Let the AI Improve BrainBuilder Itself',
+    blurb: 'Hand a coding task to an AI agent that edits BrainBuilder\'s own code, safely, in a sandbox.',
+    difficulty: 'advanced',
+    minutes: 7,
+    steps: [
+      {
+        title: 'The most advanced tool in the app',
+        body:
+          "Everything else in BrainBuilder builds models. The Agent tab is different — it points an AI coding " +
+          "agent at BrainBuilder's own source code and lets it make real changes, inside a sandboxed worktree " +
+          "so nothing it does can damage your actual project without your say-so.",
+        target: '[data-tutorial="tab-agent"]',
+        focusTab: { slot: 'side', tabId: 'agent' },
+      },
+      {
+        title: 'Choose how much trust to give it',
+        body:
+          '"Propose + approve" shows you every change before anything merges — the safest choice, and the ' +
+          'default. "Auto-apply" merges automatically whenever its own tests pass, but you can always revert. ' +
+          '"Full autonomy" gives it the most freedom and the least oversight — powerful, but opt-in for a ' +
+          'reason.',
+        target: '[data-tutorial="agent-mode"]',
+      },
+      {
+        title: 'Start a session',
+        body:
+          'Click "Start session". BrainBuilder creates a fresh worktree — a separate, safe copy of the project ' +
+          "— so the agent's work never touches your real files until you explicitly approve it.",
+        target: '[data-tutorial="agent-start-btn"]',
+      },
+      {
+        title: 'Describe a real task',
+        body:
+          'Type something concrete and small, like "add a swish activation component with a smoke test" — ' +
+          'the same kind of thing you just did by hand in "Invent a New Building Block", but this time the ' +
+          'agent writes the actual code changes itself.',
+        target: '[data-tutorial="agent-task"]',
+      },
+      {
+        title: 'Run it and watch',
+        body:
+          'Click "Run task". You\'ll see the agent\'s progress, then the diff of what it changed, then whether ' +
+          "its own tests passed — nothing merges into your real checkout until the tests are green and " +
+          '(in Propose + approve mode) you say yes.',
+        target: '[data-tutorial="agent-run-btn"]',
+      },
+      {
+        title: 'Approve, or throw it away',
+        body:
+          '"Approve + merge" brings the agent\'s changes into your real project. "Discard" deletes the whole ' +
+          'worktree instead — as if the agent had never run — no trace, no risk, any time you\'re not happy ' +
+          'with what it did.',
+        target: '[data-tutorial="agent-approve-btn"]',
+      },
+    ],
+  },
 ];
