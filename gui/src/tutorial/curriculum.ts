@@ -1023,4 +1023,68 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'data-preprocessing',
+    title: 'Clean Up Your Data Automatically',
+    blurb: 'Add reusable steps — like rescaling a column — that run automatically every time you train or predict.',
+    difficulty: 'intermediate',
+    minutes: 5,
+    steps: [
+      {
+        title: 'Raw data is rarely ready as-is',
+        body:
+          "One column might range from 0 to 1, another from 0 to 1,000,000 — that mismatch can make training " +
+          'slower or less accurate. The Data tab has a spot for automatic cleanup steps that fix this kind of ' +
+          "thing, every single time you train or predict, without editing your original file.",
+        target: '[data-tutorial="tab-data"]',
+        focusTab: { slot: 'side', tabId: 'data' },
+      },
+      {
+        title: 'Nothing happens by default',
+        body:
+          "Until you add a step, your data trains exactly as it appears in the file — untouched. Preprocessing " +
+          "is entirely optional and only runs if you ask for it. If you've already got a step added, you'll " +
+          'see the list instead of this message, which is fine too.',
+        target: '[data-tutorial="preprocess-empty"]',
+      },
+      {
+        title: 'Two things you can do to a column',
+        body:
+          '"normalize" rescales a column so its numbers average to zero and spread out evenly — good for ' +
+          'columns with very different ranges. "cast" changes a column\'s type, like turning whole numbers ' +
+          "into decimal numbers — useful when a column needs to be a specific type to train correctly.",
+        target: '[data-tutorial="preprocess-op-select"]',
+      },
+      {
+        title: 'Type the exact column name',
+        body:
+          "Type the name of the column this step applies to, exactly as it appears in the preview table above " +
+          '— start typing and matching column names will suggest themselves if you\'ve already picked a ' +
+          'dataset.',
+        target: '[data-tutorial="preprocess-column-input"]',
+      },
+      {
+        title: 'Add it',
+        body:
+          '"Add step" appends it to the list immediately — no separate save button, and nothing about your ' +
+          "original data file changes. You can add as many steps as you need.",
+        target: '[data-tutorial="preprocess-add-btn"]',
+      },
+      {
+        title: 'Steps run in order, every time',
+        body:
+          'Every step in this list runs top to bottom, automatically, both when you train and when you ' +
+          'predict — so the same cleanup always happens the same way, and you never have to remember to redo ' +
+          'it by hand.',
+        target: '[data-tutorial="preprocess-list"]',
+      },
+      {
+        title: 'Changed your mind? Remove it',
+        body:
+          'Click the ✕ next to any step to remove it — takes effect immediately, and like adding a step, it ' +
+          "never touches your original file. There's no wrong way to experiment here.",
+        target: '[data-tutorial="preprocess-remove-btn"]',
+      },
+    ],
+  },
 ];

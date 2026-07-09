@@ -160,6 +160,14 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       'called tokens. "I loved it" might become three tokens: "I", "loved", "it". Each token then gets looked ' +
       'up in the embedding table.',
   },
+  preprocessing: {
+    term: 'Preprocessing',
+    short: 'Automatic cleanup steps that run on your data before training.',
+    long:
+      'Preprocessing steps reshape a column of your data before the model ever sees it — for example, ' +
+      '"normalize" rescales a column so its numbers average to zero, which helps training go smoothly. ' +
+      'They run in order every time you train or predict, so the same cleanup always happens automatically.',
+  },
   shape: {
     term: 'Shape',
     short: 'The size/dimensions of the numbers flowing between nodes.',

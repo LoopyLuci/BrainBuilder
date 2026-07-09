@@ -11,6 +11,8 @@ import { SchemaForm, FormSchema, FormValues } from '../widgets/SchemaForm';
 
 const LOSSES = ['mse', 'cross_entropy'];
 const OPTIMIZERS = ['sgd', 'adam'];
+const PREPROC_OPS = ['normalize', 'cast'];
+const CAST_DTYPES = ['float32', 'int32', 'int64'];
 
 // The core training controls, expressed as a schema instead of hand-written
 // JSX — the same procedural-UI path the Inspector and plugins use. New knobs
@@ -91,6 +93,30 @@ export function DataPanel() {
   const [tuning, setTuning] = useState(false);
   const [trials, setTrials] = useState<TrialResult[] | null>(null);
   const [searchArch, setSearchArch] = useState(false);
+
+  const preprocessing = training.data_source.preprocessing ?? [];
+  const [newOp, setNewOp] = useState('normalize');
+  const [newColumn, setNewColumn] = useState('');
+  const [newDtype, setNewDtype] = useState('float32');
+
+  const addPreprocStep = () => {
+    const column = newColumn.trim();
+    if (!column) return;
+    const params: Record<string, unknown> = { column };
+    if (newOp === 'cast') params.dtype = newDtype;
+    setTraining({
+      ...training,
+      data_source: { ...training.data_source, preprocessing: [...preprocessing, { op: newOp, params }] },
+    });
+    setNewColumn('');
+  };
+
+  const removePreprocStep = (index: number) => {
+    setTraining({
+      ...training,
+      data_source: { ...training.data_source, preprocessing: preprocessing.filter((_, i) => i !== index) },
+    });
+  };
 
   const runAutotune = async () => {
     setTuning(true);
@@ -230,6 +256,95 @@ export function DataPanel() {
           </table>
         </div>
       )}
+
+      <div style={{ borderTop: '1px solid var(--border, rgba(0,0,0,0.1))', paddingTop: 8, marginTop: 4 }}>
+        <p className="bb-text-muted" style={{ margin: '0 0 6px' }}>
+          Preprocessing steps run on your data, in order, every time you train or predict — before it ever
+          reaches the model.
+        </p>
+        {preprocessing.length === 0 && (
+          <p className="bb-text-muted" data-tutorial="preprocess-empty" style={{ margin: '0 0 6px' }}>
+            No preprocessing steps yet — your data trains exactly as it is in the file.
+          </p>
+        )}
+        {preprocessing.length > 0 && (
+          <ul className="bb-list" data-tutorial="preprocess-list" style={{ marginBottom: 6 }}>
+            {preprocessing.map((s, i) => (
+              <li
+                key={i}
+                className="bb-list-item"
+                style={{
+                  fontSize: 11,
+                  fontFamily: 'var(--font-mono)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                <span style={{ flex: 1 }}>
+                  {s.op}({s.params.column}
+                  {s.op === 'cast' ? ` → ${s.params.dtype}` : ''})
+                </span>
+                <Button variant="ghost" data-tutorial="preprocess-remove-btn" onClick={() => removePreprocStep(i)}>
+                  ✕
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="bb-row" style={{ alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <select
+            className="bb-select"
+            data-tutorial="preprocess-op-select"
+            value={newOp}
+            onChange={(e) => setNewOp(e.target.value)}
+          >
+            {PREPROC_OPS.map((op) => (
+              <option key={op} value={op}>
+                {op === 'normalize' ? 'normalize (z-score)' : 'cast (change type)'}
+              </option>
+            ))}
+          </select>
+          <input
+            className="bb-input"
+            data-tutorial="preprocess-column-input"
+            placeholder="column name"
+            value={newColumn}
+            onChange={(e) => setNewColumn(e.target.value)}
+            style={{ width: 120 }}
+            list={preview ? 'preproc-columns' : undefined}
+          />
+          {preview && (
+            <datalist id="preproc-columns">
+              {preview.columns.map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
+          )}
+          {newOp === 'cast' && (
+            <select
+              className="bb-select"
+              data-tutorial="preprocess-dtype-select"
+              value={newDtype}
+              onChange={(e) => setNewDtype(e.target.value)}
+            >
+              {CAST_DTYPES.map((dt) => (
+                <option key={dt} value={dt}>
+                  {dt}
+                </option>
+              ))}
+            </select>
+          )}
+          <Button
+            variant="secondary"
+            data-tutorial="preprocess-add-btn"
+            onClick={addPreprocStep}
+            disabled={!newColumn.trim()}
+          >
+            Add step
+          </Button>
+        </div>
+      </div>
 
       <div data-tutorial="training-hyperparams">
         <SchemaForm schema={TRAINING_SCHEMA} values={trainingValues} onChange={onTrainingChange} />
