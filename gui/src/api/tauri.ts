@@ -98,6 +98,10 @@ export interface DataSpec {
   path: string;
   image_size?: number;
   grayscale?: boolean;
+  // Only meaningful when source_type === 'image_folder': mirrors every other
+  // image left-to-right (by sorted filename, within its class) before
+  // training — a real, deterministic data-augmentation policy.
+  augment?: boolean;
   text_column?: string;
   label_column?: string;
   vocab_size?: number;

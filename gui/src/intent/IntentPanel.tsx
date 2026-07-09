@@ -37,6 +37,7 @@ export function IntentPanel() {
   const [path, setPath] = useState('');
   const [imageSize, setImageSize] = useState(32);
   const [grayscale, setGrayscale] = useState(false);
+  const [augment, setAugment] = useState(false);
   const [textColumn, setTextColumn] = useState('');
   const [labelColumn, setLabelColumn] = useState('');
   const [useTransfer, setUseTransfer] = useState(false);
@@ -86,6 +87,7 @@ export function IntentPanel() {
         path,
         image_size: sourceType === 'image_folder' ? imageSize : undefined,
         grayscale: sourceType === 'image_folder' ? grayscale : undefined,
+        augment: sourceType === 'image_folder' ? augment : undefined,
         text_column: sourceType === 'text_column' ? textColumn || undefined : undefined,
         label_column: labelColumn || undefined,
       };
@@ -162,7 +164,7 @@ export function IntentPanel() {
       </div>
 
       {sourceType === 'image_folder' && (
-        <div className="bb-row">
+        <div className="bb-row" data-tutorial="intent-image-options">
           <label className="bb-label" style={{ margin: 0 }}>
             Resize to
             <input
@@ -176,8 +178,12 @@ export function IntentPanel() {
             />
             px
           </label>
-          <label className="bb-label" style={{ margin: 0 }}>
+          <label className="bb-label" data-tutorial="intent-grayscale" style={{ margin: 0 }}>
             <input type="checkbox" checked={grayscale} onChange={(e) => setGrayscale(e.target.checked)} /> Grayscale
+          </label>
+          <label className="bb-label" data-tutorial="intent-augment" style={{ margin: 0 }}>
+            <input type="checkbox" checked={augment} onChange={(e) => setAugment(e.target.checked)} /> Flip every
+            other photo <HelpTip term="data-augmentation" />
           </label>
         </div>
       )}

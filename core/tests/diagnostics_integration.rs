@@ -38,6 +38,7 @@ fn diagnose_data_flags_a_real_imbalanced_image_folder() {
             path: root.to_string_lossy().to_string(),
             image_size: Some(8),
             grayscale: None,
+            augment: None,
             text_column: None,
             label_column: None,
             vocab_size: None,

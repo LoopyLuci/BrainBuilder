@@ -24,7 +24,7 @@
 //! makes the existing engine reachable, not a pretense of covering every model
 //! ever. Transfer-learning proposals (adapting a pretrained model) are built
 //! separately in `intent::transfer` and slot in behind this same interface.
-use crate::bbir::{BBIREdge, BBIRGraph, BBIRNode, DataSourceConfig, PortInfo, TrainingConfig};
+use crate::bbir::{BBIREdge, BBIRGraph, BBIRNode, DataSourceConfig, PortInfo, PreprocStep, TrainingConfig};
 use crate::component::registry::ComponentRegistry;
 use crate::component::validation::validate_graph;
 use crate::interop::protocol::BrainBuilderError;
@@ -53,6 +53,12 @@ pub struct DataSpec {
     pub image_size: Option<usize>,
     #[serde(default)]
     pub grayscale: Option<bool>,
+    /// Only meaningful when `source_type == "image_folder"`: mirror every
+    /// other image left-to-right (by sorted filename, within its class)
+    /// before training — a real, deterministic data-augmentation policy, see
+    /// `data::vision::ImageLayout::augment`.
+    #[serde(default)]
+    pub augment: Option<bool>,
     #[serde(default)]
     pub text_column: Option<String>,
     #[serde(default)]
@@ -406,6 +412,7 @@ pub async fn inspect_data(request: &IntentRequest) -> Result<DataShape> {
             let layout = crate::data::vision::ImageLayout {
                 size: data.image_size.unwrap_or(32) as u32,
                 grayscale: data.grayscale.unwrap_or(false),
+                augment: data.augment.unwrap_or(false),
             };
             // Scan classes cheaply (no decode) from immediate subdirectories.
             let root = std::path::Path::new(&data.path);
@@ -422,11 +429,12 @@ pub async fn inspect_data(request: &IntentRequest) -> Result<DataShape> {
             class_names.sort();
             let feature_count = layout.feature_count();
             let summary = format!(
-                "{} class folder(s), each image resized to {}x{} {}",
+                "{} class folder(s), each image resized to {}x{} {}{}",
                 class_names.len(),
                 layout.size,
                 layout.size,
-                if layout.grayscale { "grayscale" } else { "RGB" }
+                if layout.grayscale { "grayscale" } else { "RGB" },
+                if layout.augment { ", every other image mirrored for augmentation" } else { "" }
             );
             Ok(DataShape { feature_count, class_names, summary })
         }
@@ -601,11 +609,20 @@ fn preview_list(items: &[String]) -> String {
 impl DataSpec {
     /// Project this user-facing spec onto the trainer's `DataSourceConfig`.
     fn to_source_config(&self, batch_size: usize) -> DataSourceConfig {
+        // The only preprocessing op image folders honor (see
+        // `data::source::load_image_folder_dataset`) — folded into the
+        // generic step list rather than a dedicated field, so this is the
+        // one place that needs to know about it.
+        let preprocessing = if self.source_type == "image_folder" && self.augment.unwrap_or(false) {
+            vec![PreprocStep { op: "augment_flip".into(), params: serde_json::json!({}) }]
+        } else {
+            Vec::new()
+        };
         DataSourceConfig {
             source_type: self.source_type.clone(),
             path_or_uri: self.path.clone(),
             batch_size,
-            preprocessing: Vec::new(),
+            preprocessing,
             sequence_length: None,
             vocab_size: self.vocab_size,
             image_size: self.image_size,
@@ -651,6 +668,7 @@ mod tests {
                 path: root.to_string_lossy().to_string(),
                 image_size: Some(16),
                 grayscale: Some(false),
+                augment: None,
                 text_column: None,
                 label_column: None,
                 vocab_size: None,
@@ -684,6 +702,39 @@ mod tests {
     }
 
     #[test]
+    fn augment_flag_becomes_an_augment_flip_preprocessing_step() {
+        let root = std::env::temp_dir().join(format!("bb_intent_augment_{}", uuid::Uuid::new_v4()));
+        for class in ["cat", "dog"] {
+            let d = root.join(class);
+            std::fs::create_dir_all(&d).unwrap();
+            write_png(&d.join("a.png"), [10, 20, 30]);
+        }
+        let request = IntentRequest {
+            task: TaskKind::Classification,
+            data: DataSpec {
+                source_type: "image_folder".to_string(),
+                path: root.to_string_lossy().to_string(),
+                image_size: Some(8),
+                grayscale: Some(false),
+                augment: Some(true),
+                text_column: None,
+                label_column: None,
+                vocab_size: None,
+            },
+        };
+
+        let registry = real_registry();
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        let proposal = rt.block_on(propose_model(&request, &registry)).expect("should propose a valid model");
+
+        let training = proposal.graph.training.as_ref().unwrap();
+        assert_eq!(training.data_source.preprocessing.len(), 1);
+        assert_eq!(training.data_source.preprocessing[0].op, "augment_flip");
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
     fn proposes_a_valid_regressor_for_a_numeric_csv() {
         let dir = std::env::temp_dir().join(format!("bb_intent_tab_{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
@@ -697,6 +748,7 @@ mod tests {
                 path: csv.to_string_lossy().to_string(),
                 image_size: None,
                 grayscale: None,
+                augment: None,
                 text_column: None,
                 label_column: Some("price".to_string()),
                 vocab_size: None,
@@ -744,6 +796,7 @@ mod tests {
                 path: root.to_string_lossy().to_string(),
                 image_size: Some(8),
                 grayscale: Some(true),
+                augment: None,
                 text_column: None,
                 label_column: None,
                 vocab_size: None,
@@ -787,6 +840,7 @@ mod tests {
                 path: root.to_string_lossy().to_string(),
                 image_size: Some(8),
                 grayscale: Some(true),
+                augment: None,
                 text_column: None,
                 label_column: None,
                 vocab_size: None,
@@ -814,6 +868,7 @@ mod tests {
                 path: root.to_string_lossy().to_string(),
                 image_size: Some(8),
                 grayscale: None,
+                augment: None,
                 text_column: None,
                 label_column: None,
                 vocab_size: None,

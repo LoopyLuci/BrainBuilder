@@ -51,6 +51,7 @@ fn a_proposed_image_classifier_actually_trains() {
             path: root.to_string_lossy().to_string(),
             image_size: Some(16),
             grayscale: Some(false),
+            augment: None,
             text_column: None,
             label_column: None,
             vocab_size: None,

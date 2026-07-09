@@ -306,10 +306,19 @@ fn load_text_sequence_dataset(config: &crate::bbir::DataSourceConfig) -> Result<
 /// The per-image feature count is derived from the configured `image_size` /
 /// `grayscale`; the downstream classifier's `in_features` must match it (the
 /// Intent layer wires this automatically — see `intent`).
+///
+/// Augmentation reuses the generic `preprocessing` step list rather than a
+/// dedicated `DataSourceConfig` field: an `augment_flip` step (with no
+/// params) turns on `ImageLayout::augment`. This is the one preprocessing op
+/// image folders honor — `etl::apply_steps` (normalize/cast) never runs for
+/// this source type, since those operate on named tabular columns that don't
+/// exist until after decoding.
 fn load_image_folder_dataset(config: &crate::bbir::DataSourceConfig) -> Result<Box<dyn DataIterator>> {
+    let augment = config.preprocessing.iter().any(|s| s.op == "augment_flip");
     let layout = crate::data::vision::ImageLayout {
         size: config.image_size.unwrap_or(32) as u32,
         grayscale: config.grayscale.unwrap_or(false),
+        augment,
     };
     let root = std::path::Path::new(&config.path_or_uri);
     let dataset = crate::data::vision::load_image_folder(root, layout, config.batch_size.max(1))?;

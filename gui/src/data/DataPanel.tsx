@@ -165,6 +165,11 @@ export function DataPanel() {
   };
 
   const isTextSequence = training.data_source.source_type === 'text_sequence';
+  // The normalize/cast preprocessing list only actually runs for tabular
+  // "file" sources (see core/src/data/source.rs: image_folder and
+  // text_sequence/text_column each bypass etl::apply_steps entirely) — hide
+  // it rather than showing controls that would silently do nothing.
+  const isFileSource = training.data_source.source_type === 'file';
 
   const lr = (training.hyperparams?.lr as number) ?? 0.01;
   const epochs = (training.hyperparams?.epochs as number) ?? 10;
@@ -257,6 +262,7 @@ export function DataPanel() {
         </div>
       )}
 
+      {isFileSource && (
       <div style={{ borderTop: '1px solid var(--border, rgba(0,0,0,0.1))', paddingTop: 8, marginTop: 4 }}>
         <p className="bb-text-muted" style={{ margin: '0 0 6px' }}>
           Preprocessing steps run on your data, in order, every time you train or predict — before it ever
@@ -345,6 +351,7 @@ export function DataPanel() {
           </Button>
         </div>
       </div>
+      )}
 
       <div data-tutorial="training-hyperparams">
         <SchemaForm schema={TRAINING_SCHEMA} values={trainingValues} onChange={onTrainingChange} />

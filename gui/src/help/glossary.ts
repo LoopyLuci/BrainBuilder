@@ -168,6 +168,14 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       '"normalize" rescales a column so its numbers average to zero, which helps training go smoothly. ' +
       'They run in order every time you train or predict, so the same cleanup always happens automatically.',
   },
+  'data-augmentation': {
+    term: 'Data augmentation',
+    short: 'Getting more variety out of the photos you already have.',
+    long:
+      'Data augmentation makes small, harmless changes to some of your training examples — like mirroring a ' +
+      'photo left-to-right — so the model sees more variety without you needing to collect a single extra ' +
+      "photo. It teaches the model what your subject looks like in general, not just one exact orientation.",
+  },
   shape: {
     term: 'Shape',
     short: 'The size/dimensions of the numbers flowing between nodes.',

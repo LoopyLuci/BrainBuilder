@@ -30,10 +30,20 @@ const SUPPORTED_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "bmp", "gif"];
 /// length every image is resized to (so all rows are the same width, which a
 /// dense classifier requires); `grayscale` collapses to 1 channel instead of
 /// 3. The resulting per-row feature count is `size * size * channels`.
+///
+/// `augment`: a real, deterministic data-augmentation policy — every other
+/// image within a class (by sorted filename order) is mirrored
+/// left-to-right before resizing. Deterministic-by-index rather than
+/// per-epoch-random because the current pipeline decodes each image exactly
+/// once at dataset-build time, not fresh per epoch; alternating by index
+/// still gives genuine visual variety (the model sees both orientations of
+/// roughly half the examples) without adding a random-number dependency or
+/// pretending to do per-epoch randomization this pipeline doesn't have.
 #[derive(Debug, Clone, Copy)]
 pub struct ImageLayout {
     pub size: u32,
     pub grayscale: bool,
+    pub augment: bool,
 }
 
 impl ImageLayout {
@@ -54,7 +64,7 @@ impl Default for ImageLayout {
     fn default() -> Self {
         // 32x32 RGB: small enough to train quickly on CPU (the personal-first
         // default target), large enough to carry real visual signal.
-        Self { size: 32, grayscale: false }
+        Self { size: 32, grayscale: false, augment: false }
     }
 }
 
@@ -136,8 +146,11 @@ pub fn load_image_folder(
             .collect();
         files.sort();
 
-        for path in files {
-            let features = decode_to_features(&path, layout)?;
+        for (index, path) in files.iter().enumerate() {
+            // Every other image (by sorted filename order, within this class)
+            // gets mirrored when augmentation is on — see `ImageLayout::augment`.
+            let flip = layout.augment && index % 2 == 1;
+            let features = decode_to_features(path, layout, flip)?;
             debug_assert_eq!(features.len(), feature_count);
             examples.push(Example { features, label });
         }
@@ -197,15 +210,17 @@ fn is_supported_image(path: &Path) -> bool {
             .unwrap_or(false)
 }
 
-/// Decode one image file, resize to the layout's square size, and flatten to a
-/// normalized `f32` feature vector. Channel order is row-major
+/// Decode one image file, optionally mirror it left-to-right (`flip`, driven
+/// by `ImageLayout::augment`), resize to the layout's square size, and
+/// flatten to a normalized `f32` feature vector. Channel order is row-major
 /// `[y][x][channel]` — the natural flattening of the resized buffer; the exact
 /// order doesn't matter for a dense classifier as long as it's consistent
 /// across every image (it is), which is why this is a valid MLP input.
-fn decode_to_features(path: &Path, layout: ImageLayout) -> Result<Vec<f32>> {
+fn decode_to_features(path: &Path, layout: ImageLayout, flip: bool) -> Result<Vec<f32>> {
     let cfg = |msg: String| BrainBuilderError::ConfigError(msg);
     let img = image::open(path)
         .map_err(|e| cfg(format!("failed to decode image `{}`: {e}", path.display())))?;
+    let img = if flip { img.fliph() } else { img };
 
     // `Triangle` (bilinear) is a real, cheap, quality-adequate resize filter —
     // not nearest-neighbor (which would alias small images badly), not
@@ -290,7 +305,7 @@ mod tests {
         write_png(&blue.join("a.png"), 8, 8, [0, 0, 255]);
         write_png(&blue.join("b.png"), 5, 5, [5, 5, 250]);
 
-        let layout = ImageLayout { size: 4, grayscale: false };
+        let layout = ImageLayout { size: 4, grayscale: false, augment: false };
         let dataset = load_image_folder(&root, layout, 16).unwrap();
 
         // Classes discovered and sorted: "blue" -> 0, "red" -> 1.
@@ -333,9 +348,65 @@ mod tests {
             let shade = if class == "dark" { 20 } else { 230 };
             write_png(&dir.join("x.png"), 6, 6, [shade, shade, shade]);
         }
-        let layout = ImageLayout { size: 5, grayscale: true };
+        let layout = ImageLayout { size: 5, grayscale: true, augment: false };
         let dataset = load_image_folder(&root, layout, 8).unwrap();
         assert_eq!(dataset.feature_count, 5 * 5); // 1 channel
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn decode_to_features_flips_when_asked() {
+        let root = temp_dir("flip_unit");
+        let path = root.join("split.png");
+        // Left half red, right half blue — asymmetric, so a horizontal flip
+        // is unambiguously detectable in the decoded features.
+        let mut img = RgbImage::new(4, 4);
+        for (x, _y, pixel) in img.enumerate_pixels_mut() {
+            *pixel = if x < 2 { Rgb([255, 0, 0]) } else { Rgb([0, 0, 255]) };
+        }
+        img.save(&path).expect("write test png");
+
+        let layout = ImageLayout { size: 4, grayscale: false, augment: false };
+        let plain = decode_to_features(&path, layout, false).unwrap();
+        let flipped = decode_to_features(&path, layout, true).unwrap();
+
+        assert_ne!(plain, flipped, "flipping an asymmetric image should change its features");
+        // px0..px2 is the top-left pixel's R,G,B.
+        assert!(plain[0] > 0.9 && plain[2] < 0.1, "plain: top-left pixel should be red");
+        assert!(flipped[0] < 0.1 && flipped[2] > 0.9, "flipped: top-left pixel should now be blue");
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn load_image_folder_alternates_flip_by_index_when_augment_enabled() {
+        let root = temp_dir("augment_alternate");
+        let cls = root.join("cls");
+        let other = root.join("other");
+        std::fs::create_dir_all(&cls).unwrap();
+        std::fs::create_dir_all(&other).unwrap();
+
+        let mut split = RgbImage::new(4, 4);
+        for (x, _y, pixel) in split.enumerate_pixels_mut() {
+            *pixel = if x < 2 { Rgb([255, 0, 0]) } else { Rgb([0, 0, 255]) };
+        }
+        // "a.png" sorts first (index 0, not flipped); "b.png" sorts second
+        // (index 1, flipped) — both within the "cls" class.
+        split.save(cls.join("a.png")).unwrap();
+        split.save(cls.join("b.png")).unwrap();
+        write_png(&other.join("a.png"), 4, 4, [0, 255, 0]);
+
+        let layout = ImageLayout { size: 4, grayscale: false, augment: true };
+        let dataset = load_image_folder(&root, layout, 16).unwrap();
+        let batch = &dataset.batches[0];
+        let px0 = batch.column(0).as_any().downcast_ref::<Float32Array>().unwrap();
+        let px2 = batch.column(2).as_any().downcast_ref::<Float32Array>().unwrap();
+
+        // Class order is alphabetical ("cls" before "other"), so cls's two
+        // rows come first, in filename order (a.png then b.png).
+        assert!(px0.value(0) > 0.9 && px2.value(0) < 0.1, "a.png (index 0) should be unflipped: red on the left");
+        assert!(px0.value(1) < 0.1 && px2.value(1) > 0.9, "b.png (index 1) should be flipped: blue on the left");
+
         std::fs::remove_dir_all(&root).ok();
     }
 

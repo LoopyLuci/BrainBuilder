@@ -1087,4 +1087,62 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'image-transforms',
+    title: 'Getting More Out of Your Photos',
+    blurb: 'Resize, grayscale, and flip settings for a folder of images — what they do and when to use them.',
+    difficulty: 'intermediate',
+    minutes: 5,
+    steps: [
+      {
+        title: 'Turning photos into numbers a model can learn from',
+        body:
+          "When your data is a folder of photos, BrainBuilder needs a few consistent settings to turn every " +
+          'image into the same shape of numbers before training. These appear once you pick "A folder of ' +
+          'images" as your data type.',
+        target: '[data-tutorial="intent-data"]',
+        focusTab: { slot: 'side', tabId: 'build' },
+      },
+      {
+        title: 'Every photo, the same size',
+        body:
+          '"Resize to __ px" scales every photo to the same square size before training — models need every ' +
+          'example to be exactly the same shape. Smaller (like 32px) trains fast on any computer; bigger keeps ' +
+          'more detail but takes longer.',
+        target: '[data-tutorial="intent-image-options"]',
+      },
+      {
+        title: 'Color costs more to learn from',
+        body:
+          'A color photo carries three numbers per pixel — red, green, and blue. Checking "Grayscale" ' +
+          "collapses that to one number per pixel, which trains faster and uses less memory. Only turn it on " +
+          "if color genuinely doesn't matter for telling your classes apart (handwriting, yes — ripe vs. " +
+          'unripe fruit, no).',
+        target: '[data-tutorial="intent-grayscale"]',
+      },
+      {
+        title: 'More variety without more photos',
+        body:
+          '"Flip every other photo" mirrors half your images left-to-right before training. It\'s a real ' +
+          "trick called data augmentation — it teaches the model what your subject looks like in general, not " +
+          "just facing one particular direction, without you needing to take a single extra picture.",
+        target: '[data-tutorial="intent-augment"]',
+      },
+      {
+        title: 'These apply the moment you build',
+        body:
+          'Resize, grayscale, and flip are all baked in the instant you click "Build my model" — there\'s ' +
+          "nothing further to configure. Change your mind later by adjusting these and building again.",
+        target: '[data-tutorial="intent-build-btn"]',
+      },
+      {
+        title: 'Nothing here touches your real photos',
+        body:
+          'Every one of these settings only changes how BrainBuilder reads your images into memory for ' +
+          "training — your original photo files on disk are never modified, resized, or overwritten. Feel " +
+          'free to experiment.',
+        target: '[data-tutorial="intent-image-options"]',
+      },
+    ],
+  },
 ];
