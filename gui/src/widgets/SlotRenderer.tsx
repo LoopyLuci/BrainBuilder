@@ -33,6 +33,12 @@ export function SlotRenderer({ slot, asTabs }: { slot: WidgetSlot; asTabs?: bool
   useEffect(() => {
     if (tutorial) {
       wasActive.current = true;
+      // A new tutorial taking over supersedes any pending "return to Learn"
+      // from the previous one — otherwise that stale flag would keep forcing
+      // Learn on every later step of *this* tutorial that has no focusTab of
+      // its own, fighting the step-specific switches and even the user's own
+      // manual tab clicks.
+      setReturnToLearn(false);
     } else if (wasActive.current) {
       wasActive.current = false;
       if (slot === 'side') setReturnToLearn(true);
