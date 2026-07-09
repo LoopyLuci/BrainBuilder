@@ -97,9 +97,9 @@ export function GraphToolbar() {
 
   return (
     <div className="bb-canvas-toolbar">
-      <Button variant="secondary" onClick={onNew}>New</Button>
-      <Button variant="secondary" onClick={onSave}>Save…</Button>
-      <Button variant="secondary" onClick={onLoad}>Load…</Button>
+      <Button variant="secondary" data-tutorial="graph-new-btn" onClick={onNew}>New</Button>
+      <Button variant="secondary" data-tutorial="graph-save-btn" onClick={onSave}>Save…</Button>
+      <Button variant="secondary" data-tutorial="graph-load-btn" onClick={onLoad}>Load…</Button>
       <div className="bb-toolbar-divider" />
       <Button variant="ghost" onClick={undo} disabled={past.length === 0} title="Undo">↶ Undo</Button>
       <Button variant="ghost" onClick={redo} disabled={future.length === 0} title="Redo">↷ Redo</Button>

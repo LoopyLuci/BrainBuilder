@@ -907,4 +907,61 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'checkpoints-and-saving',
+    title: 'Save Your Progress, Come Back Later',
+    blurb: "What actually gets saved when you train, and how to pick up right where you left off.",
+    difficulty: 'intermediate',
+    minutes: 5,
+    steps: [
+      {
+        title: 'Training saves itself automatically',
+        body:
+          "You've never had to click a \"save\" button after training — BrainBuilder writes what your model " +
+          'learned to a checkpoint file on its own, every time a run finishes. Think of it as an automatic ' +
+          'save-game for your model\'s learned numbers.',
+        target: '[data-tutorial="tab-predict"]',
+        focusTab: { slot: 'bottom', tabId: 'predict' },
+      },
+      {
+        title: 'Predict notices on its own',
+        body:
+          'Before you\'ve trained anything, Predict shows "No trained checkpoint yet for this graph". Once ' +
+          "training finishes, this message disappears within a few seconds by itself — BrainBuilder quietly " +
+          "checks in the background, so you never need to switch tabs and back to refresh it.",
+        target: '[data-tutorial="predict-empty"]',
+      },
+      {
+        title: 'Try a real prediction',
+        body:
+          'Once trained, click "Run on first 5 rows" to see your checkpoint actually being used — it loads ' +
+          "those saved numbers back in and runs them on real data, without retraining anything.",
+        target: '[data-tutorial="predict-run-btn"]',
+      },
+      {
+        title: 'Save your graph for later',
+        body:
+          'Click "Save…" on the canvas toolbar to write your graph\'s structure to a file. This saves what ' +
+          "the model looks like — its boxes and connections — as a separate thing from the checkpoint, which " +
+          'holds what it learned.',
+        target: '[data-tutorial="graph-save-btn"]',
+      },
+      {
+        title: 'Reopen it and pick up where you left off',
+        body:
+          'Click "Load…" and choose that file — even after closing and reopening BrainBuilder entirely. As ' +
+          "long as the checkpoint file is still on your computer, Predict works again immediately, with zero " +
+          "retraining, because loading restores the exact same model identity the checkpoint was saved under.",
+        target: '[data-tutorial="graph-load-btn"]',
+      },
+      {
+        title: 'This is why "New" asks you to confirm',
+        body:
+          'Clicking "New" (which you may remember asks you to confirm first) starts a completely fresh model ' +
+          'identity. Your old checkpoint file isn\'t deleted, but nothing in the app can find it anymore under ' +
+          'the new blank canvas — which is exactly the situation that confirmation is there to prevent.',
+        target: '[data-tutorial="graph-new-btn"]',
+      },
+    ],
+  },
 ];

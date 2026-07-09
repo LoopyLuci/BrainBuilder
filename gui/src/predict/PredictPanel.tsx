@@ -55,8 +55,17 @@ export function PredictPanel() {
 
   return (
     <Panel title="Predict">
-      {!checkpointExists && <p className="bb-text-muted">No trained checkpoint yet for this graph — train it first.</p>}
-      <Button variant="primary" onClick={runPredict} disabled={!checkpointExists || busy || !training.data_source.path_or_uri}>
+      {!checkpointExists && (
+        <p className="bb-text-muted" data-tutorial="predict-empty">
+          No trained checkpoint yet for this graph — train it first.
+        </p>
+      )}
+      <Button
+        variant="primary"
+        data-tutorial="predict-run-btn"
+        onClick={runPredict}
+        disabled={!checkpointExists || busy || !training.data_source.path_or_uri}
+      >
         {busy ? 'Running…' : 'Run on first 5 rows'}
       </Button>
       {error && <div className="bb-text-error">{error}</div>}
