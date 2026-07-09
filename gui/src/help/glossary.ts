@@ -111,6 +111,22 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       'spreadsheet column. BrainBuilder turns each word into numbers the model can learn from, so it can ' +
       'sort or score text the same way it sorts pictures.',
   },
+  embedding: {
+    term: 'Embedding',
+    short: 'Turning a word into a list of numbers the model can learn from.',
+    long:
+      "Models only understand numbers, not letters — so an embedding is a lookup table that converts each " +
+      'word (or category) into a list of numbers. Similar words end up with similar numbers as the model ' +
+      "trains, which is how it learns that \"great\" and \"excellent\" mean roughly the same thing.",
+  },
+  tokenization: {
+    term: 'Tokenization',
+    short: 'Splitting text into small pieces before turning them into numbers.',
+    long:
+      'Before text can become numbers, it first gets chopped into pieces — usually words or word-fragments, ' +
+      'called tokens. "I loved it" might become three tokens: "I", "loved", "it". Each token then gets looked ' +
+      'up in the embedding table.',
+  },
   shape: {
     term: 'Shape',
     short: 'The size/dimensions of the numbers flowing between nodes.',

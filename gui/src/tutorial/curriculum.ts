@@ -319,6 +319,97 @@ export const CURRICULUM: Tutorial[] = [
     ],
   },
   {
+    id: 'look-inside-text',
+    title: 'Look Inside a Text Model',
+    blurb: 'See how BrainBuilder turns words into numbers, and why that matters.',
+    difficulty: 'intermediate',
+    minutes: 5,
+    steps: [
+      {
+        title: 'Words become numbers first',
+        body:
+          "Build the text classifier from the last tutorial if you haven't already, then look at the canvas. " +
+          "The very first box a text model uses is an embedding — it turns each word into a list of numbers. " +
+          "Nothing downstream understands letters, only numbers.",
+        target: '[data-tutorial="canvas"]',
+      },
+      {
+        title: 'Similar words end up close together',
+        body:
+          'As training goes on, the embedding box learns to give similar words similar numbers — "great" and ' +
+          '"excellent" drift toward each other, while "great" and "terrible" drift apart. Nobody tells it ' +
+          'this directly; it discovers it from seeing lots of examples.',
+        target: '[data-tutorial="canvas"]',
+      },
+      {
+        title: 'One sentence, many words, one answer',
+        body:
+          'A sentence is a whole sequence of word-numbers, but your model needs to output just one answer ' +
+          '(e.g. "positive"). Somewhere in the middle, the boxes combine every word\'s numbers into a single ' +
+          "summary before the last box makes a decision from it.",
+        target: '[data-tutorial="canvas"]',
+      },
+      {
+        title: 'Click a box to see its settings',
+        body:
+          'Click the embedding box and open the Inspector. You\'ll see a setting like "vocab size" — the ' +
+          "number of different words the model can recognize at all. A word it's never seen before can't be " +
+          'looked up, which is why more training text usually helps.',
+        target: '[data-tutorial="tab-inspector"]',
+        focusTab: { slot: 'side', tabId: 'inspector' },
+      },
+      {
+        title: 'Same rules as pictures, different data',
+        body:
+          "Everything you learned in \"Look Inside Your Model\" still applies — shapes must match, data flows " +
+          'left to right, training is nudging numbers to be less wrong. Only the very first step (turning the ' +
+          'raw input into numbers) looks different between pictures and text.',
+        target: '[data-tutorial="canvas"]',
+      },
+    ],
+  },
+  {
+    id: 'understanding-regression',
+    title: 'Why Regression Looks Different',
+    blurb: "See how a number-predicting model's last box and loss differ from a category-sorting one.",
+    difficulty: 'intermediate',
+    minutes: 4,
+    steps: [
+      {
+        title: 'No categories to pick from',
+        body:
+          "Build the number-predicting model from \"Predict a Number\" if you haven't already. Click its last " +
+          'box on the canvas and open the Inspector — notice it outputs just one number, not a list of ' +
+          'category scores like the image or text classifiers did.',
+        target: '[data-tutorial="tab-inspector"]',
+        focusTab: { slot: 'side', tabId: 'inspector' },
+      },
+      {
+        title: '"Close" is good, not just "right"',
+        body:
+          'A classifier is either right or wrong about a category. A regression model can be a little wrong or ' +
+          'a lot wrong — guessing $205,000 for a $200,000 house is much better than guessing $50,000, even ' +
+          "though neither is exactly right. Loss captures that difference in distance, not just yes/no.",
+        target: '[data-tutorial="tab-metrics"]',
+        focusTab: { slot: 'bottom', tabId: 'metrics' },
+      },
+      {
+        title: 'Watch the loss number itself',
+        body:
+          "For classification, loss is a somewhat abstract score. For regression, it's often close to the " +
+          "actual size of your average mistake — if loss is around 400, your model's guesses are typically " +
+          'off by somewhere around that many units (dollars, degrees, whatever you\'re predicting).',
+        target: '[data-tutorial="tab-metrics"]',
+      },
+      {
+        title: 'Same training, different finish line',
+        body:
+          'Everything else — layers, activations, training loop, watching loss drop — works exactly like ' +
+          'classification. Only the very last box and how "correct" gets measured are different.',
+      },
+    ],
+  },
+  {
     id: 'template-build',
     title: 'Build From a Template',
     blurb: 'Start from a ready-made blueprint, see how the pieces connect, and change one on purpose.',
