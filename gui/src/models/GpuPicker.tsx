@@ -61,7 +61,7 @@ export function GpuPicker() {
       )}
       {adapters && adapters.length > 0 && (
         <>
-          <label className="bb-label">Preferred device</label>
+          <label className="bb-label" data-tutorial="gpu-select">Preferred device</label>
           <select className="bb-select" value={preferred} onChange={(e) => choose(e.target.value)}>
             <option value="">Auto (highest performance)</option>
             {adapters.map((a, i) => (
@@ -70,7 +70,7 @@ export function GpuPicker() {
               </option>
             ))}
           </select>
-          <Button variant="secondary" onClick={testBind} disabled={busy}>
+          <Button variant="secondary" data-tutorial="gpu-test-btn" onClick={testBind} disabled={busy}>
             {busy ? 'Binding…' : 'Test this GPU'}
           </Button>
           {probe && (

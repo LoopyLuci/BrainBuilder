@@ -210,7 +210,7 @@ export function IntentPanel() {
         />
       )}
 
-      <label className="bb-label" style={{ margin: '4px 0 0' }}>
+      <label className="bb-label" data-tutorial="intent-transfer" style={{ margin: '4px 0 0' }}>
         <input type="checkbox" checked={useTransfer} onChange={(e) => setUseTransfer(e.target.checked)} /> Start from a
         pretrained model (transfer learning) <HelpTip term="transfer-learning" />
       </label>

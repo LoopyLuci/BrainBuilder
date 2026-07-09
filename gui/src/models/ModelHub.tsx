@@ -105,7 +105,7 @@ export function ModelHub() {
       }
       subtitle="Any format, no download, no network — scanned from local folders."
     >
-      <div className="bb-row">
+      <div className="bb-row" data-tutorial="modelhub-add-dir">
         <input
           className="bb-input"
           value={newDir}
@@ -133,7 +133,7 @@ export function ModelHub() {
       {error && <div className="bb-text-error">{error}</div>}
       {models.length === 0 && !error && <div className="bb-empty">No locally cached models found.</div>}
 
-      <ul className="bb-list">
+      <ul className="bb-list" data-tutorial="modelhub-list">
         {models.map((m) => (
           <li key={m.repo_id} className="bb-list-item">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
@@ -148,18 +148,18 @@ export function ModelHub() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                <Button variant="secondary" onClick={() => inspect(m)}>
+                <Button variant="secondary" data-tutorial="modelhub-inspect-btn" onClick={() => inspect(m)}>
                   Inspect
                 </Button>
                 {m.formats.includes('gguf') && (
-                  <Button variant="secondary" onClick={() => registerGguf(m)} disabled={busy}>
+                  <Button variant="secondary" data-tutorial="modelhub-register-btn" onClick={() => registerGguf(m)} disabled={busy}>
                     Register
                   </Button>
                 )}
               </div>
             </div>
             {expanded === m.repo_id && manifest && (
-              <div style={{ maxHeight: 140, overflow: 'auto', marginTop: 6, fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+              <div data-tutorial="modelhub-manifest" style={{ maxHeight: 140, overflow: 'auto', marginTop: 6, fontFamily: 'var(--font-mono)', fontSize: 11 }}>
                 {manifest.map(([name, shape, dtype], i) => (
                   <div key={i} className="bb-text-muted">
                     {name} {JSON.stringify(shape)} {dtype}

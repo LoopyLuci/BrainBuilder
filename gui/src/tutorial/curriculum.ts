@@ -841,4 +841,70 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'model-hub',
+    title: 'Use Models You Already Have',
+    blurb: "Load models straight off your computer — no downloads, no accounts, no network at all.",
+    difficulty: 'intermediate',
+    minutes: 6,
+    steps: [
+      {
+        title: 'Your computer probably already has models on it',
+        body:
+          "If you've ever used another AI tool, there's a good chance model files are already sitting on your " +
+          "disk somewhere. The Models tab finds them — safetensors, GGUF, ONNX, or PyTorch — without " +
+          "downloading anything or talking to the internet.",
+        target: '[data-tutorial="tab-models"]',
+        focusTab: { slot: 'side', tabId: 'models' },
+      },
+      {
+        title: 'Point it at a folder',
+        body:
+          'Type the path to a folder that has model files in it and click "Add folder" — for example wherever ' +
+          "another tool caches its downloads. BrainBuilder scans it and remembers it for next time.",
+        target: '[data-tutorial="modelhub-add-dir"]',
+      },
+      {
+        title: 'See what it found',
+        body:
+          'Each model shows its name and which formats it has — safetensors, GGUF, ONNX, PyTorch. These little ' +
+          'labels are chips, not downloads: everything here was already on your computer before you opened ' +
+          'this tab.',
+        target: '[data-tutorial="modelhub-list"]',
+      },
+      {
+        title: 'Look inside a model',
+        body:
+          'Click "Inspect" on any model to see its actual tensor names, shapes, and data types — the same ' +
+          'kind of detail you\'d need to wire it in as a transfer-learning backbone (like in the very first ' +
+          'tutorial\'s optional pretrained-model step).',
+        target: '[data-tutorial="modelhub-inspect-btn"]',
+      },
+      {
+        title: '(If GGUF) Register it with Ollama',
+        body:
+          'A GGUF-format model can be "Register"ed — this hands it to Ollama so you can chat with it from the ' +
+          'command line, completely separate from anything you build on the canvas.',
+        target: '[data-tutorial="modelhub-register-btn"]',
+      },
+      {
+        title: 'Use one as a transfer-learning backbone',
+        body:
+          'Back in the Build tab, turn on "Start from a pretrained model" and point it at a local ' +
+          '.safetensors file — the tensor name you need is exactly what "Inspect" just showed you a moment ' +
+          'ago.',
+        target: '[data-tutorial="intent-transfer"]',
+        focusTab: { slot: 'side', tabId: 'build' },
+      },
+      {
+        title: '(Bonus) Pick which GPU trains',
+        body:
+          "Further down this same tab, the GPU picker lists every graphics card BrainBuilder can use and lets " +
+          'you pin a preferred one — handy on a machine with more than one, like a laptop with both an ' +
+          'integrated and a dedicated GPU. "Test this GPU" confirms it actually binds before you rely on it.',
+        target: '[data-tutorial="gpu-select"]',
+        focusTab: { slot: 'side', tabId: 'models' },
+      },
+    ],
+  },
 ];
