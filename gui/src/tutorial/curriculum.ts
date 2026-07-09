@@ -527,4 +527,94 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'from-scratch-text',
+    title: 'Build a Text Model From Scratch',
+    blurb: 'Hand-wire the same "words become numbers" pipeline you saw in Look Inside a Text Model.',
+    difficulty: 'advanced',
+    minutes: 8,
+    steps: [
+      {
+        title: 'Text needs one extra first step',
+        body:
+          'Everything from "Build From Scratch" still applies — drag, connect, validate, train. Text just ' +
+          "needs one thing pictures and plain numbers don't: a translation step from words into numbers, " +
+          'before any of the usual boxes can do their job.',
+        target: '[data-tutorial="canvas"]',
+      },
+      {
+        title: 'Start with embedding',
+        body:
+          'Drag out an "embedding" box first. This is that translation step — it looks up each word in a ' +
+          'table and hands back a list of numbers for it. Open its settings in the Inspector: "vocab size" ' +
+          "is how many different words it's allowed to know.",
+        target: '[data-tutorial="palette"]',
+      },
+      {
+        title: 'Add attention to mix word meanings together',
+        body:
+          'Drag out an "attention" box and connect the embedding\'s output into it. Attention lets each ' +
+          'word\'s numbers get adjusted based on the other words nearby — it\'s how the model tells "bank" ' +
+          '(the river) apart from "bank" (the money) using context.',
+        target: '[data-tutorial="palette"]',
+      },
+      {
+        title: 'Finish with a linear box',
+        body:
+          'Drag out a "linear" box and connect attention\'s output into it — this is the same kind of box ' +
+          'you used for pictures. Its "out features" setting should match how many categories you\'re ' +
+          'sorting into (2 for yes/no, more for multiple categories).',
+        target: '[data-tutorial="palette"]',
+      },
+      {
+        title: 'Validate, then train',
+        body:
+          'Click "Validate" to check every connection lines up, then "Export & Train" and watch the Metrics ' +
+          'tab. Same finish line as every other model — you just chose a different starting pipeline for ' +
+          'text\'s particular shape of data.',
+        target: '[data-tutorial="validate-btn"]',
+      },
+    ],
+  },
+  {
+    id: 'from-scratch-regression',
+    title: 'Build a Regression Model From Scratch',
+    blurb: 'Hand-wire a number-predicting model, paying attention to the one box that has to be different.',
+    difficulty: 'advanced',
+    minutes: 6,
+    steps: [
+      {
+        title: 'Almost identical to classification — with one catch',
+        body:
+          "Build the body the same way you would for any model: drag out a \"linear\" box, then an activation " +
+          '("relu" or "gelu"), and repeat that pair a couple of times, connecting each one\'s output to the ' +
+          "next one's input.",
+        target: '[data-tutorial="palette"]',
+      },
+      {
+        title: 'The last box is special',
+        body:
+          "For the final box, drag out one more \"linear\" box and set its \"out features\" to exactly 1 — " +
+          'one number out, since you\'re predicting a single value, not choosing between categories.',
+        target: '[data-tutorial="tab-inspector"]',
+        focusTab: { slot: 'side', tabId: 'inspector' },
+      },
+      {
+        title: "Don't add an activation after it",
+        body:
+          'Unlike every other box, the very last one should feed straight out with no activation box after ' +
+          'it. Activations squash numbers into a fixed range (like 0 to 1) — great for a "how confident is ' +
+          "this a cat\" score, but wrong for a price or temperature that needs to be any real number.",
+        target: '[data-tutorial="canvas"]',
+      },
+      {
+        title: 'Validate, then train',
+        body:
+          'Click "Validate" to make sure everything connects cleanly, then "Export & Train". Watch the loss ' +
+          'on the Metrics tab shrink the same way it always does — the only thing that changed is what that ' +
+          "last box hands back.",
+        target: '[data-tutorial="validate-btn"]',
+      },
+    ],
+  },
 ];
