@@ -1855,4 +1855,60 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'lora-fine-tuning',
+    title: 'Fine-Tune Efficiently with LoRA',
+    blurb: 'Freeze almost all of a big weight and train two small matrices instead — real transfer learning, cheaply.',
+    difficulty: 'advanced',
+    minutes: 7,
+    steps: [
+      {
+        title: 'Retraining a giant weight from scratch is wasteful',
+        body:
+          "If a weight matrix already encodes something useful, retraining every number in it from scratch " +
+          'just to adapt it to your data is slow and needs a lot of examples. LoRA is a shortcut: freeze the ' +
+          'big weight completely, and train two small "adapter" matrices that learn a compact correction on ' +
+          'top of it instead.',
+        target: '[data-tutorial="palette"]',
+      },
+      {
+        title: 'Drag out a lora_linear box',
+        body:
+          'Drag "lora_linear" from the Components shelf onto the canvas — it behaves like a "linear" box for ' +
+          'wiring purposes (one data input, one output), so connect it the same way. Click it and open the ' +
+          'Inspector to set "in features" and "out features" to match your data, same as any linear box.',
+        target: '[data-tutorial="palette"]',
+      },
+      {
+        title: 'Rank and alpha: the size and strength of the adapter',
+        body:
+          '"Rank" controls how big the two adapter matrices are — small numbers like 2-8 keep them tiny ' +
+          "compared to the frozen base weight, which is the entire point. \"Alpha\" scales how strongly the " +
+          "adapter's correction counts once added back — higher alpha means the adapter has more influence " +
+          'over the final output.',
+        target: '[data-tutorial="tab-inspector"]',
+        focusTab: { slot: 'side', tabId: 'inspector' },
+      },
+      {
+        title: '(Optional) Point the base at a real pretrained weight',
+        body:
+          '"Pretrained file" and "pretrained tensor" let the frozen base start from a real tensor in a local ' +
+          'model file, instead of a random one — use "Inspect" on the Models tab (see "Use Models You Already ' +
+          'Have") to find a real tensor name and its exact size first, since the file\'s tensor and your ' +
+          '"in/out features" have to match. Leave both blank and lora_linear still works — it just freezes a ' +
+          "random matrix instead of a meaningful pretrained one.",
+        target: '[data-tutorial="inspector-form"]',
+      },
+      {
+        title: 'Validate, train, and know what actually moved',
+        body:
+          'Click "Validate", then train from the Metrics tab as usual. Behind the scenes, only the small ' +
+          "rank-sized adapter matrices are ever handed to the optimizer — the big base weight, pretrained or " +
+          "not, never changes by even one number. That's the whole trick: a fraction of the parameters to " +
+          'train, most of the knowledge kept intact.',
+        target: '[data-tutorial="tab-metrics"]',
+        focusTab: { slot: 'bottom', tabId: 'metrics' },
+      },
+    ],
+  },
 ];

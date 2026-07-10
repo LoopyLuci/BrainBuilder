@@ -257,3 +257,98 @@ fn compile_rejects_a_pretrained_tensor_whose_shape_doesnt_match() {
 
     std::fs::remove_dir_all(&dir).ok();
 }
+
+/// Proves the flat `pretrained_file`/`pretrained_tensor` hyperparameters
+/// (declared on `lora_linear.edn` so the Inspector's generic `SchemaForm` can
+/// set them on a hand-dragged node — unlike the nested `pretrained` object,
+/// which only the Intent transfer-learning flow can author) load and seed the
+/// real tensor exactly like the nested form does.
+#[test]
+fn compile_seeds_a_nodes_weight_from_flat_pretrained_hyperparams() {
+    let components_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../components");
+    let dir = std::env::temp_dir().join(format!("bb_transfer_flat_{}", uuid::Uuid::new_v4()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let st_path = dir.join("backbone.safetensors");
+    let expected = write_safetensors(&st_path, 4, 8); // [out=4, in=8]
+
+    let graph = BBIRGraph {
+        schema_version: 1,
+        graph_id: format!("transfer-flat-{}", uuid::Uuid::new_v4()),
+        name: "transfer-flat-test".to_string(),
+        nodes: vec![BBIRNode {
+            id: "adapt".to_string(),
+            component: "lora_linear".to_string(),
+            label: None,
+            hyperparams: serde_json::json!({
+                "in_features": 8,
+                "out_features": 4,
+                "rank": 2,
+                "alpha": 4.0,
+                "pretrained_file": st_path.to_string_lossy(),
+                "pretrained_tensor": "backbone.weight",
+            }),
+            ports: PortInfo {
+                input_ports: vec!["input".into(), "weight".into(), "lora_a".into(), "lora_b".into()],
+                output_ports: vec!["output".into()],
+            },
+            position: None,
+        }],
+        edges: vec![],
+        training: None,
+    };
+
+    let orchestrator = Orchestrator::new(&components_dir).expect("orchestrator init");
+    let plan = compile(&graph, &orchestrator.context).expect("compile should load the flat pretrained fields");
+
+    let seeded = plan.preset_weights.get("adapt:weight").expect("adapt:weight should be seeded");
+    let (_shape, got) = tensor_to_vec_f32(seeded).expect("read seeded tensor values");
+    assert_eq!(got.len(), expected.len(), "seeded weight has the file's element count");
+    for (a, b) in got.iter().zip(expected.iter()) {
+        assert!((a - b).abs() < 1e-6, "seeded value {a} should match file value {b}");
+    }
+
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+/// An empty-string `pretrained_file`/`pretrained_tensor` (the Inspector's
+/// default for a `lora_linear` node nobody has pointed at a real file yet)
+/// must be silently ignored, not treated as "load a file named ``" — the
+/// base weight instead falls back to ordinary random initialization, exactly
+/// like before these fields existed.
+#[test]
+fn empty_flat_pretrained_hyperparams_are_ignored() {
+    let components_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../components");
+    let graph = BBIRGraph {
+        schema_version: 1,
+        graph_id: "transfer-flat-empty-test".to_string(),
+        name: "transfer-flat-empty-test".to_string(),
+        nodes: vec![BBIRNode {
+            id: "adapt".to_string(),
+            component: "lora_linear".to_string(),
+            label: None,
+            hyperparams: serde_json::json!({
+                "in_features": 8,
+                "out_features": 4,
+                "rank": 2,
+                "alpha": 4.0,
+                "pretrained_file": "",
+                "pretrained_tensor": "",
+            }),
+            ports: PortInfo {
+                input_ports: vec!["input".into(), "weight".into(), "lora_a".into(), "lora_b".into()],
+                output_ports: vec!["output".into()],
+            },
+            position: None,
+        }],
+        edges: vec![],
+        training: None,
+    };
+
+    let orchestrator = Orchestrator::new(&components_dir).expect("orchestrator init");
+    let plan = compile(&graph, &orchestrator.context).expect("compile should succeed with empty pretrained fields");
+
+    assert!(
+        !plan.preset_weights.contains_key("adapt:weight"),
+        "empty pretrained_file/pretrained_tensor should not attempt to load anything"
+    );
+}

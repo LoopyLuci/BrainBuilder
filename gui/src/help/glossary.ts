@@ -277,6 +277,18 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       "gives the same answer. This train/predict distinction — often called \"eval mode\" — isn't unique to " +
       "dropout, but dropout is the component in BrainBuilder's palette where it actually matters.",
   },
+  lora: {
+    term: 'LoRA (low-rank adapter)',
+    short: 'A cheap way to fine-tune a big pretrained weight by training two small matrices instead of the whole thing.',
+    long:
+      'A "lora_linear" box on the canvas has a big frozen base weight — never updated by training — plus two ' +
+      'small "adapter" matrices (their combined size is controlled by "rank") that are the only thing the ' +
+      'optimizer actually touches. The adapters learn a small correction that gets added on top of the ' +
+      'frozen base\'s output; "alpha" controls how strongly that correction counts. Point the base at a real ' +
+      'pretrained tensor (from a local model file — see "Use Models You Already Have") and you get real ' +
+      'transfer learning: almost all of the model\'s learned knowledge stays fixed, and only a tiny, cheap ' +
+      'adapter has to be trained on your data.',
+  },
   'gradient-clipping': {
     term: 'Gradient clipping',
     short: "Capping how big a single training step is allowed to be, so one bad batch can't blow up the model.",

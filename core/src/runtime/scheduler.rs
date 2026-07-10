@@ -733,6 +733,15 @@ pub fn compile(graph: &BBIRGraph, ctx: &AppContext) -> Result<ExecutionPlan> {
 /// parameters the optimizer *does* train. The loaded tensor's shape is checked
 /// against the port's descriptor-resolved shape (when known) so a mismatched
 /// pretrained tensor fails loudly at compile time, not deep inside the worker.
+///
+/// A node can also spell this out as three flat hyperparameters instead —
+/// `pretrained_file`/`pretrained_tensor`/(optional) `pretrained_port` — which
+/// is the form `lora_linear.edn` declares, so the Inspector's generic
+/// `SchemaForm` (which only knows how to render flat scalar hyperparameters,
+/// never a nested object) can set them directly on a hand-dragged node. The
+/// nested `pretrained` object stays the primary format — it's what the Intent
+/// transfer-learning flow (`intent::propose_transfer_model`) authors — and
+/// takes priority if both happen to be present.
 fn load_preset_weights(
     graph: &BBIRGraph,
     ops: &[ExecutableOp],
@@ -742,31 +751,39 @@ fn load_preset_weights(
     let mut preset = std::collections::HashMap::new();
 
     for node in &graph.nodes {
-        let Some(pretrained) = node.hyperparams.get("pretrained") else {
-            continue;
-        };
-        // Ignore a `null`/absent value gracefully (a GUI may serialize the
-        // key with no value); only act on a real object.
-        let Some(spec) = pretrained.as_object() else {
-            continue;
-        };
-        let file = spec
-            .get("file")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| err(format!("node `{}` has a `pretrained` block without a string `file`", node.id)))?;
-        let tensor_name = spec
-            .get("tensor")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| err(format!("node `{}` has a `pretrained` block without a string `tensor`", node.id)))?;
-        let port = spec.get("port").and_then(|v| v.as_str()).unwrap_or("weight");
+        let (file, tensor_name, port): (String, String, String) =
+            if let Some(pretrained) = node.hyperparams.get("pretrained") {
+                // Ignore a `null`/absent value gracefully (a GUI may
+                // serialize the key with no value); only act on a real
+                // object.
+                let Some(spec) = pretrained.as_object() else {
+                    continue;
+                };
+                let file = spec.get("file").and_then(|v| v.as_str()).ok_or_else(|| {
+                    err(format!("node `{}` has a `pretrained` block without a string `file`", node.id))
+                })?;
+                let tensor_name = spec.get("tensor").and_then(|v| v.as_str()).ok_or_else(|| {
+                    err(format!("node `{}` has a `pretrained` block without a string `tensor`", node.id))
+                })?;
+                let port = spec.get("port").and_then(|v| v.as_str()).unwrap_or("weight");
+                (file.to_string(), tensor_name.to_string(), port.to_string())
+            } else if let (Some(file), Some(tensor_name)) = (
+                node.hyperparams.get("pretrained_file").and_then(|v| v.as_str()).filter(|s| !s.is_empty()),
+                node.hyperparams.get("pretrained_tensor").and_then(|v| v.as_str()).filter(|s| !s.is_empty()),
+            ) {
+                let port = node.hyperparams.get("pretrained_port").and_then(|v| v.as_str()).unwrap_or("weight");
+                (file.to_string(), tensor_name.to_string(), port.to_string())
+            } else {
+                continue;
+            };
 
         let loaded = crate::models::safetensors_loader::load_named_tensors(
-            std::path::Path::new(file),
-            &[tensor_name],
+            std::path::Path::new(&file),
+            &[tensor_name.as_str()],
             arena,
         )?;
         let loaded_tensor = loaded
-            .get(tensor_name)
+            .get(tensor_name.as_str())
             .ok_or_else(|| err(format!("pretrained tensor `{tensor_name}` not found in `{file}`")))?;
 
         let key = format!("{}:{}", node.id, port);
