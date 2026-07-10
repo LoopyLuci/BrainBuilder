@@ -83,15 +83,17 @@ export function TrainingDashboard() {
 
   return (
     <Panel title="Training Metrics">
-      <LossChart points={metrics} />
+      <div data-tutorial="metrics-chart">
+        <LossChart points={metrics} />
+      </div>
       {latest && (
         <div>
-          <div>
+          <div data-tutorial="metrics-latest">
             Epoch <HelpTip term="epoch" /> {latest.epoch}, Step {latest.step}: Loss <HelpTip term="loss" /> ={' '}
             {latest.loss.toFixed(4)}
           </div>
           {first && metrics.length > 1 && (
-            <div className={latest.loss < first.loss ? 'bb-text-success' : 'bb-text-error'}>
+            <div data-tutorial="metrics-trend" className={latest.loss < first.loss ? 'bb-text-success' : 'bb-text-error'}>
               {latest.loss < first.loss
                 ? `↓ ${(((first.loss - latest.loss) / first.loss) * 100).toFixed(1)}% since start`
                 : '↑ loss increasing'}
@@ -100,7 +102,7 @@ export function TrainingDashboard() {
         </div>
       )}
       {trainingDiags.length > 0 && (
-        <div style={{ marginTop: 10 }}>
+        <div data-tutorial="metrics-diagnostics" style={{ marginTop: 10 }}>
           <DiagnosticsList diagnostics={trainingDiags} />
         </div>
       )}

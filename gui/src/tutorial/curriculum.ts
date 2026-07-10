@@ -1145,4 +1145,63 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'reading-metrics',
+    title: 'Is My Training Actually Working?',
+    blurb: 'Read the live loss chart and let BrainBuilder tell you, in plain English, what to do next.',
+    difficulty: 'intermediate',
+    minutes: 5,
+    steps: [
+      {
+        title: 'Where to watch training happen',
+        body:
+          'Every time you click "Export & Train," this tab lights up with a live chart and plain-English ' +
+          "notes about how it's going — no need to guess whether things are working.",
+        target: '[data-tutorial="tab-metrics"]',
+        focusTab: { slot: 'bottom', tabId: 'metrics' },
+      },
+      {
+        title: 'The loss chart',
+        body:
+          "This line is the loss — a single score for how wrong the model's guesses currently are. It should " +
+          "trend downward as training goes; a chart that's flat or climbing means something's off, and " +
+          'BrainBuilder will tell you plainly (more on that in a moment).',
+        target: '[data-tutorial="metrics-chart"]',
+      },
+      {
+        title: 'The numbers underneath',
+        body:
+          'Epoch is which full pass through your data you\'re on; Step counts individual training steps ' +
+          'within it; Loss is the current score. Watching these tick up confirms training is actually ' +
+          "running, not stuck.",
+        target: '[data-tutorial="metrics-latest"]',
+      },
+      {
+        title: 'The quick verdict',
+        body:
+          'This line does the math for you: a percentage lower than where loss started means training is ' +
+          'working, while a plain warning that loss is increasing means something needs attention — most ' +
+          'often the learning rate.',
+        target: '[data-tutorial="metrics-trend"]',
+      },
+      {
+        title: 'When something needs fixing',
+        body:
+          'A few seconds after training pauses or finishes, BrainBuilder reads the whole curve and tells you, ' +
+          'in plain language, what happened and what to try: "training diverged" (the numbers blew up — ' +
+          'lower the learning rate), "loss barely changed" (try a higher learning rate, more epochs, or a ' +
+          'bigger model), or reassurance that training is going well.',
+        target: '[data-tutorial="metrics-diagnostics"]',
+      },
+      {
+        title: "Keep seeing the same warning?",
+        body:
+          "If the diagnostics keep pointing at the learning rate, you don't have to guess a new number by " +
+          'hand — Auto-tune (on the Data tab) runs several short trials and applies whichever settings ' +
+          'actually trained best.',
+        target: '[data-tutorial="autotune-btn"]',
+        focusTab: { slot: 'side', tabId: 'data' },
+      },
+    ],
+  },
 ];
