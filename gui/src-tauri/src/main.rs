@@ -844,6 +844,25 @@ async fn has_checkpoint(graph_id: String, state: State<'_, AppState>) -> Result<
     Ok(orchestrator.has_checkpoint(&graph_id))
 }
 
+/// Copies a trained checkpoint out of BrainBuilder's internal `checkpoints/`
+/// folder to wherever the user chooses — the hand-off point for using a
+/// model outside the app. The file is a genuine, standard PyTorch state-dict
+/// (`torch.save({name: tensor, ...}, path)`, see
+/// `components/python/_bb_worker.py`'s `handle_save_state_dict`), loadable
+/// anywhere with plain `torch.load()`; nothing BrainBuilder-specific about
+/// the format itself.
+#[command]
+async fn export_checkpoint(graph_id: String, dest_path: String, state: State<'_, AppState>) -> Result<(), String> {
+    let orchestrator = state.orchestrator.lock().await;
+    if !orchestrator.has_checkpoint(&graph_id) {
+        return Err("No trained checkpoint exists yet for this graph — train it first.".to_string());
+    }
+    let src = orchestrator.context.checkpoint_path(&graph_id);
+    std::fs::copy(&src, &dest_path)
+        .map(|_| ())
+        .map_err(|e| format!("Couldn't copy the checkpoint to `{dest_path}`: {e}"))
+}
+
 #[command]
 async fn install_component(path: String, state: State<'_, AppState>) -> Result<(), String> {
     log::info!("installing component from {path}");
@@ -966,6 +985,7 @@ fn main() {
             load_graph,
             predict,
             has_checkpoint,
+            export_checkpoint,
             install_component,
             get_nervous_system_audit,
             get_cluster_status,

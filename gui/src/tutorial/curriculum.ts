@@ -1259,4 +1259,59 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'export-and-deploy',
+    title: 'Taking Your Model Outside BrainBuilder',
+    blurb: 'Export your trained checkpoint as a standard file you can use in your own scripts or projects.',
+    difficulty: 'intermediate',
+    minutes: 4,
+    steps: [
+      {
+        title: "What \"deployment\" actually means",
+        body:
+          "Deployment just means getting your trained model out of BrainBuilder and into wherever you " +
+          "actually want to use it — a script, a website, another program. This tab is where that hand-off " +
+          'happens.',
+        target: '[data-tutorial="tab-predict"]',
+        focusTab: { slot: 'bottom', tabId: 'predict' },
+      },
+      {
+        title: 'Train first',
+        body:
+          "You'll need a trained checkpoint before there's anything to export. If you've already trained " +
+          "this model, you'll see an export button instead of this message — that's expected too.",
+        target: '[data-tutorial="predict-empty"]',
+      },
+      {
+        title: 'Export it',
+        body:
+          '"Export checkpoint…" opens a save dialog — pick anywhere on your computer. That copy is now ' +
+          "completely independent of BrainBuilder's internal files.",
+        target: '[data-tutorial="export-checkpoint-btn"]',
+      },
+      {
+        title: 'No special format, no lock-in',
+        body:
+          "What you get is a standard PyTorch checkpoint — a plain file any Python script with PyTorch " +
+          'installed can open with `torch.load(...)`. Nothing about it is proprietary to BrainBuilder, and ' +
+          'nothing further is required to read it elsewhere.',
+        target: '[data-tutorial="export-checkpoint-btn"]',
+      },
+      {
+        title: "Exporting doesn't remove anything",
+        body:
+          "It's a copy, not a move — your model stays exactly as usable inside BrainBuilder afterward, for " +
+          'more predictions or further training, as it was before you exported.',
+        target: '[data-tutorial="predict-run-btn"]',
+      },
+      {
+        title: 'Remember: two files, two purposes',
+        body:
+          "The checkpoint (what you just exported) is what your model learned. The graph file from \"Save…\" " +
+          "is its structure — its boxes and connections. Deploying elsewhere only needs the checkpoint; " +
+          'resuming work in BrainBuilder later needs both.',
+        target: '[data-tutorial="graph-save-btn"]',
+      },
+    ],
+  },
 ];

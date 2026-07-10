@@ -222,6 +222,13 @@ export async function hasCheckpoint(graphId: string): Promise<boolean> {
   return invoke('has_checkpoint', { graphId });
 }
 
+// Copies the trained checkpoint out of BrainBuilder's internal folder to a
+// user-chosen destination — a genuine, standard PyTorch state-dict file,
+// loadable anywhere with plain `torch.load()`.
+export async function exportCheckpoint(graphId: string, destPath: string): Promise<void> {
+  return invoke('export_checkpoint', { graphId, destPath });
+}
+
 export async function installComponent(path: string): Promise<void> {
   return invoke('install_component', { path });
 }

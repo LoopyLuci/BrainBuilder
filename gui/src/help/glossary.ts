@@ -184,6 +184,14 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       'rate, optimizer, epochs) and the result it produced. Comparing several experiments side by side is how ' +
       'you find out which settings actually work best, instead of guessing.',
   },
+  deployment: {
+    term: 'Deployment',
+    short: 'Taking a trained model out of BrainBuilder to actually use it.',
+    long:
+      'Deployment just means getting your trained model out into the world — a script, a website, another ' +
+      "program — instead of leaving it sitting inside BrainBuilder. Exporting your checkpoint is the hand-off " +
+      'point: from there, any plain PyTorch code can load it and put it to work.',
+  },
   shape: {
     term: 'Shape',
     short: 'The size/dimensions of the numbers flowing between nodes.',
