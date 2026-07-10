@@ -51,6 +51,9 @@ export function ExperimentsPanel() {
             <thead>
               <tr>
                 <th>Model</th>
+                <th>
+                  Architecture <HelpTip term="architecture" />
+                </th>
                 <th>When</th>
                 <th>Loss fn</th>
                 <th>Optimizer</th>
@@ -70,6 +73,7 @@ export function ExperimentsPanel() {
                 return (
                   <tr key={i}>
                     <td>{r.graph_name}</td>
+                    <td data-tutorial="experiments-architecture">{r.architecture || '—'}</td>
                     <td>{new Date(r.logged_at).toLocaleString()}</td>
                     <td>{r.loss_fn}</td>
                     <td>{r.optimizer}</td>

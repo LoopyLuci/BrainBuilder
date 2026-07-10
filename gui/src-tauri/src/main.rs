@@ -740,9 +740,11 @@ async fn execute_graph(graph_json: String, state: State<'_, AppState>) -> Result
 
     if let Some(training) = &graph.training {
         let (first_loss, last_loss) = captured.lock().map(|c| *c).unwrap_or((None, None));
+        let architecture = graph.nodes.iter().map(|n| n.component.as_str()).collect::<Vec<_>>().join(" → ");
         let record = brainbuilder_core::utils::experiment_log::NewExperiment {
             graph_id: graph.graph_id.clone(),
             graph_name: graph.name.clone(),
+            architecture,
             loss_fn: training.loss.clone(),
             optimizer: training.optimizer.clone(),
             lr: training.hyperparams.get("lr").and_then(|v| v.as_f64()).unwrap_or(0.0),

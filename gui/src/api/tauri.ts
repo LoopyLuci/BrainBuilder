@@ -95,6 +95,11 @@ export async function getComponents(): Promise<string[]> {
 export interface ExperimentRecord {
   graph_id: string;
   graph_name: string;
+  // Each node's component name, in graph order, joined with " → " (e.g.
+  // "linear → relu → linear") — a legible signature that lets runs on
+  // genuinely different architectures be compared, not just different
+  // hyperparameters on the same graph.
+  architecture: string;
   loss_fn: string;
   optimizer: string;
   lr: number;

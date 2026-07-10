@@ -14,6 +14,11 @@ use std::sync::Mutex;
 pub struct NewExperiment {
     pub graph_id: String,
     pub graph_name: String,
+    /// A legible architecture signature — each node's component name, in
+    /// graph order, joined with " → " (e.g. "linear → relu → linear"). Lets
+    /// the History table compare runs across genuinely different graph
+    /// structures, not just different hyperparameters on the same one.
+    pub architecture: String,
     pub loss_fn: String,
     pub optimizer: String,
     pub lr: f64,
@@ -31,6 +36,7 @@ pub struct NewExperiment {
 pub struct ExperimentRecord {
     pub graph_id: String,
     pub graph_name: String,
+    pub architecture: String,
     pub loss_fn: String,
     pub optimizer: String,
     pub lr: f64,
@@ -59,12 +65,25 @@ const CREATE_TABLE_SQL: &str = "CREATE TABLE IF NOT EXISTS experiments (
     logged_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 )";
 
+/// Added after `experiments` already shipped without it — a plain `ALTER
+/// TABLE` on a fresh (or already-migrated) database, tolerating the
+/// "duplicate column" error a repeat run produces instead of requiring
+/// SQLite's newer `ADD COLUMN IF NOT EXISTS` syntax.
+fn migrate_architecture_column(conn: &Connection) -> Result<()> {
+    match conn.execute("ALTER TABLE experiments ADD COLUMN architecture TEXT NOT NULL DEFAULT ''", []) {
+        Ok(_) => Ok(()),
+        Err(rusqlite::Error::SqliteFailure(_, Some(msg))) if msg.contains("duplicate column name") => Ok(()),
+        Err(e) => Err(BrainBuilderError::ConfigError(format!("failed to add architecture column: {e}"))),
+    }
+}
+
 impl ExperimentLog {
     pub fn open(path: &Path) -> Result<Self> {
         let conn = Connection::open(path)
             .map_err(|e| BrainBuilderError::ConfigError(format!("failed to open experiment log: {e}")))?;
         conn.execute(CREATE_TABLE_SQL, [])
             .map_err(|e| BrainBuilderError::ConfigError(format!("failed to create experiments table: {e}")))?;
+        migrate_architecture_column(&conn)?;
         Ok(Self { conn: Mutex::new(conn) })
     }
 
@@ -75,6 +94,7 @@ impl ExperimentLog {
             .map_err(|e| BrainBuilderError::ConfigError(format!("failed to open experiment log: {e}")))?;
         conn.execute(CREATE_TABLE_SQL, [])
             .map_err(|e| BrainBuilderError::ConfigError(format!("failed to create experiments table: {e}")))?;
+        migrate_architecture_column(&conn)?;
         Ok(Self { conn: Mutex::new(conn) })
     }
 
@@ -84,11 +104,12 @@ impl ExperimentLog {
             .lock()
             .map_err(|_| BrainBuilderError::ConfigError("experiment log lock poisoned".into()))?;
         conn.execute(
-            "INSERT INTO experiments (graph_id, graph_name, loss_fn, optimizer, lr, batch_size, epochs, first_loss, last_loss)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            "INSERT INTO experiments (graph_id, graph_name, architecture, loss_fn, optimizer, lr, batch_size, epochs, first_loss, last_loss)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             rusqlite::params![
                 record.graph_id,
                 record.graph_name,
+                record.architecture,
                 record.loss_fn,
                 record.optimizer,
                 record.lr,
@@ -110,7 +131,7 @@ impl ExperimentLog {
             .map_err(|_| BrainBuilderError::ConfigError("experiment log lock poisoned".into()))?;
         let mut stmt = conn
             .prepare(
-                "SELECT graph_id, graph_name, loss_fn, optimizer, lr, batch_size, epochs, first_loss, last_loss, logged_at
+                "SELECT graph_id, graph_name, architecture, loss_fn, optimizer, lr, batch_size, epochs, first_loss, last_loss, logged_at
                  FROM experiments ORDER BY id DESC LIMIT ?1",
             )
             .map_err(|e| BrainBuilderError::ConfigError(format!("failed to prepare experiment query: {e}")))?;
@@ -119,14 +140,15 @@ impl ExperimentLog {
                 Ok(ExperimentRecord {
                     graph_id: row.get(0)?,
                     graph_name: row.get(1)?,
-                    loss_fn: row.get(2)?,
-                    optimizer: row.get(3)?,
-                    lr: row.get(4)?,
-                    batch_size: row.get(5)?,
-                    epochs: row.get(6)?,
-                    first_loss: row.get(7)?,
-                    last_loss: row.get(8)?,
-                    logged_at: row.get(9)?,
+                    architecture: row.get(2)?,
+                    loss_fn: row.get(3)?,
+                    optimizer: row.get(4)?,
+                    lr: row.get(5)?,
+                    batch_size: row.get(6)?,
+                    epochs: row.get(7)?,
+                    first_loss: row.get(8)?,
+                    last_loss: row.get(9)?,
+                    logged_at: row.get(10)?,
                 })
             })
             .map_err(|e| BrainBuilderError::ConfigError(format!("failed to read experiment records: {e}")))?;
@@ -143,6 +165,7 @@ mod tests {
         NewExperiment {
             graph_id: graph_id.to_string(),
             graph_name: "test-graph".to_string(),
+            architecture: "linear".to_string(),
             loss_fn: "mse".to_string(),
             optimizer: "sgd".to_string(),
             lr,
@@ -186,6 +209,7 @@ mod tests {
         log.log(NewExperiment {
             graph_id: "g1".to_string(),
             graph_name: "test".to_string(),
+            architecture: "linear".to_string(),
             loss_fn: "mse".to_string(),
             optimizer: "sgd".to_string(),
             lr: 0.01,
@@ -198,5 +222,65 @@ mod tests {
         let recent = log.recent(1).unwrap();
         assert_eq!(recent[0].first_loss, None);
         assert_eq!(recent[0].last_loss, None);
+    }
+
+    #[test]
+    fn architecture_signature_round_trips() {
+        let log = ExperimentLog::in_memory().unwrap();
+        let mut record = sample("g1", 0.01, 1.0, 0.5);
+        record.architecture = "linear → relu → linear".to_string();
+        log.log(record).unwrap();
+
+        let recent = log.recent(1).unwrap();
+        assert_eq!(recent[0].architecture, "linear → relu → linear");
+    }
+
+    #[test]
+    fn opening_a_pre_architecture_column_database_migrates_cleanly() {
+        // Simulates a real user's existing experiments.sqlite3 from before the
+        // architecture column existed: create the table with the *old* schema
+        // by hand, then open it through `ExperimentLog::open` and confirm it
+        // still works — no crash, no data loss, new column usable.
+        let path = std::env::temp_dir().join(format!("bb_experiment_log_migration_{}.sqlite3", uuid::Uuid::new_v4()));
+        {
+            let conn = Connection::open(&path).unwrap();
+            conn.execute(
+                "CREATE TABLE experiments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    graph_id TEXT NOT NULL,
+                    graph_name TEXT NOT NULL,
+                    loss_fn TEXT NOT NULL,
+                    optimizer TEXT NOT NULL,
+                    lr REAL NOT NULL,
+                    batch_size INTEGER NOT NULL,
+                    epochs INTEGER NOT NULL,
+                    first_loss REAL,
+                    last_loss REAL,
+                    logged_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+                )",
+                [],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO experiments (graph_id, graph_name, loss_fn, optimizer, lr, batch_size, epochs)
+                 VALUES ('old-g', 'old-graph', 'mse', 'sgd', 0.01, 16, 5)",
+                [],
+            )
+            .unwrap();
+        }
+
+        let log = ExperimentLog::open(&path).unwrap();
+        // The pre-existing row survives, with an empty (not missing/erroring)
+        // architecture value.
+        let recent = log.recent(10).unwrap();
+        assert_eq!(recent.len(), 1);
+        assert_eq!(recent[0].graph_id, "old-g");
+        assert_eq!(recent[0].architecture, "");
+
+        // And logging fresh rows with real architecture data works too.
+        log.log(sample("new-g", 0.01, 1.0, 0.5)).unwrap();
+        assert_eq!(log.recent(10).unwrap().len(), 2);
+
+        std::fs::remove_file(&path).ok();
     }
 }

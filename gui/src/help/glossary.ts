@@ -19,6 +19,15 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       'is smart on its own — but thousands of them working together, after seeing lots of examples, can learn ' +
       'to recognize pictures, sort words, or predict numbers.',
   },
+  architecture: {
+    term: 'Architecture',
+    short: "The specific arrangement of boxes that make up a model.",
+    long:
+      'Architecture just means which boxes a model uses and in what order — "linear → relu → linear" is a ' +
+      'different architecture than a single "linear" box alone, even trained on the exact same data. Two ' +
+      "models can use identical settings and still perform differently purely because their architectures " +
+      "differ — comparing across architectures, not just settings, is how you find that out.",
+  },
   layer: {
     term: 'Layer',
     short: 'One step in the chain that transforms your data.',

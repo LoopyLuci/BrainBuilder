@@ -1487,4 +1487,63 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'comparing-architectures',
+    title: 'Is a Bigger Model Actually Better?',
+    blurb: 'Build two genuinely different designs on the same data and let the History tab settle it.',
+    difficulty: 'intermediate',
+    minutes: 6,
+    steps: [
+      {
+        title: "Not just settings — shapes, too",
+        body:
+          "The History tab doesn't just compare learning rates and optimizers anymore — it shows the actual " +
+          'shape of each model, so you can compare completely different designs side by side, not just ' +
+          'different settings on the same one.',
+        target: '[data-tutorial="tab-experiments"]',
+        focusTab: { slot: 'bottom', tabId: 'experiments' },
+      },
+      {
+        title: 'Reading an architecture',
+        body:
+          '"linear → relu → linear" reads left to right, exactly like the boxes on your canvas: this model ' +
+          "has three boxes chained together. A row that just says \"linear\" is a single-box model — simpler, " +
+          "by definition, whatever its score turns out to be.",
+        target: '[data-tutorial="experiments-architecture"]',
+      },
+      {
+        title: 'The actual experiment',
+        body:
+          'Build two versions of the same idea on the canvas — say, a single "linear" box, then a second ' +
+          'attempt with "linear → relu → linear" added — pointing at the exact same dataset. Train both. ' +
+          "Each becomes its own row here, ready to compare.",
+        target: '[data-tutorial="palette"]',
+      },
+      {
+        title: "Bigger isn't automatically better",
+        body:
+          "Sometimes the deeper architecture wins by a wide margin. Sometimes the simple one matches it with " +
+          "far less training time, or even beats it on too little data. Either result is a genuinely useful " +
+          "thing to learn about your specific problem — not a wrong answer.",
+        target: '[data-tutorial="experiments-table"]',
+      },
+      {
+        title: 'Keep it a fair comparison',
+        body:
+          "For the comparison to mean anything, change one thing at a time. If you change both the " +
+          "architecture and the dataset between runs, you won't know which one caused the difference in " +
+          "score — the architecture, the data, or both.",
+        target: '[data-tutorial="experiments-refresh-btn"]',
+      },
+      {
+        title: 'Rule out settings as the real cause',
+        body:
+          "If two architectures score differently, make sure it's really the shape and not just luckier " +
+          'settings — Auto-tune (on the Data tab) finds strong settings for each one automatically, so the ' +
+          'comparison reflects the architectures themselves.',
+        target: '[data-tutorial="autotune-btn"]',
+        focusTab: { slot: 'side', tabId: 'data' },
+      },
+    ],
+  },
 ];
