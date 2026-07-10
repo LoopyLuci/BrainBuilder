@@ -2,6 +2,7 @@
 
 mod cluster_actor;
 mod observer_server;
+mod predict_server;
 
 use tauri::{command, Manager, State};
 use brainbuilder_core::orchestrator::Orchestrator;
@@ -31,6 +32,10 @@ struct AppState {
     // The active self-building agent session (isolated git worktree + branch),
     // if one is running. At most one at a time keeps the safety model simple.
     agent: Mutex<Option<brainbuilder_core::agent::AgentSession>>,
+    // The running local predict HTTP server (see `predict_server.rs`), if
+    // one has been started: its URL plus the sender that shuts it down. At
+    // most one at a time, same reasoning as `agent` above.
+    predict_server: Mutex<Option<(String, tokio::sync::oneshot::Sender<()>)>>,
 }
 
 async fn cluster_handle(state: &State<'_, AppState>) -> Result<ClusterHandle, String> {
@@ -881,6 +886,41 @@ async fn batch_predict(
     .map_err(|e| e.to_string())
 }
 
+/// Starts a real local HTTP server (loopback-only, see `predict_server.rs`)
+/// answering `POST /predict` against the trained checkpoint — the
+/// live-serving counterpart to "Export checkpoint…"'s file hand-off. A
+/// second call while one is already running just returns the existing URL
+/// rather than binding a second port.
+#[command]
+async fn start_predict_server(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<String, String> {
+    let mut guard = state.predict_server.lock().await;
+    if let Some((url, _)) = guard.as_ref() {
+        return Ok(url.clone());
+    }
+    let (url, shutdown) = predict_server::spawn(app);
+    *guard = Some((url.clone(), shutdown));
+    Ok(url)
+}
+
+/// Gracefully shuts down the running predict server, if any. A no-op (not an
+/// error) if none is running.
+#[command]
+async fn stop_predict_server(state: State<'_, AppState>) -> Result<(), String> {
+    let mut guard = state.predict_server.lock().await;
+    if let Some((_, shutdown)) = guard.take() {
+        let _ = shutdown.send(());
+    }
+    Ok(())
+}
+
+/// The running predict server's URL, if one is currently up — lets the GUI
+/// recover its state after a reload without starting a second server.
+#[command]
+async fn predict_server_status(state: State<'_, AppState>) -> Result<Option<String>, String> {
+    let guard = state.predict_server.lock().await;
+    Ok(guard.as_ref().map(|(url, _)| url.clone()))
+}
+
 #[command]
 async fn has_checkpoint(graph_id: String, state: State<'_, AppState>) -> Result<bool, String> {
     let orchestrator = state.orchestrator.lock().await;
@@ -1042,6 +1082,7 @@ fn main() {
             observer_url: observer_cell.clone(),
             components_dir: components_dir.clone(),
             agent: Mutex::new(None),
+            predict_server: Mutex::new(None),
         })
         .setup(move |app| {
             setup_metrics_event(app)?;
@@ -1059,6 +1100,9 @@ fn main() {
             load_graph,
             predict,
             batch_predict,
+            start_predict_server,
+            stop_predict_server,
+            predict_server_status,
             feature_importance,
             has_checkpoint,
             export_checkpoint,

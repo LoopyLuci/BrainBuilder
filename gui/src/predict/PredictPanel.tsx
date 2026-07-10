@@ -10,6 +10,9 @@ import {
   featureImportance,
   listCheckpointVersions,
   restoreCheckpointVersion,
+  startPredictServer,
+  stopPredictServer,
+  predictServerStatus,
   PredictResult,
   FeatureImportance,
   CheckpointVersion,
@@ -33,6 +36,9 @@ export function PredictPanel() {
   const [batchRunning, setBatchRunning] = useState(false);
   const [batchError, setBatchError] = useState<string | null>(null);
   const [batchResult, setBatchResult] = useState<{ rows: number; path: string } | null>(null);
+  const [serverUrl, setServerUrl] = useState<string | null>(null);
+  const [serverBusy, setServerBusy] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
   const [importances, setImportances] = useState<FeatureImportance[] | null>(null);
   const [explaining, setExplaining] = useState(false);
   const [explainError, setExplainError] = useState<string | null>(null);
@@ -79,6 +85,46 @@ export function PredictPanel() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [graphId]);
+
+  useEffect(() => {
+    // Recovers UI state after a reload — the server itself lives in the
+    // Rust backend and keeps running across a frontend refresh, so without
+    // this the button would falsely offer "Start" while one is already up.
+    predictServerStatus()
+      .then(setServerUrl)
+      .catch(() => {
+        /* best-effort — worst case the button just offers to (re)start it */
+      });
+  }, []);
+
+  const runStartServer = async () => {
+    setServerError(null);
+    setServerBusy(true);
+    try {
+      const url = await startPredictServer();
+      setServerUrl(url);
+      logInfo(`Local predict server started at ${url}.`);
+    } catch (e) {
+      setServerError(String(e));
+      logError(`Starting the predict server failed: ${e}`);
+    } finally {
+      setServerBusy(false);
+    }
+  };
+
+  const runStopServer = async () => {
+    setServerBusy(true);
+    try {
+      await stopPredictServer();
+      setServerUrl(null);
+      logInfo('Local predict server stopped.');
+    } catch (e) {
+      setServerError(String(e));
+      logError(`Stopping the predict server failed: ${e}`);
+    } finally {
+      setServerBusy(false);
+    }
+  };
 
   const runRestore = async (version: CheckpointVersion) => {
     const when = new Date(Number(version.id)).toLocaleString();
@@ -226,6 +272,34 @@ export function PredictPanel() {
         <p className="bb-text-muted" data-tutorial="batch-predict-result" style={{ margin: '4px 0 0' }}>
           Wrote {batchResult.rows} prediction{batchResult.rows === 1 ? '' : 's'} to {batchResult.path}.
         </p>
+      )}
+      {checkpointExists && (
+        <div style={{ borderTop: '1px solid var(--border, rgba(0,0,0,0.1))', paddingTop: 8, marginTop: 8 }}>
+          <p className="bb-text-muted" style={{ margin: '0 0 6px' }}>
+            Let another program ask this model for predictions live, over the network <HelpTip term="serving" />
+            {' '}— no export needed.
+          </p>
+          <div className="bb-row" style={{ alignItems: 'center', gap: 6 }}>
+            {!serverUrl ? (
+              <Button variant="secondary" data-tutorial="serve-model-btn" onClick={runStartServer} disabled={serverBusy}>
+                {serverBusy ? 'Starting…' : 'Start local server'}
+              </Button>
+            ) : (
+              <Button variant="secondary" data-tutorial="serve-model-btn" onClick={runStopServer} disabled={serverBusy}>
+                {serverBusy ? 'Stopping…' : 'Stop server'}
+              </Button>
+            )}
+          </div>
+          {serverError && <div className="bb-text-error" style={{ marginTop: 4 }}>{serverError}</div>}
+          {serverUrl && (
+            <div data-tutorial="serve-model-url" style={{ marginTop: 6, fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+              <div>{serverUrl}/predict</div>
+              <div className="bb-text-muted" style={{ marginTop: 4, whiteSpace: 'pre-wrap' }}>
+                {`curl -X POST ${serverUrl}/predict \\\n  -H "Content-Type: application/json" \\\n  -d '{"graph_json": "<your graph JSON>", "dataset_path": "your_data.csv", "rows": 5}'`}
+              </div>
+            </div>
+          )}
+        </div>
       )}
       {checkpointExists && (
         <div style={{ borderTop: '1px solid var(--border, rgba(0,0,0,0.1))', paddingTop: 8, marginTop: 8 }}>

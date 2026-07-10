@@ -244,6 +244,15 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       'same forward pass Predict already uses, just run once per row across an entire dataset and written out ' +
       'as a CSV file you can open in a spreadsheet.',
   },
+  serving: {
+    term: 'Serving',
+    short: 'Letting other programs ask your model for predictions over the network, live.',
+    long:
+      'Serving means BrainBuilder itself answers real prediction requests while it runs — a script, another ' +
+      'app, or a command like curl can ask it a question and get a real answer back, without you exporting a ' +
+      "file first. It's the same trained model either way; serving just means the model stays inside " +
+      'BrainBuilder and other programs come to it instead.',
+  },
   shape: {
     term: 'Shape',
     short: 'The size/dimensions of the numbers flowing between nodes.',

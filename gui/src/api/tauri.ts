@@ -233,6 +233,24 @@ export async function batchPredict(graph: BBIRGraph, datasetPath: string, output
   return invoke('batch_predict', { graphJson: JSON.stringify(graph), datasetPath, outputPath });
 }
 
+// --- Local model serving (gui/src-tauri/src/predict_server.rs) -------------
+// Unlike exporting a checkpoint file, this starts a real, loopback-only HTTP
+// server in-process that answers POST /predict — any script or program on
+// this machine can get real predictions from BrainBuilder over the network,
+// no export step required.
+
+export async function startPredictServer(): Promise<string> {
+  return invoke('start_predict_server');
+}
+
+export async function stopPredictServer(): Promise<void> {
+  return invoke('stop_predict_server');
+}
+
+export async function predictServerStatus(): Promise<string | null> {
+  return invoke('predict_server_status');
+}
+
 // --- Feature importance / interpretability (core/src/interpret.rs) ---------
 // Ranks each input column by how much predictions move when that column is
 // decoupled from its rows — a real, deterministic permutation-importance

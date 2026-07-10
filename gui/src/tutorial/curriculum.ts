@@ -1595,4 +1595,52 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'model-serving',
+    title: 'Letting Other Programs Ask Your Model Things',
+    blurb: 'Skip the export step — start a real local server other programs can talk to directly.',
+    difficulty: 'intermediate',
+    minutes: 4,
+    steps: [
+      {
+        title: 'Exporting is one way out — serving is another',
+        body:
+          '"Export checkpoint…" hands over a file. Serving is different: BrainBuilder itself answers real ' +
+          "questions while it's running, over the network, so nothing needs to leave the app at all.",
+        target: '[data-tutorial="tab-predict"]',
+        focusTab: { slot: 'bottom', tabId: 'predict' },
+      },
+      {
+        title: 'A real server, not a simulation',
+        body:
+          '"Start local server" opens a genuine HTTP server on this computer — the same trained checkpoint ' +
+          "every other prediction here uses, just reachable by any program that can make a web request, not " +
+          "only by this app's own buttons.",
+        target: '[data-tutorial="serve-model-btn"]',
+      },
+      {
+        title: 'This machine only, on purpose',
+        body:
+          "The server only listens on this computer (never your whole network) — an address that answers " +
+          "prediction requests is a more sensitive thing to expose than a status page, so it stays local by " +
+          'default rather than asking you to think about who else might reach it.',
+        target: '[data-tutorial="serve-model-btn"]',
+      },
+      {
+        title: 'A real address, and a real example',
+        body:
+          "Once it's running, the exact address appears here, along with a ready-to-run curl command showing " +
+          "the shape of a real request — copy it into a terminal and you'll get a real answer back, not a " +
+          'mock one.',
+        target: '[data-tutorial="serve-model-url"]',
+      },
+      {
+        title: 'Off when you say so',
+        body:
+          "The same button stops the server just as directly as it started it — nothing keeps listening after " +
+          "you're done, and starting it again later is exactly as simple as the first time.",
+        target: '[data-tutorial="serve-model-btn"]',
+      },
+    ],
+  },
 ];
