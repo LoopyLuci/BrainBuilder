@@ -408,6 +408,17 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       'being 32×32 pixels with 3 color channels. Connected nodes need matching shapes, the same way plumbing ' +
       "pipes need to match up — BrainBuilder checks this for you automatically.",
   },
+  attention: {
+    term: 'Attention',
+    short: 'Lets each position in a sequence weigh how much every other position matters to it.',
+    long:
+      'Attention is the mechanism that made modern language models possible. For every word (or token) in a ' +
+      'sequence, it computes a weighted mix of every other token — learning, for example, that in "the cat sat ' +
+      'because it was tired," "it" should pay most attention to "cat." Unlike a plain linear layer, which treats ' +
+      'every input position the same fixed way, attention\'s weighting changes per input — it looks at the ' +
+      "actual sequence and decides on the fly what's relevant. Stacking embedding → attention → layer norm is " +
+      'the core repeating block inside a transformer, the architecture behind most modern language models.',
+  },
 };
 
 export function getGlossaryEntry(key: string): GlossaryEntry | undefined {

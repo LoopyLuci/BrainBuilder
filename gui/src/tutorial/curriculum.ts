@@ -467,6 +467,52 @@ export const CURRICULUM: Tutorial[] = [
     ],
   },
   {
+    id: 'templates-advanced',
+    title: 'More Than One Blueprint',
+    blurb: 'Templates come in categories built for different jobs — including the transformer block behind modern language models.',
+    difficulty: 'intermediate',
+    minutes: 5,
+    steps: [
+      {
+        title: 'Templates are grouped by job',
+        body:
+          "The template list isn't one long pile — it's grouped into categories. \"Starter\" is for simple, " +
+          'classic shapes. Other categories exist for more specialized jobs, like language and sequence models.',
+        target: '[data-tutorial="tab-templates"]',
+        focusTab: { slot: 'side', tabId: 'templates' },
+      },
+      {
+        title: 'The "Transformer" category',
+        body:
+          'Find the "Transformer" group. This is the family of architecture behind most modern language ' +
+          "models (the T in GPT). It's built from a different set of boxes than the classifier you started with.",
+        target: '[data-tutorial="templates-category-transformer"]',
+      },
+      {
+        title: 'Attention Stack',
+        body:
+          'This template chains embedding → attention → layer norm. Tap the little "?" next to its name if ' +
+          "you want the plain-English version of what attention actually does — it's the key idea that " +
+          'separates transformers from a plain stack of linear layers.',
+        target: '[data-tutorial="templates-item-attention-stack"]',
+      },
+      {
+        title: 'Use it',
+        body:
+          'Click "Use" here to drop the whole Attention Stack onto the canvas, already wired correctly.',
+        target: '[data-tutorial="templates-use-attention-stack"]',
+      },
+      {
+        title: 'A building block, not a finished model',
+        body:
+          'Look at the canvas: three connected boxes. Real language models stack many copies of blocks like ' +
+          "this one after another. You've just placed the same core repeating unit they're built from — feel " +
+          'free to keep extending it, or head to Metrics and train it as-is.',
+        target: '[data-tutorial="canvas"]',
+      },
+    ],
+  },
+  {
     id: 'auto-tune',
     title: 'Let BrainBuilder Pick Your Settings',
     blurb: 'Skip the guesswork — auto-tune runs a few quick trials and applies whichever settings trained best.',
