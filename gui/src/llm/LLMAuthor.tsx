@@ -43,13 +43,16 @@ export function LLMAuthor() {
       </p>
       <textarea
         className="bb-textarea"
+        data-tutorial="author-description"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         placeholder="e.g. a small transformer block for next-word prediction on short text"
         rows={3}
       />
-      <ProviderSelector />
-      <Button variant="primary" onClick={generate} disabled={busy || !description.trim()}>
+      <div data-tutorial="author-provider">
+        <ProviderSelector />
+      </div>
+      <Button variant="primary" data-tutorial="author-generate-btn" onClick={generate} disabled={busy || !description.trim()}>
         {busy ? 'Generating…' : 'Generate'}
       </Button>
     </Panel>

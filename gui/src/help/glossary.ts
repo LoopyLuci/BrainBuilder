@@ -300,6 +300,17 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       "schedule handles tapering it off from there. It's a different lever from weight decay (which shrinks " +
       "the weights themselves) despite the similar name — this one only changes step size.",
   },
+  'llm-authoring': {
+    term: 'AI-authored graphs',
+    short: 'Describe any architecture in plain English and let a language model design it — checked before it ever appears.',
+    long:
+      'The Build tab\'s task dropdown covers the common cases — sort into categories, predict a number — by ' +
+      'picking from a small set of known shapes. The Author tab is different: type any architecture in plain ' +
+      'English, and a language model (running fully locally via Ollama, or a hosted provider like OpenCode ' +
+      'Go) proposes a real graph for it. Nothing it invents is trusted blindly — the result is checked against ' +
+      "your real component library before it ever reaches the canvas, so a component name that doesn't exist " +
+      "gets rejected instead of silently added.",
+  },
   'gradient-clipping': {
     term: 'Gradient clipping',
     short: "Capping how big a single training step is allowed to be, so one bad batch can't blow up the model.",

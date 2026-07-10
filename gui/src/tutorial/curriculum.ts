@@ -1965,4 +1965,57 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'llm-authoring',
+    title: 'Describe What You Want in Plain English',
+    blurb: "Skip the dropdowns entirely — type any architecture and let a language model design it for you.",
+    difficulty: 'advanced',
+    minutes: 5,
+    steps: [
+      {
+        title: 'Beyond the task dropdown',
+        body:
+          'The Build tab\'s dropdown covers the common cases — sort into categories, predict a number — by ' +
+          'picking from a small set of known shapes. The Author tab is different: describe literally any ' +
+          'architecture in plain English, and a language model proposes a real graph for it, not just one of ' +
+          'a handful of templates.',
+        target: '[data-tutorial="tab-author"]',
+        focusTab: { slot: 'side', tabId: 'author' },
+      },
+      {
+        title: 'Pick who does the thinking',
+        body:
+          '"Ollama" runs entirely on this computer — no account, no key, nothing leaves your machine. ' +
+          '"OpenCode Go" is a hosted alternative with its own models, connected once from the Models panel. ' +
+          'Either way, what happens next is identical.',
+        target: '[data-tutorial="author-provider"]',
+      },
+      {
+        title: 'Describe it like you would to a person',
+        body:
+          'Type what you want — "a small transformer block for next-word prediction on short text", or ' +
+          '"two convolution layers followed by a classifier head". Be as specific about the shape as you\'d ' +
+          "be describing it to a colleague.",
+        target: '[data-tutorial="author-description"]',
+      },
+      {
+        title: 'Generate — checked before it ever appears',
+        body:
+          'Click "Generate". Whatever the model proposes is validated against your real component library ' +
+          'first — a component name it invents that doesn\'t actually exist gets rejected right there, not ' +
+          'silently placed on your canvas. Only a graph that actually checks out ever shows up.',
+        target: '[data-tutorial="author-generate-btn"]',
+      },
+      {
+        title: "If it doesn't work out",
+        body:
+          "A language model can still describe something that fails validation, or the provider itself can be " +
+          "unreachable (Ollama not running, no OpenCode connection) — either way, a clear message lands in the " +
+          "Console tab instead of a silent failure. When it does work, treat the result like anything else " +
+          'you\'ve built: look inside it, validate it, and train it the normal way.',
+        target: '[data-tutorial="tab-console"]',
+        focusTab: { slot: 'bottom', tabId: 'console' },
+      },
+    ],
+  },
 ];
