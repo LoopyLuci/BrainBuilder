@@ -1,11 +1,12 @@
 import torch
 
 
-def forward(input, p=0.1):
+def forward(input, p=0.1, training=True):
     """Elementwise dropout, matching dropout.edn's declared port shapes.
-    Known limitation: there is no train/eval-mode signal plumbed from the
-    scheduler into component hyperparameters yet, so this always drops units
-    at rate `p` — including during a `predict` forward pass. Real eval-mode
-    behavior (dropout disabled at inference) needs that mode flag threaded
-    through `ExecutionPlan::forward` first; not silently faked here."""
-    return torch.nn.functional.dropout(input, p=p, training=True)
+    `training` defaults to True so every existing train_step/compute_gradients
+    call (which never sets it) keeps dropping units exactly as before.
+    `ExecutionPlan::forward` — the inference-only path behind Predict, batch
+    predict, the local serve endpoint, and feature importance — explicitly
+    passes `training=False`, so real predictions are deterministic instead of
+    randomly dropping units the way a training step does."""
+    return torch.nn.functional.dropout(input, p=p, training=training)

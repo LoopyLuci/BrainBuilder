@@ -1799,4 +1799,60 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'dropout-and-eval-mode',
+    title: 'What Dropout Actually Does',
+    blurb: 'Add a real dropout box, watch it make training noisier on purpose, then predict with confidence.',
+    difficulty: 'advanced',
+    minutes: 6,
+    steps: [
+      {
+        title: 'A box that ignores part of the signal — on purpose',
+        body:
+          "You've seen dropout mentioned as a way to fight overfitting. This tutorial adds a real one: drag a " +
+          '"dropout" box from the Components shelf onto the canvas, between two other boxes in a model you\'ve ' +
+          "already built (a \"linear\" -> \"dropout\" -> \"linear\" chain works well). Connect its input and " +
+          'output like any other box.',
+        target: '[data-tutorial="palette"]',
+      },
+      {
+        title: 'Its only setting: how much to drop',
+        body:
+          'Click the dropout box and open the Inspector. "p" is the fraction of values it zeroes out at random ' +
+          'every time data passes through — 0.1 means roughly one in ten, 0.5 means about half. Higher isn\'t ' +
+          "automatically better: too high and there's not enough signal left for the model to learn from.",
+        target: '[data-tutorial="tab-inspector"]',
+        focusTab: { slot: 'side', tabId: 'inspector' },
+      },
+      {
+        title: 'Validate, then train',
+        body:
+          'Click "Validate" to confirm the wiring, then head to Metrics and train. Expect the loss line to ' +
+          'look a little noisier step to step than a model without dropout — that\'s not a bug, it\'s ' +
+          "dropout doing its job: a genuinely different random subset of the model answers each step.",
+        target: '[data-tutorial="tab-metrics"]',
+        focusTab: { slot: 'bottom', tabId: 'metrics' },
+      },
+      {
+        title: 'But a real prediction is never random',
+        body:
+          'Switch to Predict and click "Run on first 5 rows" a couple of times in a row. You\'ll get the exact ' +
+          'same answers every time, even with a high "p" — dropout only randomly drops values during ' +
+          'training. The moment you ask for a real prediction, it automatically switches off and lets every ' +
+          'value through untouched, so your model never gives you a different answer to the same question by ' +
+          'accident.',
+        target: '[data-tutorial="predict-run-btn"]',
+        focusTab: { slot: 'bottom', tabId: 'predict' },
+      },
+      {
+        title: 'One dial, two behaviors — and that\'s deliberate',
+        body:
+          'Training and predicting are different jobs: training wants controlled randomness to build a more ' +
+          "robust model; predicting wants a single trustworthy answer. Dropout is the one box in your " +
+          "palette where that difference is really visible — everything else you've built behaves the same " +
+          'way in both places.',
+        target: '[data-tutorial="canvas"]',
+      },
+    ],
+  },
 ];

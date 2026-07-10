@@ -237,7 +237,19 @@ impl ExecutionPlan {
                 .filter_map(|name| intermediate.get(name).cloned())
                 .collect();
             let result = match op.language.as_str() {
-                "python" => bridge.call_component(&op.component, &op.entry, op_inputs, &op.hyperparams)?,
+                "python" => {
+                    // Real predictions must be deterministic, not randomly
+                    // dropping units the way a training step does — see
+                    // `dropout.py`'s `training` kwarg. Components with no
+                    // `training` parameter of their own silently ignore this
+                    // (`call_with_hyperparams` filters kwargs by the
+                    // callee's actual signature).
+                    let mut hyperparams = op.hyperparams.clone();
+                    if let Some(obj) = hyperparams.as_object_mut() {
+                        obj.insert("training".to_string(), serde_json::Value::Bool(false));
+                    }
+                    bridge.call_component(&op.component, &op.entry, op_inputs, &hyperparams)?
+                }
                 "rust" => {
                     let refs: Vec<&Tensor> = op_inputs.iter().collect();
                     device.exec(&op.entry, &refs)?

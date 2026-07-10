@@ -265,6 +265,18 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       'epochs in a row fail to improve on the best loss seen so far, instead of always running every epoch ' +
       'you originally configured whether it\'s still helping or not.',
   },
+  dropout: {
+    term: 'Dropout',
+    short: 'A canvas box that randomly ignores part of the signal — but only while training.',
+    long:
+      'A dropout box has one setting, "p" — the fraction of values it randomly zeroes out every time data ' +
+      'passes through it. This forces the rest of the model to not over-rely on any single path, which fights ' +
+      'overfitting (the same problem weight decay targets, by a different means — the two can be combined). ' +
+      'The randomness only happens during training: once you\'re done and asking for a real prediction, ' +
+      'dropout switches off automatically and passes every value through unchanged, so the same input always ' +
+      "gives the same answer. This train/predict distinction — often called \"eval mode\" — isn't unique to " +
+      "dropout, but dropout is the component in BrainBuilder's palette where it actually matters.",
+  },
   'gradient-clipping': {
     term: 'Gradient clipping',
     short: "Capping how big a single training step is allowed to be, so one bad batch can't blow up the model.",
