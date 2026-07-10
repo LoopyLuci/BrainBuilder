@@ -156,7 +156,7 @@ async fn two_real_workers_train_over_the_network_and_converge() {
                                 let mut weights = HashMap::new();
                                 weights.insert("w".to_string(), host_weight.clone());
                                 let updated = host_bridge
-                                    .apply_averaged_gradients(&weights, &avg_grads, "sgd", LR, 0.0)
+                                    .apply_averaged_gradients(&weights, &avg_grads, "sgd", LR, 0.0, 0.0)
                                     .expect("apply_averaged_gradients failed");
                                 host_weight = updated.get("w").unwrap().clone();
                                 host_step += 1;

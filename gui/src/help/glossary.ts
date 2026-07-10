@@ -265,6 +265,19 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       'epochs in a row fail to improve on the best loss seen so far, instead of always running every epoch ' +
       'you originally configured whether it\'s still helping or not.',
   },
+  'gradient-clipping': {
+    term: 'Gradient clipping',
+    short: "Capping how big a single training step is allowed to be, so one bad batch can't blow up the model.",
+    long:
+      "Each training step nudges the model's weights based on its gradient — a measure of which direction " +
+      "and how far to move them. Occasionally a gradient comes out unusually large (a weird batch, an early, " +
+      "still-unstable step), and a huge, uncorrected nudge can wreck weights that were otherwise learning " +
+      'fine — sometimes hard enough that loss never recovers. Gradient clipping sets a ceiling: if the ' +
+      "combined size of a step's gradient goes over it, the whole update is scaled back down to that ceiling " +
+      "before it's applied — smaller updates pass through completely untouched. It's a stability dial, " +
+      'separate from weight decay (which shrinks weights, not gradients) and early stopping (which ends the ' +
+      'run, rather than tempering individual steps).',
+  },
   serving: {
     term: 'Serving',
     short: 'Letting other programs ask your model for predictions over the network, live.',

@@ -64,7 +64,7 @@ fn training_loop_actually_reduces_loss_and_learns_the_true_weight() {
         inputs.insert("w".to_string(), w.clone());
 
         let (loss, updated) = bridge
-            .train_step(&ops, inputs, "y", &target, "mse", "sgd", 0.05, 0.0, &["w".to_string()])
+            .train_step(&ops, inputs, "y", &target, "mse", "sgd", 0.05, 0.0, 0.0, &["w".to_string()])
             .expect("train_step failed");
 
         losses.push(loss);

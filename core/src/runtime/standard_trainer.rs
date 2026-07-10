@@ -46,6 +46,20 @@ impl super::trainer::Trainer for StandardTrainer {
             .get("weight_decay")
             .and_then(|v| v.as_f64())
             .unwrap_or(0.0);
+        // 0.0 (the default) means "off" — gradients pass through unmodified,
+        // exactly as before this hyperparameter existed. A positive value
+        // caps the total L2 norm of the trainable parameters' gradients at
+        // that value (via torch's own `clip_grad_norm_`) right before the
+        // optimizer step, so a single unusually large batch or a step early
+        // in training can't blow the weights up in one move — a stability
+        // lever, distinct from `weight_decay` (which shrinks weights every
+        // step regardless of the gradient) and `patience` (which stops the
+        // run entirely instead of tempering individual steps).
+        let grad_clip = training_cfg
+            .hyperparams
+            .get("grad_clip")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0);
         // 0 (the default — see gui's TRAINING_SCHEMA) means "off": every
         // epoch runs, exactly like before this feature existed. A positive
         // patience stops training once `patience` epochs in a row fail to
@@ -93,6 +107,7 @@ impl super::trainer::Trainer for StandardTrainer {
                     &optimizer_name,
                     lr,
                     weight_decay,
+                    grad_clip,
                     &self.python,
                 )?;
                 self.context.provenance.log(crate::utils::provenance::ProvenanceRecord {

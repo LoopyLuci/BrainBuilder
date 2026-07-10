@@ -1745,4 +1745,58 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'gradient-clipping',
+    title: 'Taming a Wild Training Step',
+    blurb: "A whole-run dial that caps how big any single update can be — insurance against one bad batch.",
+    difficulty: 'intermediate',
+    minutes: 4,
+    steps: [
+      {
+        title: 'Most steps are well-behaved. Some are not',
+        body:
+          'Each training step nudges the model based on its gradient — how far and which direction to move. ' +
+          "Occasionally a gradient comes out unusually large, and a huge, uncorrected nudge can wreck weights " +
+          "that were otherwise learning fine. There's a whole-run dial that puts a ceiling on this.",
+        target: '[data-tutorial="tab-data"]',
+        focusTab: { slot: 'side', tabId: 'data' },
+      },
+      {
+        title: 'The gradient clipping dial',
+        body:
+          '"Gradient clipping" sits right below weight decay. Leave it at 0 and nothing changes — every step ' +
+          "applies exactly as computed, same as before this existed. Set it above 0 and any step whose " +
+          "combined gradient size goes over that number gets scaled back down to it before it's applied — " +
+          'smaller steps pass through completely untouched.',
+        target: '[data-tutorial="training-hyperparams"]',
+      },
+      {
+        title: 'Not the same dial as the other two',
+        body:
+          "Weight decay shrinks the weights themselves, every step, regardless of the gradient. Early-stop " +
+          'patience ends the whole run early. Gradient clipping does neither — it only steps in on the rare ' +
+          'step whose gradient is unusually large, tempering that one update without touching any of the ' +
+          'others.',
+        target: '[data-tutorial="training-hyperparams"]',
+      },
+      {
+        title: 'Where you\'d actually notice it',
+        body:
+          'On a smooth, well-behaved training run, clipping rarely triggers and the loss chart looks the same ' +
+          'with or without it. Its value shows up on the runs where loss spikes wildly or diverges — clipping ' +
+          "won't guarantee a fix, but it removes \"one giant bad step\" as a possible cause.",
+        target: '[data-tutorial="metrics-chart"]',
+        focusTab: { slot: 'bottom', tabId: 'metrics' },
+      },
+      {
+        title: 'A knob worth comparing, not guessing',
+        body:
+          "Train the same graph with clipping off, then again with a value like 1.0, and check the History " +
+          "tab — a real side-by-side of whether it actually helped on your data, the same way you'd check " +
+          'weight decay or patience.',
+        target: '[data-tutorial="tab-experiments"]',
+        focusTab: { slot: 'bottom', tabId: 'experiments' },
+      },
+    ],
+  },
 ];

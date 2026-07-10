@@ -92,7 +92,7 @@ fn averaging_gradients_from_two_shards_converges_to_the_true_weight() {
         avg_grads.insert("w".to_string(), tensor_from(&averaged));
 
         let updated = host
-            .apply_averaged_gradients(&weights, &avg_grads, "sgd", 0.05, 0.0)
+            .apply_averaged_gradients(&weights, &avg_grads, "sgd", 0.05, 0.0, 0.0)
             .expect("apply_averaged_gradients failed");
         w = updated.get("w").expect("w not returned").clone();
 

@@ -208,6 +208,13 @@ def handle_train_step(req):
     optimizer = optim_cls(params, lr=req["lr"], weight_decay=req.get("weight_decay", 0.0))
     optimizer.zero_grad()
     loss.backward()
+    # grad_clip defaults to 0.0 (off): gradients pass through unmodified,
+    # same as before this key existed. A positive value caps the combined
+    # L2 norm of every trainable parameter's gradient at that value, in
+    # place, before the optimizer reads them.
+    grad_clip = req.get("grad_clip", 0.0)
+    if grad_clip > 0.0:
+        torch.nn.utils.clip_grad_norm_(params, grad_clip)
     optimizer.step()
 
     updated = {name: write_tensor(live[name], req["output_paths"][name]) for name in req["trainable_ports"]}
@@ -271,6 +278,9 @@ def handle_apply_averaged_gradients(req):
         params.append(w)
 
     optimizer = optim_cls(params, lr=req["lr"], weight_decay=req.get("weight_decay", 0.0))
+    grad_clip = req.get("grad_clip", 0.0)
+    if grad_clip > 0.0:
+        torch.nn.utils.clip_grad_norm_(params, grad_clip)
     optimizer.step()
 
     updated = {name: write_tensor(p, req["output_paths"][name]) for name, p in zip(names, params)}

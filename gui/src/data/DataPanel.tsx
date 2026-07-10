@@ -33,6 +33,11 @@ const TRAINING_SCHEMA: FormSchema = {
     // zero each step (L2 regularization) — a whole-run setting, distinct
     // from a dropout box on the canvas.
     { name: 'weight_decay', label: 'Weight decay (0 = off)', type: 'number', min: 0, step: 0.0001 },
+    // 0.0 means off — gradients pass through unmodified, same as before
+    // this field existed. A positive value caps the combined gradient norm
+    // at that value on every step, tempering any single unusually large
+    // update instead of letting it through unchecked.
+    { name: 'grad_clip', label: 'Gradient clipping (0 = off)', type: 'number', min: 0, step: 0.1 },
   ],
 };
 // Hidden-width hyperparameters the architecture search resizes — must mirror
@@ -184,6 +189,7 @@ export function DataPanel() {
   const epochs = (training.hyperparams?.epochs as number) ?? 10;
   const patience = (training.hyperparams?.patience as number) ?? 0;
   const weightDecay = (training.hyperparams?.weight_decay as number) ?? 0;
+  const gradClip = (training.hyperparams?.grad_clip as number) ?? 0;
 
   const trainingValues: FormValues = {
     loss: training.loss,
@@ -193,10 +199,11 @@ export function DataPanel() {
     batch_size: training.data_source.batch_size,
     patience,
     weight_decay: weightDecay,
+    grad_clip: gradClip,
   };
   // Distribute the flat form values back into the nested TrainingConfig
-  // (lr/epochs/patience/weight_decay live under hyperparams; batch_size
-  // under data_source).
+  // (lr/epochs/patience/weight_decay/grad_clip live under hyperparams;
+  // batch_size under data_source).
   const onTrainingChange = (v: FormValues) => {
     setTraining({
       ...training,
@@ -208,6 +215,7 @@ export function DataPanel() {
         epochs: Number(v.epochs),
         patience: Number(v.patience),
         weight_decay: Number(v.weight_decay),
+        grad_clip: Number(v.grad_clip),
       },
       data_source: { ...training.data_source, batch_size: Number(v.batch_size) },
     });

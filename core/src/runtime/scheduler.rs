@@ -378,6 +378,7 @@ impl ExecutionPlan {
         optimizer_name: &str,
         lr: f64,
         weight_decay: f64,
+        grad_clip: f64,
         bridge: &PythonBridge,
     ) -> Result<LossValue> {
         let err = |msg: &str| crate::interop::protocol::BrainBuilderError::ConfigError(msg.to_string());
@@ -398,6 +399,7 @@ impl ExecutionPlan {
             optimizer_name,
             lr,
             weight_decay,
+            grad_clip,
             &self.trainable_weight_ports(),
         )?;
 
@@ -453,6 +455,7 @@ impl ExecutionPlan {
         optimizer_name: &str,
         lr: f64,
         weight_decay: f64,
+        grad_clip: f64,
         bridge: &PythonBridge,
     ) -> Result<std::collections::HashMap<String, Tensor>> {
         let trainable = self.trainable_weight_ports();
@@ -461,7 +464,7 @@ impl ExecutionPlan {
             .filter(|(name, _)| trainable.contains(name))
             .map(|(name, t)| (name.clone(), t.clone()))
             .collect();
-        bridge.apply_averaged_gradients(&trainable_weights, averaged_gradients, optimizer_name, lr, weight_decay)
+        bridge.apply_averaged_gradients(&trainable_weights, averaged_gradients, optimizer_name, lr, weight_decay, grad_clip)
     }
 
     /// Binds every learnable parameter port into `inputs`, lazily

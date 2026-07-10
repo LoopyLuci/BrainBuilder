@@ -468,6 +468,7 @@ impl PythonBridge {
         optimizer_name: &str,
         lr: f64,
         weight_decay: f64,
+        grad_clip: f64,
         trainable_ports: &[String],
     ) -> Result<(f32, HashMap<String, Tensor>)> {
         for op in operations {
@@ -506,6 +507,7 @@ impl PythonBridge {
             "optimizer_name": optimizer_name,
             "lr": lr,
             "weight_decay": weight_decay,
+            "grad_clip": grad_clip,
             "trainable_ports": trainable_ports,
             "output_paths": Value::Object(output_paths),
         }))?;
@@ -588,6 +590,7 @@ impl PythonBridge {
     /// Second half of the distributed-training split: given current weights
     /// and an already-averaged gradient per port (averaged across all
     /// clients by the host), runs exactly one optimizer step.
+    #[allow(clippy::too_many_arguments)]
     pub fn apply_averaged_gradients(
         &self,
         weights: &HashMap<String, Tensor>,
@@ -595,6 +598,7 @@ impl PythonBridge {
         optimizer_name: &str,
         lr: f64,
         weight_decay: f64,
+        grad_clip: f64,
     ) -> Result<HashMap<String, Tensor>> {
         let mut weight_descs = serde_json::Map::new();
         let mut gradient_descs = serde_json::Map::new();
@@ -618,6 +622,7 @@ impl PythonBridge {
             "optimizer_name": optimizer_name,
             "lr": lr,
             "weight_decay": weight_decay,
+            "grad_clip": grad_clip,
             "output_paths": Value::Object(output_paths),
         }))?;
 
