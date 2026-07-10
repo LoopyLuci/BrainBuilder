@@ -1427,4 +1427,64 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'checkpoint-versioning',
+    title: 'Undoing a Bad Training Run',
+    blurb: 'Training over a working model used to be permanent. Now every version it replaces is kept.',
+    difficulty: 'intermediate',
+    minutes: 5,
+    steps: [
+      {
+        title: 'Training again used to be a one-way door',
+        body:
+          "Retraining a model you'd already trained used to silently overwrite the only saved checkpoint — " +
+          'if the new run made things worse, the old, working version was just gone. Not anymore: this tab ' +
+          'keeps every version a training run replaces, automatically.',
+        target: '[data-tutorial="tab-predict"]',
+        focusTab: { slot: 'bottom', tabId: 'predict' },
+      },
+      {
+        title: 'Nothing here yet?',
+        body:
+          "Version history only has something to show once you've trained the same model more than once — " +
+          "a model's very first checkpoint has nothing earlier to compare against. Train it again and this " +
+          "list stops being empty, with no setup required.",
+        target: '[data-tutorial="versions-empty"]',
+      },
+      {
+        title: 'Reading the list',
+        body:
+          'Each entry is a real checkpoint that used to be the current one, newest first, with exactly when ' +
+          "it was replaced and how big the file is — so you can tell your versions apart even without " +
+          'renaming anything.',
+        target: '[data-tutorial="versions-list"]',
+      },
+      {
+        title: 'Bringing one back',
+        body:
+          '"Restore" asks you to confirm, then makes that version current again. And because restoring ' +
+          "archives whatever it replaces too, undoing a bad training run is never a one-way door — and " +
+          "neither is undoing the undo.",
+        target: '[data-tutorial="restore-version-btn"]',
+      },
+      {
+        title: 'Pair this with the History tab',
+        body:
+          "Version history tells you what you can go back to; the History tab (from \"Which Settings " +
+          "Actually Worked Best?\") tells you which run is worth going back to — the settings and loss for " +
+          'every attempt, side by side.',
+        target: '[data-tutorial="tab-experiments"]',
+        focusTab: { slot: 'bottom', tabId: 'experiments' },
+      },
+      {
+        title: 'For safety beyond this computer',
+        body:
+          "Version history lives inside BrainBuilder's own folder, alongside your current checkpoint. For a " +
+          'copy that survives even if BrainBuilder itself is ever removed, "Export checkpoint…" on the ' +
+          'Predict tab saves one to anywhere you choose.',
+        target: '[data-tutorial="export-checkpoint-btn"]',
+        focusTab: { slot: 'bottom', tabId: 'predict' },
+      },
+    ],
+  },
 ];

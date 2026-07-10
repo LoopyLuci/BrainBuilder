@@ -247,6 +247,25 @@ export async function exportCheckpoint(graphId: string, destPath: string): Promi
   return invoke('export_checkpoint', { graphId, destPath });
 }
 
+// --- Checkpoint version history (core/src/utils/checkpoint_versions.rs) ----
+// Training the same graph twice used to silently overwrite the only saved
+// checkpoint with no way back. Now the previous checkpoint is archived
+// automatically right before every training run that would overwrite it, so
+// a bad retrain is always recoverable.
+
+export interface CheckpointVersion {
+  id: string; // milliseconds since the Unix epoch — also sortable as a string
+  size_bytes: number;
+}
+
+export async function listCheckpointVersions(graphId: string): Promise<CheckpointVersion[]> {
+  return invoke('list_checkpoint_versions', { graphId });
+}
+
+export async function restoreCheckpointVersion(graphId: string, versionId: string): Promise<void> {
+  return invoke('restore_checkpoint_version', { graphId, versionId });
+}
+
 export async function installComponent(path: string): Promise<void> {
   return invoke('install_component', { path });
 }

@@ -881,6 +881,37 @@ async fn export_checkpoint(graph_id: String, dest_path: String, state: State<'_,
         .map_err(|e| format!("Couldn't copy the checkpoint to `{dest_path}`: {e}"))
 }
 
+/// Every archived checkpoint version for a graph, newest first — see
+/// `checkpoint_versions::archive_current`, called automatically right before
+/// each training run would otherwise overwrite the current checkpoint.
+#[command]
+async fn list_checkpoint_versions(
+    graph_id: String,
+    state: State<'_, AppState>,
+) -> Result<Vec<brainbuilder_core::utils::checkpoint_versions::CheckpointVersion>, String> {
+    let orchestrator = state.orchestrator.lock().await;
+    brainbuilder_core::utils::checkpoint_versions::list_versions(&orchestrator.context.checkpoints_dir, &graph_id)
+        .map_err(|e| e.to_string())
+}
+
+/// Restores an archived version as the current checkpoint. The checkpoint it
+/// replaces is archived first, so this is itself undoable — never a one-way
+/// door.
+#[command]
+async fn restore_checkpoint_version(
+    graph_id: String,
+    version_id: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let orchestrator = state.orchestrator.lock().await;
+    brainbuilder_core::utils::checkpoint_versions::restore_version(
+        &orchestrator.context.checkpoints_dir,
+        &graph_id,
+        &version_id,
+    )
+    .map_err(|e| e.to_string())
+}
+
 #[command]
 async fn install_component(path: String, state: State<'_, AppState>) -> Result<(), String> {
     log::info!("installing component from {path}");
@@ -1005,6 +1036,8 @@ fn main() {
             feature_importance,
             has_checkpoint,
             export_checkpoint,
+            list_checkpoint_versions,
+            restore_checkpoint_version,
             install_component,
             get_nervous_system_audit,
             get_cluster_status,

@@ -86,6 +86,10 @@ impl super::trainer::Trainer for StandardTrainer {
 
         if !weights.is_empty() {
             let checkpoint_path = self.context.checkpoint_path(&plan.graph.graph_id);
+            // Archive whatever checkpoint is about to be overwritten — training
+            // over a working model used to be a one-way door; now the previous
+            // state is always recoverable (see utils::checkpoint_versions).
+            crate::utils::checkpoint_versions::archive_current(&self.context.checkpoints_dir, &plan.graph.graph_id)?;
             self.python.save_state_dict(&weights, &checkpoint_path)?;
             log::info!(
                 "saved checkpoint for graph `{}` to {}",

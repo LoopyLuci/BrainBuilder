@@ -209,6 +209,14 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       "and gets killed automatically if it runs too long. The Console's \"Nervous System\" tab shows every one " +
       "of these sandboxed calls, so a denial or a crash is something you can see, not a silent mystery.",
   },
+  rollback: {
+    term: 'Rollback',
+    short: 'Going back to a version of your model from before your last training run.',
+    long:
+      "A rollback undoes a training run by bringing back the checkpoint that was in place right before it — " +
+      "useful when a new run made things worse instead of better. BrainBuilder keeps every checkpoint a " +
+      "training run replaces, so a rollback is always available, and even a rollback can itself be undone.",
+  },
   'feature-importance': {
     term: 'Feature importance',
     short: "A score for how much the model actually relies on each column of your data.",

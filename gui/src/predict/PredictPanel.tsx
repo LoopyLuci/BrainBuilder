@@ -2,11 +2,22 @@ import { useEffect, useState } from 'react';
 import { save } from '@tauri-apps/api/dialog';
 import { useGraphStore } from '../state/graphStore';
 import { convertToBBIR } from '../canvas/utils';
-import { predict, hasCheckpoint, exportCheckpoint, featureImportance, PredictResult, FeatureImportance } from '../api/tauri';
+import {
+  predict,
+  hasCheckpoint,
+  exportCheckpoint,
+  featureImportance,
+  listCheckpointVersions,
+  restoreCheckpointVersion,
+  PredictResult,
+  FeatureImportance,
+  CheckpointVersion,
+} from '../api/tauri';
 import { logError, logInfo } from '../console/logStore';
 import { Panel } from '../ui/Panel';
 import { Button } from '../ui/Button';
 import { HelpTip } from '../help/HelpTip';
+import { confirmAction } from '../ui/confirmStore';
 
 export function PredictPanel() {
   const graphId = useGraphStore((s) => s.graphId);
@@ -24,12 +35,30 @@ export function PredictPanel() {
   // Feature importance only makes sense for tabular data with real named
   // columns — image/text sources don't have a meaningful "column" to rank.
   const isFileSource = training.data_source.source_type === 'file';
+  const [versions, setVersions] = useState<CheckpointVersion[] | null>(null);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+
+  const refreshVersions = () => {
+    listCheckpointVersions(graphId)
+      .then(setVersions)
+      .catch(() => {
+        /* best-effort — version history is a bonus, not core functionality */
+      });
+  };
 
   useEffect(() => {
     let cancelled = false;
     const check = () =>
       hasCheckpoint(graphId)
-        .then((exists) => !cancelled && setCheckpointExists(exists))
+        .then((exists) => {
+          if (cancelled) return;
+          setCheckpointExists(exists);
+          // Keep polling version history alongside checkpoint existence —
+          // retraining an already-trained graph doesn't flip `exists` (it
+          // was already true), it archives a new version underneath it, so
+          // this can't be gated to just the false→true transition.
+          if (exists) refreshVersions();
+        })
         .catch(() => {
           /* best-effort polling — a transient failure just retries next tick */
         });
@@ -44,7 +73,30 @@ export function PredictPanel() {
       cancelled = true;
       clearInterval(interval);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [graphId]);
+
+  const runRestore = async (version: CheckpointVersion) => {
+    const when = new Date(Number(version.id)).toLocaleString();
+    const ok = await confirmAction({
+      title: 'Restore this earlier version?',
+      body:
+        `This replaces the current checkpoint with the one from ${when}. The checkpoint it replaces is ` +
+        "archived first, so this is never a one-way door either — you can always restore back.",
+      confirmLabel: 'Yes, restore it',
+    });
+    if (!ok) return;
+    setRestoringId(version.id);
+    try {
+      await restoreCheckpointVersion(graphId, version.id);
+      logInfo(`Restored the checkpoint from ${when}.`);
+      refreshVersions();
+    } catch (e) {
+      logError(`Restoring that version failed: ${e}`);
+    } finally {
+      setRestoringId(null);
+    }
+  };
 
   const runPredict = async () => {
     setError(null);
@@ -122,6 +174,41 @@ export function PredictPanel() {
             Copies a standard PyTorch checkpoint file, ready for deployment <HelpTip term="deployment" /> outside
             BrainBuilder.
           </span>
+        </div>
+      )}
+      {checkpointExists && (
+        <div style={{ borderTop: '1px solid var(--border, rgba(0,0,0,0.1))', paddingTop: 8, marginTop: 8 }}>
+          <p className="bb-text-muted" style={{ margin: '0 0 6px' }}>
+            Every time you train over an existing checkpoint, the one it replaces is saved here automatically —
+            training again is never a one-way door, and neither is a rollback <HelpTip term="rollback" />.
+          </p>
+          {versions && versions.length === 0 && (
+            <p className="bb-text-muted" data-tutorial="versions-empty">
+              No earlier versions yet — train this model again and the checkpoint it replaces will show up here.
+            </p>
+          )}
+          {versions && versions.length > 0 && (
+            <ul className="bb-list" data-tutorial="versions-list">
+              {versions.map((v) => (
+                <li
+                  key={v.id}
+                  className="bb-list-item"
+                  style={{ fontSize: 11, fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  <span style={{ flex: 1 }}>{new Date(Number(v.id)).toLocaleString()}</span>
+                  <span className="bb-text-muted">{(v.size_bytes / 1024).toFixed(1)} KB</span>
+                  <Button
+                    variant="ghost"
+                    data-tutorial="restore-version-btn"
+                    onClick={() => runRestore(v)}
+                    disabled={restoringId !== null}
+                  >
+                    {restoringId === v.id ? 'Restoring…' : 'Restore'}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
       {error && <div className="bb-text-error">{error}</div>}
