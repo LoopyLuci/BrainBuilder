@@ -1314,4 +1314,68 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'troubleshooting',
+    title: 'When Something Doesn\'t Work',
+    blurb: 'Where to look when a connection fails, training errors out, or a component misbehaves.',
+    difficulty: 'intermediate',
+    minutes: 6,
+    steps: [
+      {
+        title: 'Catch mistakes before you train',
+        body:
+          'Click "Validate" any time to check your wiring — every required input connected, every shape ' +
+          'matching up — in a fraction of a second, without running any real training. There\'s no reason not ' +
+          'to check before committing to a full run.',
+        target: '[data-tutorial="validate-btn"]',
+      },
+      {
+        title: "Some mistakes can't even be made",
+        body:
+          "Try to connect two boxes that don't fit — wrong shape, already-wired input, a box connecting to " +
+          "itself — and BrainBuilder refuses the connection outright and explains why. You can't accidentally " +
+          "build something that was never going to work in the first place.",
+        target: '[data-tutorial="canvas"]',
+      },
+      {
+        title: 'One place for everything that goes wrong',
+        body:
+          'A rejected connection, a failed validation, a training error, a failed prediction — all of it ' +
+          'lands in the same place. When something doesn\'t work, this tab is always your first stop.',
+        target: '[data-tutorial="tab-console"]',
+        focusTab: { slot: 'bottom', tabId: 'console' },
+      },
+      {
+        title: 'Reading an error',
+        body:
+          "Every message is timestamped and stays until you clear it, so you can scroll back and see exactly " +
+          "what happened and in what order — useful when several things went wrong in a row and you need to " +
+          'find the very first one.',
+        target: '[data-tutorial="console-output"]',
+      },
+      {
+        title: 'Clearing the log is safe',
+        body:
+          '"Clear" only tidies up what you\'re looking at — it never undoes anything, changes your model, or ' +
+          'affects training. Clear it whenever the list gets long.',
+        target: '[data-tutorial="console-clear-btn"]',
+      },
+      {
+        title: 'A deeper layer: sandboxed component calls',
+        body:
+          "Every component's code — even ones an AI wrote for you — runs in a locked-down sandbox " +
+          "that can only touch what it's explicitly allowed to. The \"Nervous System\" tab shows every one of " +
+          "those calls, useful when you suspect a specific component's code rather than how it's wired.",
+        target: '[data-tutorial="tab-audit"]',
+      },
+      {
+        title: 'Reading an audit entry',
+        body:
+          'Each entry shows whether a sandboxed call was allowed, denied for touching something it wasn\'t ' +
+          "permitted to, or killed for running too long — plain evidence of what a component actually did, " +
+          'never a silent mystery.',
+        target: '[data-tutorial="console-audit"]',
+      },
+    ],
+  },
 ];

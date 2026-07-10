@@ -192,6 +192,23 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       "program — instead of leaving it sitting inside BrainBuilder. Exporting your checkpoint is the hand-off " +
       'point: from there, any plain PyTorch code can load it and put it to work.',
   },
+  validation: {
+    term: 'Validation',
+    short: "A quick structural check that catches mistakes before you waste time training.",
+    long:
+      'Validation checks that your boxes are wired together correctly — every required input is connected, ' +
+      'and the shapes flowing between them actually match — without running any real training. It takes a ' +
+      "fraction of a second, so there's no reason not to check before committing to a full training run.",
+  },
+  sandbox: {
+    term: 'Sandbox',
+    short: 'A locked-down space where component code runs so it can never do real damage.',
+    long:
+      "Every component's code — even ones BrainBuilder or an AI wrote for you — runs inside a sandbox: a " +
+      "restricted space that can only touch the exact files and resources it's been explicitly allowed to, " +
+      "and gets killed automatically if it runs too long. The Console's \"Nervous System\" tab shows every one " +
+      "of these sandboxed calls, so a denial or a crash is something you can see, not a silent mystery.",
+  },
   shape: {
     term: 'Shape',
     short: 'The size/dimensions of the numbers flowing between nodes.',

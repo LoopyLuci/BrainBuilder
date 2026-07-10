@@ -22,11 +22,11 @@ function OutputLog() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }}>
-        <Button variant="ghost" onClick={clear} disabled={entries.length === 0}>
+        <Button variant="ghost" data-tutorial="console-clear-btn" onClick={clear} disabled={entries.length === 0}>
           Clear
         </Button>
       </div>
-      <div style={logBoxStyle}>
+      <div data-tutorial="console-output" style={logBoxStyle}>
         {entries.length === 0 ? (
           <div className="bb-empty">Output / logs appear here</div>
         ) : (
@@ -75,7 +75,7 @@ function NervousSystemAudit() {
   }, []);
 
   return (
-    <div style={logBoxStyle}>
+    <div data-tutorial="console-audit" style={logBoxStyle}>
       {records.length === 0 ? (
         <div className="bb-empty">No sandboxed component calls yet</div>
       ) : (
