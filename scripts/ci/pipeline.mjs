@@ -58,8 +58,20 @@ const stages = [
     cwd: ROOT,
     cmd: "cargo",
     cmdArgs: [
-      "test", "-p", "brainbuilder-core", "--locked", "--",
-      "--include-ignored",
+      "test", "-p", "brainbuilder-core", "--locked",
+      // This package has ~30 separate integration-test binaries, each
+      // linking the full dependency tree (datafusion, libp2p, arrow, tokio,
+      // ...). Cargo's default job count (one per logical core) launches
+      // that many linker processes at once, which reserves far more virtual
+      // address space than a modest fixed-size Windows page file can back —
+      // rustc/link.exe then crash outright (STATUS_STACK_BUFFER_OVERRUN) or
+      // leave a truncated rlib that the next test binary fails to mmap
+      // ("paging file is too small", E0786). This isn't flaky test *code* —
+      // it's this build's memory footprint outrunning the page file at the
+      // default parallelism. Capping jobs keeps peak concurrent linker
+      // memory bounded regardless of core count.
+      "-j", "4",
+      "--", "--include-ignored",
       // These two need racket/clojure/a JDK on PATH — a real, separate
       // toolchain requirement most machines (including CI-style ones)
       // won't have; skipped here, not silently passed.
