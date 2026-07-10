@@ -99,6 +99,11 @@ export function TrainingDashboard() {
                 : '↑ loss increasing'}
             </div>
           )}
+          {first && latest.current_lr !== first.current_lr && (
+            <div data-tutorial="metrics-current-lr" className="bb-text-muted">
+              Learning rate decayed to {latest.current_lr.toFixed(5)} (started at {first.current_lr.toFixed(5)}).
+            </div>
+          )}
           {latest.stopped_early && (
             <div data-tutorial="metrics-stopped-early" className="bb-text-muted">
               Stopped early at epoch {latest.epoch} — loss wasn't improving <HelpTip term="early-stopping" /> enough

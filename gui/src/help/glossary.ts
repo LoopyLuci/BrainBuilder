@@ -289,6 +289,17 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       'transfer learning: almost all of the model\'s learned knowledge stays fixed, and only a tiny, cheap ' +
       'adapter has to be trained on your data.',
   },
+  'learning-rate-decay': {
+    term: 'Learning rate decay',
+    short: 'Automatically taking smaller steps as training goes on, instead of the same size step the whole time.',
+    long:
+      'Early in training, the model is far from a good answer, so large steps make sense. Later, once it\'s ' +
+      "roughly in the right place, the same large step can overshoot and bounce around instead of settling " +
+      'in. Learning rate decay halves the learning rate every so many epochs, so later steps are ' +
+      "automatically more careful than earlier ones — you set the starting learning rate once, and the " +
+      "schedule handles tapering it off from there. It's a different lever from weight decay (which shrinks " +
+      "the weights themselves) despite the similar name — this one only changes step size.",
+  },
   'gradient-clipping': {
     term: 'Gradient clipping',
     short: "Capping how big a single training step is allowed to be, so one bad batch can't blow up the model.",

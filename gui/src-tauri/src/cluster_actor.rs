@@ -667,6 +667,9 @@ fn handle_submitted_gradients(
         // Early stopping (standard_trainer.rs) isn't wired into distributed
         // training's gradient-averaging loop — every round always runs.
         stopped_early: false,
+        // lr_decay_epochs (standard_trainer.rs) isn't wired into distributed
+        // training either — every round uses the same configured lr.
+        current_lr: session.lr as f32,
     });
 
     let update = WeightUpdate { job_id, step: session.step, weights: tensors_to_payload(&updated) };

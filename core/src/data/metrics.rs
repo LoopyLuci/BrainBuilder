@@ -12,6 +12,12 @@ pub struct MetricPoint {
     /// epochs (see `runtime::standard_trainer`) — false on every other
     /// point, including every point of a run that ran to completion.
     pub stopped_early: bool,
+    /// The actual learning rate used for this point's step. Equal to the
+    /// configured `lr` on every point unless `lr_decay_epochs` is set (see
+    /// `runtime::standard_trainer`), in which case it periodically halves —
+    /// exposed so the dashboard can show the real, current value instead of
+    /// only ever the starting one.
+    pub current_lr: f32,
 }
 
 static METRICS_SENDER: Lazy<broadcast::Sender<MetricPoint>> = Lazy::new(|| {

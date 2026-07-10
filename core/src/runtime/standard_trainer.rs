@@ -71,6 +71,18 @@ impl super::trainer::Trainer for StandardTrainer {
             .get("patience")
             .and_then(|v| v.as_u64())
             .unwrap_or(0) as usize;
+        // 0 (the default) means "off" — the learning rate stays exactly
+        // `lr` for the whole run, same as before this feature existed. A
+        // positive value halves the current learning rate every time that
+        // many epochs complete, so later epochs — once the model is
+        // already roughly in the right place — take smaller, more careful
+        // steps instead of the same large ones the first epoch used.
+        let lr_decay_epochs = training_cfg
+            .hyperparams
+            .get("lr_decay_epochs")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0) as usize;
+        let mut current_lr = lr;
         const EARLY_STOP_MIN_DELTA: f32 = 1e-4;
         let mut best_epoch_loss = f32::INFINITY;
         let mut epochs_without_improvement = 0usize;
@@ -89,6 +101,11 @@ impl super::trainer::Trainer for StandardTrainer {
 
         let epochs = plan.epochs;
         for epoch in 0..epochs {
+            // Halve the learning rate every `lr_decay_epochs` completed
+            // epochs (epoch 0 always uses the full starting `lr`).
+            if lr_decay_epochs > 0 && epoch > 0 && epoch % lr_decay_epochs == 0 {
+                current_lr *= 0.5;
+            }
             // Real bug fix: without rewinding, every epoch after the first
             // silently ran zero batches (see `DataIterator::reset`'s doc
             // comment) — `epochs` had no effect beyond the first pass over
@@ -105,7 +122,7 @@ impl super::trainer::Trainer for StandardTrainer {
                     &mut weights,
                     &loss_name,
                     &optimizer_name,
-                    lr,
+                    current_lr,
                     weight_decay,
                     grad_clip,
                     &self.python,
@@ -124,7 +141,13 @@ impl super::trainer::Trainer for StandardTrainer {
                 epoch_loss_sum += loss.value;
                 epoch_steps += 1;
 
-                let point = metrics::MetricPoint { epoch, step: loss.step, loss: loss.value, stopped_early: false };
+                let point = metrics::MetricPoint {
+                    epoch,
+                    step: loss.step,
+                    loss: loss.value,
+                    stopped_early: false,
+                    current_lr: current_lr as f32,
+                };
                 metrics::publish_metric(point.clone());
                 last_point = Some(point);
             }

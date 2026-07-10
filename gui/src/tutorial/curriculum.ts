@@ -1911,4 +1911,58 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'learning-rate-decay',
+    title: 'Smaller Steps as Training Goes On',
+    blurb: 'Automatically taper the learning rate over time instead of using one fixed step size the whole run.',
+    difficulty: 'intermediate',
+    minutes: 4,
+    steps: [
+      {
+        title: 'One step size for the whole run, by default',
+        body:
+          'Every model so far used the same learning rate from the very first step to the very last. Early on, ' +
+          "large steps make sense — the model starts far from a good answer. Later, once it's roughly in the " +
+          "right place, that same large step can overshoot instead of settling in. There's a dial for this.",
+        target: '[data-tutorial="tab-data"]',
+        focusTab: { slot: 'side', tabId: 'data' },
+      },
+      {
+        title: 'The decay dial',
+        body:
+          '"Halve learning rate every __ epochs" sits at the bottom of the training settings. Leave it at 0 ' +
+          "and nothing changes — the learning rate stays exactly what you set for the whole run, same as " +
+          'before this existed. Set it to, say, 3, and the learning rate cuts in half every 3 epochs: full ' +
+          'speed at the start, automatically more careful later.',
+        target: '[data-tutorial="training-hyperparams"]',
+      },
+      {
+        title: 'Watch the real number change, live',
+        body:
+          "Train with decay set, then switch to this tab. Once the learning rate has actually decayed at " +
+          'least once, a note appears right here showing the exact current value next to what it started at — ' +
+          "not a promise, the real number the optimizer is using for the step happening right now.",
+        target: '[data-tutorial="metrics-current-lr"]',
+        focusTab: { slot: 'bottom', tabId: 'metrics' },
+      },
+      {
+        title: 'Pairs naturally with early stopping',
+        body:
+          'A run that\'s taking smaller and smaller steps is also a good candidate for early-stop patience — ' +
+          'once the steps get small enough that loss stops meaningfully moving, there\'s little reason to keep ' +
+          'running the rest of the configured epochs. The two dials sit right next to each other for exactly ' +
+          'this reason.',
+        target: '[data-tutorial="training-hyperparams"]',
+      },
+      {
+        title: 'A knob worth comparing, not guessing',
+        body:
+          'Train the same graph with decay off, then again halving every few epochs, and check the History ' +
+          "tab — a real side-by-side of whether tapering the steps actually helped your run finish in a " +
+          "better place, the same way you'd check weight decay or gradient clipping.",
+        target: '[data-tutorial="tab-experiments"]',
+        focusTab: { slot: 'bottom', tabId: 'experiments' },
+      },
+    ],
+  },
 ];
