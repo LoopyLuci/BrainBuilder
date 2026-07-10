@@ -24,6 +24,11 @@ const TRAINING_SCHEMA: FormSchema = {
     { name: 'lr', label: 'Learning rate', type: 'number', step: 0.001 },
     { name: 'epochs', label: 'Epochs', type: 'number' },
     { name: 'batch_size', label: 'Batch size', type: 'number' },
+    // 0 means off — every configured epoch runs, same as before this field
+    // existed. A positive value stops training once that many epochs in a
+    // row fail to improve the loss, instead of always running the full
+    // budget whether or not it's still helping.
+    { name: 'patience', label: 'Early-stop patience (0 = off)', type: 'number', min: 0 },
   ],
 };
 // Hidden-width hyperparameters the architecture search resizes — must mirror
@@ -173,6 +178,7 @@ export function DataPanel() {
 
   const lr = (training.hyperparams?.lr as number) ?? 0.01;
   const epochs = (training.hyperparams?.epochs as number) ?? 10;
+  const patience = (training.hyperparams?.patience as number) ?? 0;
 
   const trainingValues: FormValues = {
     loss: training.loss,
@@ -180,15 +186,21 @@ export function DataPanel() {
     lr,
     epochs,
     batch_size: training.data_source.batch_size,
+    patience,
   };
   // Distribute the flat form values back into the nested TrainingConfig
-  // (lr/epochs live under hyperparams; batch_size under data_source).
+  // (lr/epochs/patience live under hyperparams; batch_size under data_source).
   const onTrainingChange = (v: FormValues) => {
     setTraining({
       ...training,
       loss: String(v.loss),
       optimizer: String(v.optimizer),
-      hyperparams: { ...training.hyperparams, lr: Number(v.lr), epochs: Number(v.epochs) },
+      hyperparams: {
+        ...training.hyperparams,
+        lr: Number(v.lr),
+        epochs: Number(v.epochs),
+        patience: Number(v.patience),
+      },
       data_source: { ...training.data_source, batch_size: Number(v.batch_size) },
     });
   };

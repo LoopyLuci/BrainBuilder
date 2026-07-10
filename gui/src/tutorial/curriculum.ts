@@ -1643,4 +1643,55 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'early-stopping',
+    title: 'Knowing When to Stop Training',
+    blurb: "More epochs isn't automatically better — let BrainBuilder end the run once it stops helping.",
+    difficulty: 'intermediate',
+    minutes: 4,
+    steps: [
+      {
+        title: 'Every configured epoch runs — unless you say otherwise',
+        body:
+          "By default, training runs every epoch you set, even long after loss has stopped meaningfully " +
+          "improving. That's wasted time at best — on harder problems, extra unnecessary training can even " +
+          'start hurting the model. There\'s a dial for this.',
+        target: '[data-tutorial="tab-data"]',
+        focusTab: { slot: 'side', tabId: 'data' },
+      },
+      {
+        title: 'The patience dial',
+        body:
+          '"Early-stop patience" sits right alongside epochs and learning rate. Leave it at 0 and nothing ' +
+          "changes — every epoch runs, exactly like before this existed. Set it to, say, 3, and training " +
+          "stops the moment loss goes 3 epochs in a row without improving.",
+        target: '[data-tutorial="training-hyperparams"]',
+      },
+      {
+        title: 'Watch it happen live',
+        body:
+          "Train with patience set, then switch to this tab — the same live chart you'd watch normally, no " +
+          "different so far.",
+        target: '[data-tutorial="tab-metrics"]',
+        focusTab: { slot: 'bottom', tabId: 'metrics' },
+      },
+      {
+        title: 'The tell',
+        body:
+          'If training ends before reaching your configured epoch count, a real note appears right here, ' +
+          "saying exactly which epoch it stopped at. No note means it ran the full budget — patience never " +
+          'triggered, or was left at 0.',
+        target: '[data-tutorial="metrics-stopped-early"]',
+      },
+      {
+        title: 'A higher patience is more cautious, not "better"',
+        body:
+          "A low patience stops fast but risks quitting right before a real improvement would've shown up; a " +
+          "high patience gives loss more room to wobble before giving up, at the cost of possibly running " +
+          "epochs that don't help. There's no universally correct number — it depends on how noisy your " +
+          "training run tends to be.",
+        target: '[data-tutorial="metrics-chart"]',
+      },
+    ],
+  },
 ];

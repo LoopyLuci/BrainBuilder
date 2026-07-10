@@ -244,6 +244,16 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       'same forward pass Predict already uses, just run once per row across an entire dataset and written out ' +
       'as a CSV file you can open in a spreadsheet.',
   },
+  'early-stopping': {
+    term: 'Early stopping',
+    short: "Ending training automatically once more epochs stop helping.",
+    long:
+      "Training for more epochs isn't automatically better — past some point, loss stops meaningfully " +
+      "improving, and further training just costs time (or, on harder problems, starts overfitting). Early " +
+      'stopping watches the loss for you: set a "patience," and BrainBuilder stops training once that many ' +
+      'epochs in a row fail to improve on the best loss seen so far, instead of always running every epoch ' +
+      'you originally configured whether it\'s still helping or not.',
+  },
   serving: {
     term: 'Serving',
     short: 'Letting other programs ask your model for predictions over the network, live.',

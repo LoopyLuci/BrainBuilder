@@ -99,6 +99,12 @@ export function TrainingDashboard() {
                 : '↑ loss increasing'}
             </div>
           )}
+          {latest.stopped_early && (
+            <div data-tutorial="metrics-stopped-early" className="bb-text-muted">
+              Stopped early at epoch {latest.epoch} — loss wasn't improving <HelpTip term="early-stopping" /> enough
+              to keep going.
+            </div>
+          )}
         </div>
       )}
       {trainingDiags.length > 0 && (

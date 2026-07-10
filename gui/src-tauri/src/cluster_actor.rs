@@ -652,7 +652,14 @@ fn handle_submitted_gradients(
     } else {
         session.losses_this_step.iter().sum::<f32>() / session.losses_this_step.len() as f32
     };
-    publish_metric(MetricPoint { epoch: session.step as usize, step: session.step as usize, loss: avg_loss });
+    publish_metric(MetricPoint {
+        epoch: session.step as usize,
+        step: session.step as usize,
+        loss: avg_loss,
+        // Early stopping (standard_trainer.rs) isn't wired into distributed
+        // training's gradient-averaging loop — every round always runs.
+        stopped_early: false,
+    });
 
     let update = WeightUpdate { job_id, step: session.step, weights: tensors_to_payload(&updated) };
     state.swarm.publish_weight_update(&update).ok();

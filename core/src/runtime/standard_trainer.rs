@@ -33,6 +33,20 @@ impl super::trainer::Trainer for StandardTrainer {
             .get("lr")
             .and_then(|v| v.as_f64())
             .unwrap_or(0.01);
+        // 0 (the default — see gui's TRAINING_SCHEMA) means "off": every
+        // epoch runs, exactly like before this feature existed. A positive
+        // patience stops training once `patience` epochs in a row fail to
+        // improve the epoch's average loss by more than EARLY_STOP_MIN_DELTA
+        // — the noise floor for float32 loss values, so trailing-digit jitter
+        // alone can't look like "no improvement" forever.
+        let patience = training_cfg
+            .hyperparams
+            .get("patience")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0) as usize;
+        const EARLY_STOP_MIN_DELTA: f32 = 1e-4;
+        let mut best_epoch_loss = f32::INFINITY;
+        let mut epochs_without_improvement = 0usize;
         let loss_name = training_cfg.loss.clone();
         let optimizer_name = training_cfg.optimizer.clone();
 
@@ -53,6 +67,9 @@ impl super::trainer::Trainer for StandardTrainer {
             // comment) — `epochs` had no effect beyond the first pass over
             // the data no matter what a user configured.
             data.reset()?;
+            let mut epoch_loss_sum = 0f32;
+            let mut epoch_steps = 0usize;
+            let mut last_point: Option<metrics::MetricPoint> = None;
             while let Some(batch) = data.next()? {
                 let inputs = plan.prepare_inputs(batch)?;
                 let loss = plan.train_step(
@@ -75,12 +92,34 @@ impl super::trainer::Trainer for StandardTrainer {
                     step,
                 })?;
                 step += 1;
+                epoch_loss_sum += loss.value;
+                epoch_steps += 1;
 
-                metrics::publish_metric(metrics::MetricPoint {
-                    epoch,
-                    step: loss.step,
-                    loss: loss.value,
-                });
+                let point = metrics::MetricPoint { epoch, step: loss.step, loss: loss.value, stopped_early: false };
+                metrics::publish_metric(point.clone());
+                last_point = Some(point);
+            }
+
+            if patience > 0 && epoch_steps > 0 {
+                let epoch_avg = epoch_loss_sum / epoch_steps as f32;
+                if epoch_avg < best_epoch_loss - EARLY_STOP_MIN_DELTA {
+                    best_epoch_loss = epoch_avg;
+                    epochs_without_improvement = 0;
+                } else {
+                    epochs_without_improvement += 1;
+                    if epochs_without_improvement >= patience {
+                        log::info!(
+                            "early stopping graph `{}`: no improvement in {patience} epoch(s) (best avg loss \
+                             {best_epoch_loss}) — stopping after epoch {epoch} of {epochs}",
+                            plan.graph.name
+                        );
+                        if let Some(mut point) = last_point {
+                            point.stopped_early = true;
+                            metrics::publish_metric(point);
+                        }
+                        break;
+                    }
+                }
             }
         }
 
