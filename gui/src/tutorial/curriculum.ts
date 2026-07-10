@@ -1546,4 +1546,53 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'batch-inference',
+    title: 'Predicting a Whole File at Once',
+    blurb: 'Stop checking rows one at a time — run the model on an entire dataset and get a CSV back.',
+    difficulty: 'intermediate',
+    minutes: 4,
+    steps: [
+      {
+        title: 'Beyond a five-row peek',
+        body:
+          '"Run on first 5 rows" is great for a quick sanity check, but it\'s not how you\'d actually use a ' +
+          'trained model — for that you need every row answered, not a handful. This tab has a real way to ' +
+          'do that too.',
+        target: '[data-tutorial="tab-predict"]',
+        focusTab: { slot: 'bottom', tabId: 'predict' },
+      },
+      {
+        title: 'One pass, every row',
+        body:
+          '"Run on entire dataset & export CSV…" runs the exact same trained model, the exact same way, just ' +
+          'once per row across the whole file instead of five — a real batch inference pass, not a bigger ' +
+          'preview.',
+        target: '[data-tutorial="batch-predict-btn"]',
+      },
+      {
+        title: 'You choose where it lands',
+        body:
+          "Clicking it opens a normal save dialog — pick anywhere on your computer. Nothing is written until " +
+          "you confirm a destination, and the file it writes is a plain CSV: every input column, plus a new " +
+          '"prediction" column, one line per row.',
+        target: '[data-tutorial="batch-predict-btn"]',
+      },
+      {
+        title: 'Confirming it actually ran',
+        body:
+          "Once it finishes, the exact row count and file path are shown right here — so you know it's real " +
+          "output, not a guess, before you go open the file.",
+        target: '[data-tutorial="batch-predict-result"]',
+      },
+      {
+        title: 'From here, it travels anywhere',
+        body:
+          "A CSV of predictions opens in any spreadsheet app, script, or dashboard — the same hand-off " +
+          'point as exporting the checkpoint itself, just for answers instead of the model that produced ' +
+          'them.',
+        target: '[data-tutorial="export-checkpoint-btn"]',
+      },
+    ],
+  },
 ];

@@ -244,6 +244,18 @@ pub async fn load_batch(path: &str, limit: usize) -> Result<RecordBatch> {
         .map_err(|e| BrainBuilderError::ConfigError(e.to_string()))
 }
 
+/// Loads an entire dataset file (csv/parquet) as a streaming iterator over
+/// however many chunks DataFusion partitions it into, with no row cap — used
+/// by batch prediction, which (unlike `load_batch`'s preview-sized limit)
+/// must run over every row. No preprocessing is applied, matching `predict`'s
+/// existing behavior for the same dataset.
+pub async fn load_all(path: &str) -> Result<Box<dyn DataIterator>> {
+    let ctx = SessionContext::new();
+    let df = read_file(&ctx, path).await?;
+    let batches = df.collect().await.map_err(|e| BrainBuilderError::ConfigError(e.to_string()))?;
+    Ok(Box::new(InMemoryIterator { batches, index: 0 }))
+}
+
 /// NOTE: this is async (DataFusion's `collect()` is), so callers must
 /// `.await` it — the original blueprint called this from a non-async fn,
 /// which would not compile.

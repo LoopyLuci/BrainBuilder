@@ -24,12 +24,25 @@ fn versions_dir(checkpoints_dir: &Path, graph_id: &str) -> PathBuf {
     checkpoints_dir.join("versions").join(graph_id)
 }
 
-fn now_id() -> Result<String> {
-    let millis = SystemTime::now()
+/// Picks a millis-since-epoch id for a new archive entry, bumping by one
+/// millisecond at a time when that id is already taken. Two archives can
+/// legitimately land in the same millisecond — `restore_version` archives
+/// the checkpoint it's about to replace mere microseconds after a caller
+/// may have just archived one itself — and colliding on a filename would
+/// silently overwrite (and corrupt) an existing archived version instead of
+/// creating a new one, rather than erroring loudly.
+fn unique_archive_path(dir: &Path) -> Result<PathBuf> {
+    let mut millis = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|e| BrainBuilderError::ConfigError(format!("system clock error: {e}")))?
         .as_millis();
-    Ok(millis.to_string())
+    loop {
+        let candidate = dir.join(format!("{millis}.pt"));
+        if !candidate.exists() {
+            return Ok(candidate);
+        }
+        millis += 1;
+    }
 }
 
 /// Archives the current checkpoint for `graph_id`, if one exists, before it
@@ -43,8 +56,8 @@ pub fn archive_current(checkpoints_dir: &Path, graph_id: &str) -> Result<()> {
     let dir = versions_dir(checkpoints_dir, graph_id);
     std::fs::create_dir_all(&dir)
         .map_err(|e| BrainBuilderError::ConfigError(format!("failed to create version history folder: {e}")))?;
-    let id = now_id()?;
-    std::fs::copy(&current, dir.join(format!("{id}.pt")))
+    let dest = unique_archive_path(&dir)?;
+    std::fs::copy(&current, &dest)
         .map_err(|e| BrainBuilderError::ConfigError(format!("failed to archive the current checkpoint: {e}")))?;
     Ok(())
 }
@@ -143,6 +156,23 @@ mod tests {
 
         let versions_after = list_versions(&dir, "g1").unwrap();
         assert_eq!(versions_after.len(), 2, "restoring should have archived v2 before overwriting it");
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn unique_archive_path_never_collides_even_when_called_back_to_back() {
+        // Regression test: two archives landing in the same millisecond used
+        // to silently overwrite each other's file (see restore_version's
+        // archive-then-copy sequence, which does exactly this in practice).
+        let dir = temp_checkpoints_dir("collision");
+        let first = unique_archive_path(&dir).unwrap();
+        std::fs::write(&first, b"first").unwrap();
+        let second = unique_archive_path(&dir).unwrap();
+        assert_ne!(first, second, "a second call before the first path exists on disk must not reuse it");
+        std::fs::write(&second, b"second").unwrap();
+
+        assert_eq!(std::fs::read(&first).unwrap(), b"first", "the first archive must survive untouched");
+        assert_eq!(std::fs::read(&second).unwrap(), b"second");
         std::fs::remove_dir_all(&dir).ok();
     }
 

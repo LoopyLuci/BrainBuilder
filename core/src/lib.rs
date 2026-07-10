@@ -14,6 +14,7 @@ pub mod diagnostics;
 pub mod synthesis;
 pub mod agent;
 pub mod autotune;
+pub mod batch_predict;
 
 use std::sync::Arc;
 

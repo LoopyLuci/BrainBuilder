@@ -76,7 +76,7 @@ fn drop_last_column(batch: &RecordBatch) -> Result<RecordBatch> {
 /// count (an echoed multi-feature input divides evenly too, but is wider;
 /// weight/bias tensors don't generally divide evenly by an arbitrary row
 /// count at all).
-fn predict_flat(orchestrator: &Orchestrator, graph: &BBIRGraph, batch: RecordBatch) -> Result<Vec<f32>> {
+pub(crate) fn predict_flat(orchestrator: &Orchestrator, graph: &BBIRGraph, batch: RecordBatch) -> Result<Vec<f32>> {
     let num_rows = batch.num_rows();
     let tensors = orchestrator.predict(graph.clone(), batch)?;
     let mut best: Option<Vec<f32>> = None;

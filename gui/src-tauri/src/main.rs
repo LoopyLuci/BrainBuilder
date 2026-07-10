@@ -858,6 +858,29 @@ async fn feature_importance(
     brainbuilder_core::interpret::feature_importance(&orchestrator, &graph, batch).map_err(|e| e.to_string())
 }
 
+/// Runs the trained checkpoint over every row of `dataset_path` (unlike
+/// `predict`, no row cap) and writes `<input columns...>,prediction` to
+/// `output_path` as CSV — see `batch_predict::run_batch_predict`. Returns the
+/// number of rows written so the GUI can report a real count back.
+#[command]
+async fn batch_predict(
+    graph_json: String,
+    dataset_path: String,
+    output_path: String,
+    state: State<'_, AppState>,
+) -> Result<usize, String> {
+    let graph: BBIRGraph = serde_json::from_str(&graph_json).map_err(|e| e.to_string())?;
+    let orchestrator = state.orchestrator.lock().await;
+    brainbuilder_core::batch_predict::run_batch_predict(
+        &orchestrator,
+        &graph,
+        &dataset_path,
+        std::path::Path::new(&output_path),
+    )
+    .await
+    .map_err(|e| e.to_string())
+}
+
 #[command]
 async fn has_checkpoint(graph_id: String, state: State<'_, AppState>) -> Result<bool, String> {
     let orchestrator = state.orchestrator.lock().await;
@@ -1035,6 +1058,7 @@ fn main() {
             save_graph,
             load_graph,
             predict,
+            batch_predict,
             feature_importance,
             has_checkpoint,
             export_checkpoint,

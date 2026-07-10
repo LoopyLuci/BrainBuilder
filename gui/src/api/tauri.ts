@@ -223,6 +223,16 @@ export async function predict(graph: BBIRGraph, datasetPath: string, rows: numbe
   return invoke('predict', { graphJson: JSON.stringify(graph), datasetPath, rows });
 }
 
+// --- Batch inference / bulk prediction (core/src/batch_predict.rs) ---------
+// Unlike `predict` above (a fixed-size in-memory preview), this runs the
+// trained checkpoint over every row of a dataset file — streamed in chunks,
+// not loaded as one giant batch — and writes the results straight to a CSV
+// file on disk. Returns the number of rows written.
+
+export async function batchPredict(graph: BBIRGraph, datasetPath: string, outputPath: string): Promise<number> {
+  return invoke('batch_predict', { graphJson: JSON.stringify(graph), datasetPath, outputPath });
+}
+
 // --- Feature importance / interpretability (core/src/interpret.rs) ---------
 // Ranks each input column by how much predictions move when that column is
 // decoupled from its rows — a real, deterministic permutation-importance

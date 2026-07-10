@@ -4,6 +4,7 @@ import { useGraphStore } from '../state/graphStore';
 import { convertToBBIR } from '../canvas/utils';
 import {
   predict,
+  batchPredict,
   hasCheckpoint,
   exportCheckpoint,
   featureImportance,
@@ -29,6 +30,9 @@ export function PredictPanel() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [batchRunning, setBatchRunning] = useState(false);
+  const [batchError, setBatchError] = useState<string | null>(null);
+  const [batchResult, setBatchResult] = useState<{ rows: number; path: string } | null>(null);
   const [importances, setImportances] = useState<FeatureImportance[] | null>(null);
   const [explaining, setExplaining] = useState(false);
   const [explainError, setExplainError] = useState<string | null>(null);
@@ -130,6 +134,31 @@ export function PredictPanel() {
     }
   };
 
+  const runBatchPredict = async () => {
+    let destPath: string | null;
+    try {
+      destPath = await save({ filters: [{ name: 'CSV predictions', extensions: ['csv'] }] });
+    } catch (e) {
+      logError(`Couldn't open the export dialog: ${e}`);
+      return;
+    }
+    if (!destPath) return;
+    setBatchError(null);
+    setBatchResult(null);
+    setBatchRunning(true);
+    try {
+      const graph = convertToBBIR(nodes, edges, graphId, 'untitled', training);
+      const rows = await batchPredict(graph, training.data_source.path_or_uri, destPath);
+      setBatchResult({ rows, path: destPath });
+      logInfo(`Batch prediction wrote ${rows} row(s) to ${destPath}.`);
+    } catch (e) {
+      setBatchError(String(e));
+      logError(`Batch prediction failed: ${e}`);
+    } finally {
+      setBatchRunning(false);
+    }
+  };
+
   const runExport = async () => {
     let destPath: string | null;
     try {
@@ -175,6 +204,28 @@ export function PredictPanel() {
             BrainBuilder.
           </span>
         </div>
+      )}
+      {checkpointExists && (
+        <div className="bb-row" style={{ alignItems: 'center', gap: 6, marginTop: 4 }}>
+          <Button
+            variant="secondary"
+            data-tutorial="batch-predict-btn"
+            onClick={runBatchPredict}
+            disabled={batchRunning || !training.data_source.path_or_uri}
+          >
+            {batchRunning ? 'Running…' : 'Run on entire dataset & export CSV…'}
+          </Button>
+          <span className="bb-text-muted" style={{ fontSize: 12 }}>
+            Every row, not just a preview handful — a real <HelpTip term="batch-inference" /> pass, written straight
+            to a CSV file.
+          </span>
+        </div>
+      )}
+      {batchError && <div className="bb-text-error">{batchError}</div>}
+      {batchResult && (
+        <p className="bb-text-muted" data-tutorial="batch-predict-result" style={{ margin: '4px 0 0' }}>
+          Wrote {batchResult.rows} prediction{batchResult.rows === 1 ? '' : 's'} to {batchResult.path}.
+        </p>
       )}
       {checkpointExists && (
         <div style={{ borderTop: '1px solid var(--border, rgba(0,0,0,0.1))', paddingTop: 8, marginTop: 8 }}>

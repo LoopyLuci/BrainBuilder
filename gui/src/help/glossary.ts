@@ -235,6 +235,15 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       "isn't doing much; a big change means the model leans on it heavily. It's a real test run against your " +
       "own trained model, not a guess.",
   },
+  'batch-inference': {
+    term: 'Batch inference',
+    short: 'Running the model on a whole file of new rows at once, not just one preview.',
+    long:
+      'Batch inference (also called bulk prediction) means running your trained model over every row of a ' +
+      "file in one go and saving all the answers — instead of checking a handful of rows by hand. It's the " +
+      'same forward pass Predict already uses, just run once per row across an entire dataset and written out ' +
+      'as a CSV file you can open in a spreadsheet.',
+  },
   shape: {
     term: 'Shape',
     short: 'The size/dimensions of the numbers flowing between nodes.',
