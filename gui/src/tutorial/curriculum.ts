@@ -2119,4 +2119,46 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'gpu-selection',
+    title: 'Picking Which GPU Does the Work',
+    blurb: 'On a machine with more than one graphics card, pin one by name and actually test it binds.',
+    difficulty: 'intermediate',
+    minutes: 3,
+    steps: [
+      {
+        title: 'More than one GPU, one decision to make',
+        body:
+          "A laptop with both an integrated GPU and a dedicated one — or a desktop with several cards — has " +
+          "more than one place native computation could run. The Models tab lists every device BrainBuilder " +
+          "can actually drive, across Vulkan, DirectX 12, or Metal depending on your OS, all through the same " +
+          'cross-platform layer.',
+        target: '[data-tutorial="tab-models"]',
+        focusTab: { slot: 'side', tabId: 'models' },
+      },
+      {
+        title: 'Auto, or pin one by name',
+        body:
+          'The dropdown defaults to "Auto (highest performance)" — a reasonable guess with zero setup. Pick a ' +
+          "specific card instead (say, a dedicated GPU over the integrated one it's paired with) and that " +
+          "exact device is what future native operations will target.",
+        target: '[data-tutorial="gpu-select"]',
+      },
+      {
+        title: 'Prove it, don\'t just trust it',
+        body:
+          'Click "Test this GPU" — a real bind attempt against the real hardware, not a guess. If your choice ' +
+          "genuinely can't be reached, you find out right here, calmly, instead of discovering it mid-training.",
+        target: '[data-tutorial="gpu-test-btn"]',
+      },
+      {
+        title: 'Reading a successful bind',
+        body:
+          'A "bound" chip appears with the real backend and device string it actually connected to — proof ' +
+          "the whole chain (your selection -> the wgpu layer -> the real driver) genuinely worked, not just " +
+          "that the dropdown accepted your click.",
+        target: '[data-tutorial="gpu-probe-result"]',
+      },
+    ],
+  },
 ];

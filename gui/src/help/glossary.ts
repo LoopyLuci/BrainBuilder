@@ -331,6 +331,17 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       '— never to a plain file, never to browser storage, and the app never reads the raw key back afterward, ' +
       'only whether one is currently saved. "Disconnect" removes it the same way it went in.',
   },
+  'gpu-selection': {
+    term: 'GPU selection',
+    short: 'Pinning which graphics card does the work, on a machine with more than one.',
+    long:
+      "A laptop with both an integrated GPU and a dedicated one — or a desktop with multiple cards — can " +
+      'confuse "just pick a GPU automatically" logic. BrainBuilder lists every device it can actually drive ' +
+      '(via wgpu, the same cross-platform layer regardless of whether that\'s Vulkan, DirectX 12, or Metal ' +
+      'underneath) and lets you pin one by name instead of trusting auto-selection. "Test this GPU" is a real ' +
+      'bind attempt against the real hardware, not a guess — it tells you whether your choice actually works ' +
+      'before you\'re relying on it mid-training.',
+  },
   'gradient-clipping': {
     term: 'Gradient clipping',
     short: "Capping how big a single training step is allowed to be, so one bad batch can't blow up the model.",

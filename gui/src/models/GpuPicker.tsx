@@ -74,7 +74,7 @@ export function GpuPicker() {
             {busy ? 'Binding…' : 'Test this GPU'}
           </Button>
           {probe && (
-            <div style={{ marginTop: 6 }}>
+            <div style={{ marginTop: 6 }} data-tutorial="gpu-probe-result">
               <span className="bb-chip bb-chip--accent">bound</span>{' '}
               <span className="bb-text-muted" style={{ fontSize: 11 }}>{probe}</span>
             </div>
