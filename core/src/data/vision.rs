@@ -133,9 +133,15 @@ pub fn load_image_folder(
     let feature_count = layout.feature_count();
 
     // Decode every image in class order, then in filename order within a
-    // class — deterministic, and it keeps a class's examples contiguous which
-    // is fine because the trainer shuffles by shuffling the epoch's batch
-    // order at a higher level (and single-batch personal datasets are common).
+    // class — deterministic, and it keeps a class's examples contiguous.
+    // Real bug this used to have: this comment used to *claim* "the trainer
+    // shuffles by shuffling the epoch's batch order at a higher level", but
+    // nothing anywhere ever actually did that (`InMemoryIterator::reset()`
+    // only rewound an index) — every epoch fed entire class-contiguous runs
+    // of batches in the exact same order, silently, for as long as this
+    // loader has existed. The real `shuffle` training hyperparameter (see
+    // `InMemoryIterator`/`load_dataset` in `source.rs`) now actually does
+    // this, opt-in, for real.
     let mut examples: Vec<Example> = Vec::new();
     for (label, (class_name, dir)) in class_dirs.iter().enumerate() {
         let mut files: Vec<PathBuf> = std::fs::read_dir(dir)

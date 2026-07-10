@@ -355,6 +355,17 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       "not the weights or the gradient — and only makes sense for classification (cross entropy), never for " +
       "predicting a number.",
   },
+  'batch-shuffling': {
+    term: 'Batch shuffling',
+    short: 'Mixing up the order batches arrive in each epoch, instead of always the same fixed order.',
+    long:
+      'A dataset\'s rows usually arrive in whatever order they were stored in — a spreadsheet\'s row order, or ' +
+      'a folder of images decoded one class at a time. Left alone, every single epoch feeds the model those ' +
+      'same batches in that exact same order, every time. For an image folder in particular, that can mean an ' +
+      'entire epoch of nothing but one category before the model ever sees another — not a great pattern for ' +
+      'learning. Turning shuffling on genuinely re-mixes the batch order on every epoch, so the model sees a ' +
+      "healthier variety pass to pass, without touching your original files or their on-disk order at all.",
+  },
   'gradient-clipping': {
     term: 'Gradient clipping',
     short: "Capping how big a single training step is allowed to be, so one bad batch can't blow up the model.",

@@ -2223,4 +2223,49 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'batch-shuffling',
+    title: 'Mixing Up the Order Your Data Arrives In',
+    blurb: "Without this, every epoch sees your data in the exact same order — sometimes a genuinely bad idea.",
+    difficulty: 'intermediate',
+    minutes: 4,
+    steps: [
+      {
+        title: 'The same order, every single epoch, by default',
+        body:
+          "A dataset's rows normally arrive in whatever order they were stored in. Left alone, every epoch " +
+          'feeds the model the exact same sequence of batches, every time — for a folder of images in ' +
+          "particular, that can mean a whole epoch of one category before the model ever sees another, since " +
+          "images get decoded one class folder at a time.",
+        target: '[data-tutorial="tab-data"]',
+        focusTab: { slot: 'side', tabId: 'data' },
+      },
+      {
+        title: 'The shuffle switch',
+        body:
+          '"Shuffle batch order every epoch" sits at the very bottom of the training settings. Leave it off ' +
+          "and nothing changes — the exact same order every time, same as before this existed. Turn it on and " +
+          "the order genuinely re-shuffles at the start of every epoch.",
+        target: '[data-tutorial="training-hyperparams"]',
+      },
+      {
+        title: "Nothing about your files changes",
+        body:
+          "This only changes the order batches are handed to the model during training — your original file " +
+          "or image folder on disk is never touched, reordered, or renamed. Turn it on or off freely; there's " +
+          "no risk to your actual data either way.",
+        target: '[data-tutorial="training-hyperparams"]',
+      },
+      {
+        title: 'Where it matters most',
+        body:
+          "For a small, already-mixed spreadsheet, shuffling often makes little visible difference. For a " +
+          "folder-of-images dataset — decoded class by class, as \"Getting More Out of Your Photos\" covers " +
+          "— it can matter a lot: without shuffling, a model can spend a long stretch only seeing one category " +
+          "in a row before the next.",
+        target: '[data-tutorial="tab-build"]',
+        focusTab: { slot: 'side', tabId: 'build' },
+      },
+    ],
+  },
 ];

@@ -253,21 +253,28 @@ pub async fn load_all(path: &str) -> Result<Box<dyn DataIterator>> {
     let ctx = SessionContext::new();
     let df = read_file(&ctx, path).await?;
     let batches = df.collect().await.map_err(|e| BrainBuilderError::ConfigError(e.to_string()))?;
-    Ok(Box::new(InMemoryIterator { batches, index: 0 }))
+    Ok(Box::new(InMemoryIterator::new(batches, false)))
 }
 
 /// NOTE: this is async (DataFusion's `collect()` is), so callers must
 /// `.await` it — the original blueprint called this from a non-async fn,
 /// which would not compile.
 pub async fn load_dataset(config: &crate::bbir::TrainingConfig) -> Result<Box<dyn DataIterator>> {
+    // False (the default) means every epoch sees batches in exactly the
+    // same order, same as before this hyperparameter existed. True
+    // re-shuffles the batch order every epoch — see `InMemoryIterator`'s
+    // doc comment for why this matters most for `image_folder` sources,
+    // whose batches are decoded in class order.
+    let shuffle = config.hyperparams.get("shuffle").and_then(|v| v.as_bool()).unwrap_or(false);
+
     if config.data_source.source_type == "text_sequence" {
-        return load_text_sequence_dataset(&config.data_source);
+        return load_text_sequence_dataset(&config.data_source, shuffle);
     }
     if config.data_source.source_type == "image_folder" {
-        return load_image_folder_dataset(&config.data_source);
+        return load_image_folder_dataset(&config.data_source, shuffle);
     }
     if config.data_source.source_type == "text_column" {
-        return load_text_column_dataset(&config.data_source).await;
+        return load_text_column_dataset(&config.data_source, shuffle).await;
     }
     let ctx = SessionContext::new();
     let df = match config.data_source.source_type.as_str() {
@@ -279,7 +286,7 @@ pub async fn load_dataset(config: &crate::bbir::TrainingConfig) -> Result<Box<dy
         .into_iter()
         .map(|batch| crate::data::etl::apply_steps(batch, &config.data_source.preprocessing))
         .collect::<Result<Vec<_>>>()?;
-    Ok(Box::new(InMemoryIterator { batches, index: 0 }))
+    Ok(Box::new(InMemoryIterator::new(batches, shuffle)))
 }
 
 /// Tokenizes a real text file into a real word-level vocabulary (see
@@ -292,7 +299,7 @@ pub async fn load_dataset(config: &crate::bbir::TrainingConfig) -> Result<Box<dy
 /// beyond this dataset-loading step. `preprocessing` steps are ignored here
 /// (they're aimed at numeric tabular columns; token id columns aren't a
 /// meaningful target for normalize/cast).
-fn load_text_sequence_dataset(config: &crate::bbir::DataSourceConfig) -> Result<Box<dyn DataIterator>> {
+fn load_text_sequence_dataset(config: &crate::bbir::DataSourceConfig, shuffle: bool) -> Result<Box<dyn DataIterator>> {
     let text = std::fs::read_to_string(&config.path_or_uri).map_err(|e| {
         BrainBuilderError::ConfigError(format!("failed to read text dataset `{}`: {e}", config.path_or_uri))
     })?;
@@ -310,7 +317,7 @@ fn load_text_sequence_dataset(config: &crate::bbir::DataSourceConfig) -> Result<
         .chunks(batch_size)
         .map(|chunk| windows_to_record_batch(chunk, seq_len))
         .collect::<Result<Vec<_>>>()?;
-    Ok(Box::new(InMemoryIterator { batches, index: 0 }))
+    Ok(Box::new(InMemoryIterator::new(batches, shuffle)))
 }
 
 /// Ingest a folder-of-class-subfolders of images (see `data::vision`) into the
@@ -325,7 +332,7 @@ fn load_text_sequence_dataset(config: &crate::bbir::DataSourceConfig) -> Result<
 /// image folders honor — `etl::apply_steps` (normalize/cast) never runs for
 /// this source type, since those operate on named tabular columns that don't
 /// exist until after decoding.
-fn load_image_folder_dataset(config: &crate::bbir::DataSourceConfig) -> Result<Box<dyn DataIterator>> {
+fn load_image_folder_dataset(config: &crate::bbir::DataSourceConfig, shuffle: bool) -> Result<Box<dyn DataIterator>> {
     let augment = config.preprocessing.iter().any(|s| s.op == "augment_flip");
     let layout = crate::data::vision::ImageLayout {
         size: config.image_size.unwrap_or(32) as u32,
@@ -334,7 +341,7 @@ fn load_image_folder_dataset(config: &crate::bbir::DataSourceConfig) -> Result<B
     };
     let root = std::path::Path::new(&config.path_or_uri);
     let dataset = crate::data::vision::load_image_folder(root, layout, config.batch_size.max(1))?;
-    Ok(Box::new(InMemoryIterator { batches: dataset.batches, index: 0 }))
+    Ok(Box::new(InMemoryIterator::new(dataset.batches, shuffle)))
 }
 
 /// Ingest a tabular file (csv/parquet) where one column is free text and
@@ -342,7 +349,7 @@ fn load_image_folder_dataset(config: &crate::bbir::DataSourceConfig) -> Result<B
 /// dataset (see `data::tabular_text`). Column values are stringified through
 /// the same Arrow `ArrayFormatter` the preview uses, so the text and label
 /// columns work regardless of the inferred Arrow type (Utf8, Int64, ...).
-async fn load_text_column_dataset(config: &crate::bbir::DataSourceConfig) -> Result<Box<dyn DataIterator>> {
+async fn load_text_column_dataset(config: &crate::bbir::DataSourceConfig, shuffle: bool) -> Result<Box<dyn DataIterator>> {
     let rows = read_text_label_rows(config).await?;
     let vocab_size = config.vocab_size.unwrap_or(2_000);
     let dataset = crate::data::tabular_text::build_bag_of_words(&rows, vocab_size)?;
@@ -353,7 +360,7 @@ async fn load_text_column_dataset(config: &crate::bbir::DataSourceConfig) -> Res
         .chunks(batch_size)
         .map(|chunk| bow_rows_to_record_batch(chunk, dataset.feature_count))
         .collect::<Result<Vec<_>>>()?;
-    Ok(Box::new(InMemoryIterator { batches, index: 0 }))
+    Ok(Box::new(InMemoryIterator::new(batches, shuffle)))
 }
 
 fn bow_rows_to_record_batch(chunk: &[(Vec<f32>, f32)], feature_count: usize) -> Result<RecordBatch> {
@@ -409,6 +416,65 @@ fn windows_to_record_batch(chunk: &[(Vec<u32>, u32)], seq_len: usize) -> Result<
 struct InMemoryIterator {
     batches: Vec<RecordBatch>,
     index: usize,
+    /// False (the default — see `shuffle_seed`) means every epoch sees
+    /// batches in exactly the same order, same as before this field
+    /// existed. True re-shuffles the batch order on every `reset()`, so a
+    /// dataset whose rows arrived in a meaningful order (e.g. an
+    /// image-folder source, decoded class by class — see
+    /// `load_image_folder_dataset`'s doc comment, which used to *claim*
+    /// this shuffling already happened "at a higher level" when it never
+    /// actually did) doesn't hand the trainer entire epochs of one class in
+    /// a row before the next.
+    shuffle: bool,
+    rng_state: u64,
+}
+
+impl InMemoryIterator {
+    fn new(batches: Vec<RecordBatch>, shuffle: bool) -> Self {
+        Self { batches, index: 0, shuffle, rng_state: shuffle_seed() }
+    }
+}
+
+/// `BRAINBUILDER_SEED` already exists for reproducible Python-side weight
+/// init (`_bb_worker.py`'s `_apply_seed`) — reused here so a seeded run's
+/// batch order is reproducible too, without a new env var. Falls back to
+/// real wall-clock entropy when unset, matching every other real (not
+/// reproducibility-mode) run's existing behavior of not being pinned to any
+/// particular order.
+fn shuffle_seed() -> u64 {
+    std::env::var("BRAINBUILDER_SEED")
+        .ok()
+        .and_then(|s| s.parse::<u64>().ok())
+        .unwrap_or_else(|| {
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos() as u64)
+                .unwrap_or(0x9E3779B97F4A7C15)
+        })
+        // A raw seed of 0 would make xorshift64 degenerate (it always
+        // returns 0), so nudge it off zero the same way common xorshift
+        // implementations do.
+        .max(1)
+}
+
+/// Minimal dependency-free xorshift64 step — no need for a full `rand` crate
+/// dependency just to shuffle a `Vec<RecordBatch>` once per epoch.
+fn xorshift64(state: &mut u64) -> u64 {
+    let mut x = *state;
+    x ^= x << 13;
+    x ^= x >> 7;
+    x ^= x << 17;
+    *state = x;
+    x
+}
+
+/// Real Fisher-Yates shuffle, in place, using `xorshift64` for the random
+/// index draws.
+fn shuffle_in_place<T>(items: &mut [T], rng_state: &mut u64) {
+    for i in (1..items.len()).rev() {
+        let j = (xorshift64(rng_state) % (i as u64 + 1)) as usize;
+        items.swap(i, j);
+    }
 }
 
 impl DataIterator for InMemoryIterator {
@@ -424,6 +490,130 @@ impl DataIterator for InMemoryIterator {
 
     fn reset(&mut self) -> Result<()> {
         self.index = 0;
+        if self.shuffle {
+            shuffle_in_place(&mut self.batches, &mut self.rng_state);
+        }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod shuffle_tests {
+    use super::*;
+    use arrow::array::Float32Array;
+
+    // Real, deterministic, torch-free: proves the actual `shuffle` training
+    // hyperparameter reorders real batches, via the same public
+    // `load_dataset` entry point real training uses. A plain "file" (CSV)
+    // source doesn't actually work for this: `load_dataset`'s "file" branch
+    // never chunks by `batch_size` (it just collects whatever DataFusion's
+    // own partitioning returns — one single RecordBatch for a small file),
+    // so a `text_sequence` source is used instead — one of the three
+    // sources that genuinely does `.chunks(batch_size)` into multiple real
+    // batches (see `load_text_sequence_dataset`), which is also exactly the
+    // real code path a training run over sequence data takes.
+    fn write_text(path: &std::path::Path) {
+        // 12 distinct one-character "words" -> 12 distinct token ids -> 11
+        // real, individually-identifiable (word0, word1) windows at
+        // seq_len=1.
+        let words: Vec<String> = (0..12).map(|i| format!("w{i}")).collect();
+        std::fs::write(path, words.join(" ")).unwrap();
+    }
+
+    fn training_config(path: &std::path::Path, shuffle: bool) -> crate::bbir::TrainingConfig {
+        crate::bbir::TrainingConfig {
+            loss: "cross_entropy".to_string(),
+            optimizer: "sgd".to_string(),
+            trainer_type: "standard".to_string(),
+            hyperparams: serde_json::json!({"lr": 0.01, "epochs": 1, "shuffle": shuffle}),
+            data_source: crate::bbir::DataSourceConfig {
+                source_type: "text_sequence".to_string(),
+                path_or_uri: path.to_string_lossy().to_string(),
+                // batch_size 1: one window per real batch, individually
+                // trackable via each batch's own "target" token id.
+                batch_size: 1,
+                preprocessing: Vec::new(),
+                sequence_length: Some(1),
+                vocab_size: Some(100),
+                image_size: None,
+                grayscale: None,
+                text_column: None,
+                label_column: None,
+            },
+            reproducibility: None,
+        }
+    }
+
+    fn drain_order(iter: &mut dyn DataIterator) -> Vec<i64> {
+        let mut order = Vec::new();
+        while let Some(batch) = iter.next().unwrap() {
+            // Last column is "target" (see `windows_to_record_batch`) —
+            // real, distinct per window, so its value uniquely identifies
+            // which window this batch is.
+            let col = batch.column(batch.num_columns() - 1);
+            let target = col.as_any().downcast_ref::<Float32Array>().expect("target column should be float32");
+            order.push(target.value(0).round() as i64);
+        }
+        order
+    }
+
+    #[test]
+    fn shuffle_off_keeps_the_original_batch_order_every_epoch() {
+        let dir = std::env::temp_dir().join(format!("bb_shuffle_off_{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("data.txt");
+        write_text(&path);
+
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        let mut iter = rt.block_on(load_dataset(&training_config(&path, false))).unwrap();
+
+        iter.reset().unwrap();
+        let epoch1 = drain_order(iter.as_mut());
+        iter.reset().unwrap();
+        let epoch2 = drain_order(iter.as_mut());
+        assert_eq!(epoch1, epoch2, "with shuffle off, every epoch should see batches in the exact same order");
+
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn shuffle_on_actually_reorders_real_batches_and_differs_epoch_to_epoch() {
+        let dir = std::env::temp_dir().join(format!("bb_shuffle_on_{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("data.txt");
+        write_text(&path);
+        // Deterministic: same reproducibility knob real training already
+        // supports for Python-side seeding, reused here for the batch-order
+        // RNG too (see `shuffle_seed`).
+        std::env::set_var("BRAINBUILDER_SEED", "777");
+
+        let rt = tokio::runtime::Runtime::new().unwrap();
+
+        // A fresh, shuffle-off load of the same real file is the ground
+        // truth for "what unshuffled order actually is" — avoids having to
+        // know or hardcode the vocab's real token-id assignment order.
+        let mut baseline_iter = rt.block_on(load_dataset(&training_config(&path, false))).unwrap();
+        baseline_iter.reset().unwrap();
+        let baseline = drain_order(baseline_iter.as_mut());
+
+        let mut iter = rt.block_on(load_dataset(&training_config(&path, true))).unwrap();
+        iter.reset().unwrap();
+        let epoch1 = drain_order(iter.as_mut());
+        iter.reset().unwrap();
+        let epoch2 = drain_order(iter.as_mut());
+
+        // Still every original window exactly once — a real permutation,
+        // not dropped/duplicated/invented windows.
+        let mut sorted1 = epoch1.clone();
+        sorted1.sort();
+        let mut sorted_baseline = baseline.clone();
+        sorted_baseline.sort();
+        assert_eq!(sorted1, sorted_baseline, "epoch 1 must be a permutation of the real windows, not a different dataset");
+
+        assert_ne!(epoch1, baseline, "shuffle=true should actually reorder the batches, not silently no-op");
+        assert_ne!(epoch1, epoch2, "each epoch should get its own fresh shuffle, not the same order repeated");
+
+        std::env::remove_var("BRAINBUILDER_SEED");
+        std::fs::remove_dir_all(&dir).ok();
     }
 }
