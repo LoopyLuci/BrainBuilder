@@ -84,7 +84,7 @@ export function PluginsPanel() {
 
   return (
     <Panel title="Plugins" subtitle="Load UI widgets at runtime — capability-gated, no rebuild.">
-      <div style={{ marginBottom: 8 }}>
+      <div style={{ marginBottom: 8 }} data-tutorial="plugins-panels-list">
         <div className="bb-label" style={{ marginBottom: 4 }}>Panels</div>
         <div className="bb-text-muted" style={{ fontSize: 11, marginBottom: 4 }}>
           Show or hide any panel — your choice persists across reloads.
@@ -113,7 +113,7 @@ export function PluginsPanel() {
         </ul>
       </div>
 
-      <div style={{ marginBottom: 8 }}>
+      <div style={{ marginBottom: 8 }} data-tutorial="plugins-examples">
         <div className="bb-label" style={{ marginBottom: 4 }}>Bundled examples</div>
         <ul className="bb-list">
           {BUNDLED_EXAMPLES.map((ex) => {
@@ -140,7 +140,7 @@ export function PluginsPanel() {
         </ul>
       </div>
 
-      <div className="bb-row">
+      <div className="bb-row" data-tutorial="plugins-manual-entry">
         <input
           className="bb-input"
           value={entry}
@@ -153,9 +153,9 @@ export function PluginsPanel() {
         </Button>
       </div>
 
-      {entries.length === 0 && <div className="bb-empty">No plugins loaded.</div>}
+      {entries.length === 0 && <div className="bb-empty" data-tutorial="plugins-loaded-empty">No plugins loaded.</div>}
 
-      <ul className="bb-list">
+      <ul className="bb-list" data-tutorial="plugins-loaded-list">
         {entries.map(({ manifest, status, error }) => (
           <li key={manifest.id} className="bb-list-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ minWidth: 0 }}>

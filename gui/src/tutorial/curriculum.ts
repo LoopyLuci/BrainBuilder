@@ -2018,4 +2018,54 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'plugins',
+    title: 'Add New Panels Without a Rebuild',
+    blurb: 'Load extra panels into the app live — capability-gated, so a plugin only gets what it asks for.',
+    difficulty: 'advanced',
+    minutes: 5,
+    steps: [
+      {
+        title: 'Every panel you\'ve used was built in — this one is different',
+        body:
+          'The Plugins tab is where the app can extend itself while it\'s running. A plugin is a small piece ' +
+          'of code loaded live — no rebuild, no reinstall — that can add a real, working panel to the side or ' +
+          'bottom rail the moment you load it.',
+        target: '[data-tutorial="tab-plugins"]',
+        focusTab: { slot: 'side', tabId: 'plugins' },
+      },
+      {
+        title: 'Load a bundled example',
+        body:
+          'Click "Load" next to "sticky-note" — a tiny scratch-note panel appears in the side rail within a ' +
+          'moment, with no restart. It only asked for permission to add a panel, so that\'s the only thing it ' +
+          'can do.',
+        target: '[data-tutorial="plugins-examples"]',
+      },
+      {
+        title: 'A plugin that asks for more',
+        body:
+          '"graph-stats" is different — its description says it also uses the "read-graph" capability. Load ' +
+          "it and a live node/edge count appears in the bottom rail. It can see your graph because it " +
+          "explicitly asked to; a plugin that never requested that capability simply has no way to reach it, " +
+          "the same deny-by-default rule the Nervous System uses for a component's own code.",
+        target: '[data-tutorial="plugins-examples"]',
+      },
+      {
+        title: 'Unload it — gone just as cleanly',
+        body:
+          'Click "Unload" on either example (now showing where "Load" was) and its panel disappears ' +
+          "immediately. Nothing lingers — loading and unloading a plugin is completely reversible, any time.",
+        target: '[data-tutorial="plugins-loaded-list"]',
+      },
+      {
+        title: 'Hide a panel you don\'t need',
+        body:
+          'Separately from plugins, the "Panels" list above lets you hide or show any panel — built-in or ' +
+          'plugin — and your choice is remembered the next time you open the app. Handy for tidying up the ' +
+          "rail once you know which tabs you actually use day to day.",
+        target: '[data-tutorial="plugins-panels-list"]',
+      },
+    ],
+  },
 ];

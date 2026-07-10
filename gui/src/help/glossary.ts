@@ -311,6 +311,16 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       "your real component library before it ever reaches the canvas, so a component name that doesn't exist " +
       "gets rejected instead of silently added.",
   },
+  plugins: {
+    term: 'Plugins',
+    short: 'Extra panels you can load into the app while it\'s running, without a rebuild or reinstall.',
+    long:
+      'Every panel you\'ve used so far — Build, Data, Predict — was compiled into the app. A plugin is a ' +
+      'small piece of code loaded live instead: click "Load" and its panel appears in the side or bottom rail ' +
+      'immediately, no restart. A plugin only gets to do what it explicitly declares up front — one that only ' +
+      'asks to add a panel can\'t also read your graph or call the AI, mirroring the same "ask for exactly ' +
+      "what you need, nothing more\" rule the Nervous System enforces for a component's own code.",
+  },
   'gradient-clipping': {
     term: 'Gradient clipping',
     short: "Capping how big a single training step is allowed to be, so one bad batch can't blow up the model.",
