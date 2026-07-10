@@ -2068,4 +2068,55 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'opencode-connect',
+    title: 'Connecting a Hosted AI Provider',
+    blurb: 'Add a paid provider\'s bigger models — the key goes straight to your OS keychain, never the app itself.',
+    difficulty: 'intermediate',
+    minutes: 3,
+    steps: [
+      {
+        title: 'Ollama isn\'t the only option',
+        body:
+          'Everywhere you\'ve picked an AI provider so far, Ollama ran fully on this computer — no account, ' +
+          'no key. "OpenCode Go" is the alternative: a hosted service with its own, often larger, models, ' +
+          "reached over the network. Connecting it once here makes it available anywhere you pick a provider.",
+        target: '[data-tutorial="tab-models"]',
+        focusTab: { slot: 'side', tabId: 'models' },
+      },
+      {
+        title: 'Where the key actually goes',
+        body:
+          'Paste an API key into the box and click "Connect". That key is written straight to your operating ' +
+          'system\'s own secure keychain — never a plain file, never browser storage. The app itself never ' +
+          'reads the raw key back afterward, only whether one happens to be saved.',
+        target: '[data-tutorial="opencode-key-input"]',
+      },
+      {
+        title: 'Connected',
+        body:
+          'Once it succeeds, the box is replaced by a simple "Connected" chip — no key ever shown again, by ' +
+          'design. From here, OpenCode Go\'s models show up in every provider selector in the app, right ' +
+          'alongside Ollama\'s.',
+        target: '[data-tutorial="opencode-status"]',
+      },
+      {
+        title: 'Put it to use',
+        body:
+          'Head to the Author tab ("Describe What You Want in Plain English") and switch the provider to ' +
+          'OpenCode Go — the exact same free-text authoring flow, just backed by a different, hosted model ' +
+          'now that you\'ve connected one.',
+        target: '[data-tutorial="tab-author"]',
+        focusTab: { slot: 'side', tabId: 'author' },
+      },
+      {
+        title: 'Disconnect any time',
+        body:
+          'Back on the Models tab, "Disconnect" removes the key from your keychain the same way it went in — ' +
+          "no trace left behind, and Ollama keeps working exactly as it always did either way.",
+        target: '[data-tutorial="opencode-status"]',
+        focusTab: { slot: 'side', tabId: 'models' },
+      },
+    ],
+  },
 ];

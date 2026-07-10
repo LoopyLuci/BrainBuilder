@@ -19,6 +19,12 @@ export function OpenCodeConnect() {
     hasProviderCredentials('opencode').then(setConnected).catch(() => setConnected(false));
   }, []);
 
+  // `busy` only guards the credential write itself (fast — local keychain +
+  // one IPC round trip). The provider-list refresh that follows touches
+  // whatever provider happens to be selected (e.g. Ollama), which can be
+  // slow or unreachable — that must never hold the Connect/Disconnect
+  // button hostage, so it runs in the background, outside the try/finally
+  // that clears `busy`.
   const save = async () => {
     setBusy(true);
     try {
@@ -26,13 +32,15 @@ export function OpenCodeConnect() {
       setKey('');
       const present = await hasProviderCredentials('opencode');
       setConnected(present);
-      await refreshProviders();
-      logInfo(present ? 'OpenCode Go connected — its models are now in the provider selector.' : 'OpenCode Go key cleared.');
     } catch (e) {
       logError(`Saving OpenCode credentials failed: ${e}`);
-    } finally {
       setBusy(false);
+      return;
     }
+    setBusy(false);
+    refreshProviders()
+      .then(() => logInfo('OpenCode Go connected — its models are now in the provider selector.'))
+      .catch((e) => logError(`Refreshing providers after connecting failed: ${e}`));
   };
 
   const disconnect = async () => {
@@ -40,13 +48,15 @@ export function OpenCodeConnect() {
     try {
       await setProviderCredentials('opencode', '');
       setConnected(false);
-      await refreshProviders();
-      logInfo('OpenCode Go disconnected.');
     } catch (e) {
       logError(`Clearing OpenCode credentials failed: ${e}`);
-    } finally {
       setBusy(false);
+      return;
     }
+    setBusy(false);
+    refreshProviders()
+      .then(() => logInfo('OpenCode Go disconnected.'))
+      .catch((e) => logError(`Refreshing providers after disconnecting failed: ${e}`));
   };
 
   return (
@@ -54,28 +64,31 @@ export function OpenCodeConnect() {
       title="OpenCode Go"
       subtitle="Hosted open models (GLM, Kimi, Qwen, DeepSeek…). Key stored in your OS keychain."
     >
-      {connected ? (
-        <div className="bb-row" style={{ alignItems: 'center' }}>
-          <span className="bb-chip bb-chip--accent">Connected</span>
-          <Button variant="ghost" onClick={disconnect} disabled={busy}>
-            Disconnect
-          </Button>
-        </div>
-      ) : (
-        <div className="bb-row">
-          <input
-            className="bb-input"
-            type="password"
-            value={key}
-            onChange={(e) => setKey(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && key.trim() && save()}
-            placeholder="OpenCode Go API key"
-          />
-          <Button variant="primary" onClick={save} disabled={busy || !key.trim()}>
-            Connect
-          </Button>
-        </div>
-      )}
+      <div data-tutorial="opencode-status">
+        {connected ? (
+          <div className="bb-row" style={{ alignItems: 'center' }}>
+            <span className="bb-chip bb-chip--accent">Connected</span>
+            <Button variant="ghost" onClick={disconnect} disabled={busy}>
+              Disconnect
+            </Button>
+          </div>
+        ) : (
+          <div className="bb-row">
+            <input
+              className="bb-input"
+              type="password"
+              data-tutorial="opencode-key-input"
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && key.trim() && save()}
+              placeholder="OpenCode Go API key"
+            />
+            <Button variant="primary" data-tutorial="opencode-connect-btn" onClick={save} disabled={busy || !key.trim()}>
+              Connect
+            </Button>
+          </div>
+        )}
+      </div>
     </Panel>
   );
 }

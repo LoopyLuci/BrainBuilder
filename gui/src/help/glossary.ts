@@ -321,6 +321,16 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       'asks to add a panel can\'t also read your graph or call the AI, mirroring the same "ask for exactly ' +
       "what you need, nothing more\" rule the Nervous System enforces for a component's own code.",
   },
+  'opencode-connect': {
+    term: 'Connecting a hosted provider',
+    short: 'Adding a paid, hosted AI provider\'s API key — stored in your OS keychain, never in the app itself.',
+    long:
+      'Ollama runs fully on your own computer, no account needed. OpenCode Go is the opposite: a hosted ' +
+      "service with its own larger models, reached over the network, that needs an API key to use. Pasting " +
+      'that key in and clicking "Connect" writes it straight to your operating system\'s own secure keychain ' +
+      '— never to a plain file, never to browser storage, and the app never reads the raw key back afterward, ' +
+      'only whether one is currently saved. "Disconnect" removes it the same way it went in.',
+  },
   'gradient-clipping': {
     term: 'Gradient clipping',
     short: "Capping how big a single training step is allowed to be, so one bad batch can't blow up the model.",
