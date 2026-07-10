@@ -60,6 +60,21 @@ impl super::trainer::Trainer for StandardTrainer {
             .get("grad_clip")
             .and_then(|v| v.as_f64())
             .unwrap_or(0.0);
+        // 0.0 (the default) means "off" — cross_entropy trains against
+        // exact one-hot targets, same as before this hyperparameter
+        // existed. A value in (0, 1) blends each target a little toward a
+        // uniform distribution over every class (torch's own
+        // `label_smoothing` kwarg), discouraging the model from becoming
+        // fully, overconfidently certain about training labels it may have
+        // gotten from noisy data — a different lever from `weight_decay`
+        // (shrinks weights) or `dropout` (drops signal): this one softens
+        // what "correct" means. Meaningless (and silently ignored) for
+        // `mse`, which has no notion of a class distribution.
+        let label_smoothing = training_cfg
+            .hyperparams
+            .get("label_smoothing")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0);
         // 0 (the default — see gui's TRAINING_SCHEMA) means "off": every
         // epoch runs, exactly like before this feature existed. A positive
         // patience stops training once `patience` epochs in a row fail to
@@ -125,6 +140,7 @@ impl super::trainer::Trainer for StandardTrainer {
                     current_lr,
                     weight_decay,
                     grad_clip,
+                    label_smoothing,
                     &self.python,
                 )?;
                 self.context.provenance.log(crate::utils::provenance::ProvenanceRecord {

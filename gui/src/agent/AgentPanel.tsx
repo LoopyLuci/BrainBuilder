@@ -215,7 +215,7 @@ export function AgentPanel() {
           )}
 
           {audit.length > 0 && (
-            <div style={{ marginTop: 8 }}>
+            <div style={{ marginTop: 8 }} data-tutorial="agent-sandbox-trace">
               <div className="bb-label" style={{ marginBottom: 4 }}>
                 Sandbox trace{' '}
                 <span className="bb-text-muted" style={{ fontSize: 10 }}>

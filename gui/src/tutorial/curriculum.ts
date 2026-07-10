@@ -766,12 +766,28 @@ export const CURRICULUM: Tutorial[] = [
         target: '[data-tutorial="agent-run-btn"]',
       },
       {
-        title: 'Approve, or throw it away',
+        title: 'Happy with it? Merge it in',
         body:
-          '"Approve + merge" brings the agent\'s changes into your real project. "Discard" deletes the whole ' +
-          'worktree instead — as if the agent had never run — no trace, no risk, any time you\'re not happy ' +
-          'with what it did.',
+          '"Approve + merge" brings the agent\'s changes into your real project — the same as accepting a ' +
+          'pull request, just from an AI instead of a person.',
         target: '[data-tutorial="agent-approve-btn"]',
+      },
+      {
+        title: 'Not happy? Throw it away',
+        body:
+          '"Discard" deletes the whole worktree instead — as if the agent had never run — no trace, no risk, ' +
+          "any time you're not happy with what it did. Nothing about your real project changes either way " +
+          "until you explicitly pick one of these two buttons.",
+        target: '[data-tutorial="agent-revert-btn"]',
+      },
+      {
+        title: 'Proof it stayed inside the sandbox',
+        body:
+          'Once a run finishes, a "Sandbox trace" appears below — real entries from the same Nervous System ' +
+          'audit log you\'ve seen in Troubleshooting, filtered to just this agent\'s activity. Every allowed or ' +
+          "denied action the agent's subprocess actually took is right here, so \"the agent worked inside a " +
+          'sandbox" isn\'t something you have to just take on faith.',
+        target: '[data-tutorial="agent-sandbox-trace"]',
       },
     ],
   },
@@ -2158,6 +2174,52 @@ export const CURRICULUM: Tutorial[] = [
           "the whole chain (your selection -> the wgpu layer -> the real driver) genuinely worked, not just " +
           "that the dropdown accepted your click.",
         target: '[data-tutorial="gpu-probe-result"]',
+      },
+    ],
+  },
+  {
+    id: 'label-smoothing',
+    title: 'Teaching a Model Not to Be Too Sure',
+    blurb: "A classification-only dial that softens \"100% correct\" into \"very confident, not absolute.\"",
+    difficulty: 'intermediate',
+    minutes: 4,
+    steps: [
+      {
+        title: 'Exact certainty isn\'t always the right target',
+        body:
+          'A classifier is normally trained toward an exact target: 100% confidence in the right category, 0% ' +
+          "in every other one. But real-world labels are sometimes a little noisy or genuinely ambiguous — " +
+          "training a model to be absolutely, perfectly certain about every one of them can make it " +
+          "overconfident on exactly the examples it should be less sure about.",
+        target: '[data-tutorial="tab-data"]',
+        focusTab: { slot: 'side', tabId: 'data' },
+      },
+      {
+        title: 'The label smoothing dial',
+        body:
+          '"Label smoothing" sits at the bottom of the training settings. Leave it at 0 and nothing changes — ' +
+          'training targets stay exactly 100%/0%, same as before this existed. Set it to, say, 0.1, and every ' +
+          'target blends a little toward an even spread across all categories instead of one exact answer.',
+        target: '[data-tutorial="training-hyperparams"]',
+      },
+      {
+        title: 'Classification only — and that\'s enforced, not just suggested',
+        body:
+          "This dial only means something for sorting into categories (cross entropy) — a number-predicting " +
+          "model (mse) has no categories to spread confidence across, so the setting is silently ignored " +
+          "there rather than causing an error. No need to remember to turn it off when switching task types.",
+        target: '[data-tutorial="tab-build"]',
+        focusTab: { slot: 'side', tabId: 'build' },
+      },
+      {
+        title: 'A knob worth comparing, not guessing',
+        body:
+          "Train the same classifier with smoothing off, then again at 0.1, and check the History tab — a " +
+          "real side-by-side of whether it actually helped, the same way you'd check weight decay or " +
+          'gradient clipping. There\'s no universally correct value; it depends on how clean your labels ' +
+          'really are.',
+        target: '[data-tutorial="tab-experiments"]',
+        focusTab: { slot: 'bottom', tabId: 'experiments' },
       },
     ],
   },

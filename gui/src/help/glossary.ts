@@ -342,6 +342,19 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       'bind attempt against the real hardware, not a guess — it tells you whether your choice actually works ' +
       'before you\'re relying on it mid-training.',
   },
+  'label-smoothing': {
+    term: 'Label smoothing',
+    short: 'Softening "correct" from a hard 100% to a slightly less certain target, for classification only.',
+    long:
+      "Normally a classifier is trained to push its confidence in the right category all the way to 100% and " +
+      "everything else to 0% — an exact one-hot target. Label smoothing blends that target a little toward a " +
+      "uniform spread across every category instead, so the model is trained to be highly confident but never " +
+      "absolutely certain. This discourages a model from becoming overconfident about labels that might " +
+      "themselves be a little noisy or ambiguous, which can leave it better calibrated on data it's never " +
+      "seen. It's a whole-run dial (like weight decay or dropout) but works on the target side of training, " +
+      "not the weights or the gradient — and only makes sense for classification (cross entropy), never for " +
+      "predicting a number.",
+  },
   'gradient-clipping': {
     term: 'Gradient clipping',
     short: "Capping how big a single training step is allowed to be, so one bad batch can't blow up the model.",

@@ -158,14 +158,18 @@ LOSS_FNS = {"mse": torch.nn.functional.mse_loss, "cross_entropy": torch.nn.funct
 OPTIMIZERS = {"sgd": torch.optim.SGD, "adam": torch.optim.Adam}
 
 
-def compute_loss(loss_fn, loss_name, prediction, target):
+def compute_loss(loss_fn, loss_name, prediction, target, label_smoothing=0.0):
     """BrainBuilder's tensor exchange is float32 end to end (see the module
     docstring), but `torch.nn.functional.cross_entropy` requires an integer
     (`long`) class-index target — passing it a float tensor raises at
     runtime. Real classification/language-modeling losses need this cast;
-    `mse` (and anything else regression-flavored) leaves the target alone."""
+    `mse` (and anything else regression-flavored) leaves the target alone.
+    `label_smoothing` (default 0.0, off) is torch's own native kwarg on
+    cross_entropy — meaningless for `mse`, which has no class distribution
+    to smooth, so it's only ever passed for cross_entropy."""
     if loss_name == "cross_entropy":
         target = target.long().flatten()
+        return loss_fn(prediction, target, label_smoothing=label_smoothing)
     return loss_fn(prediction, target)
 
 
@@ -201,7 +205,13 @@ def handle_train_step(req):
     if optim_cls is None:
         return {"ok": False, "error": f"unknown optimizer `{req['optimizer_name']}`"}
 
-    loss = compute_loss(loss_fn, req["loss_name"], live[req["output_port"]], read_tensor(req["target"]))
+    loss = compute_loss(
+        loss_fn,
+        req["loss_name"],
+        live[req["output_port"]],
+        read_tensor(req["target"]),
+        label_smoothing=req.get("label_smoothing", 0.0),
+    )
     params = [live[p] for p in req["trainable_ports"]]
     # weight_decay defaults to 0.0 (off) via .get so a request from before
     # this key existed still behaves identically.

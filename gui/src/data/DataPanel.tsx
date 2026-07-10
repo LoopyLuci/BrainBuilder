@@ -43,6 +43,11 @@ const TRAINING_SCHEMA: FormSchema = {
     // learning rate every time that many epochs complete, so later epochs
     // take smaller, more careful steps than the first ones did.
     { name: 'lr_decay_epochs', label: 'Halve learning rate every __ epochs (0 = off)', type: 'number', min: 0 },
+    // 0.0 means off — cross_entropy trains against exact one-hot targets,
+    // same as before this field existed. A value in (0, 1) blends each
+    // target a little toward a uniform distribution over every class,
+    // discouraging overconfident predictions. Meaningless for mse.
+    { name: 'label_smoothing', label: 'Label smoothing (0 = off, classification only)', type: 'number', min: 0, max: 1, step: 0.01 },
   ],
 };
 // Hidden-width hyperparameters the architecture search resizes — must mirror
@@ -196,6 +201,7 @@ export function DataPanel() {
   const weightDecay = (training.hyperparams?.weight_decay as number) ?? 0;
   const gradClip = (training.hyperparams?.grad_clip as number) ?? 0;
   const lrDecayEpochs = (training.hyperparams?.lr_decay_epochs as number) ?? 0;
+  const labelSmoothing = (training.hyperparams?.label_smoothing as number) ?? 0;
 
   const trainingValues: FormValues = {
     loss: training.loss,
@@ -207,10 +213,11 @@ export function DataPanel() {
     weight_decay: weightDecay,
     grad_clip: gradClip,
     lr_decay_epochs: lrDecayEpochs,
+    label_smoothing: labelSmoothing,
   };
   // Distribute the flat form values back into the nested TrainingConfig
-  // (lr/epochs/patience/weight_decay/grad_clip/lr_decay_epochs live under
-  // hyperparams; batch_size under data_source).
+  // (lr/epochs/patience/weight_decay/grad_clip/lr_decay_epochs/
+  // label_smoothing live under hyperparams; batch_size under data_source).
   const onTrainingChange = (v: FormValues) => {
     setTraining({
       ...training,
@@ -224,6 +231,7 @@ export function DataPanel() {
         weight_decay: Number(v.weight_decay),
         grad_clip: Number(v.grad_clip),
         lr_decay_epochs: Number(v.lr_decay_epochs),
+        label_smoothing: Number(v.label_smoothing),
       },
       data_source: { ...training.data_source, batch_size: Number(v.batch_size) },
     });

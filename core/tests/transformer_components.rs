@@ -249,7 +249,7 @@ fn transformer_block_trains_and_loss_decreases() {
             .collect();
 
         let (loss, updated) = bridge
-            .train_step(&operations, inputs, "output", &target, "mse", "adam", 0.01, 0.0, 0.0, &trainable)
+            .train_step(&operations, inputs, "output", &target, "mse", "adam", 0.01, 0.0, 0.0, 0.0, &trainable)
             .expect("transformer block train_step failed");
         weights.extend(updated);
         losses.push(loss);
@@ -339,7 +339,7 @@ fn lora_linear_freezes_base_weight_and_trains_only_the_adapter() {
         let mut inputs = weights.clone();
         inputs.insert("input".to_string(), input.clone());
         let (loss, updated) = bridge
-            .train_step(&[op.clone()], inputs, "output", &target, "mse", "adam", 0.05, 0.0, 0.0, &trainable)
+            .train_step(&[op.clone()], inputs, "output", &target, "mse", "adam", 0.05, 0.0, 0.0, 0.0, &trainable)
             .expect("lora train_step failed");
         // Only lora_a/lora_b should ever come back as "updated".
         assert!(!updated.contains_key("weight"), "frozen base weight must never be in updated_weights");
