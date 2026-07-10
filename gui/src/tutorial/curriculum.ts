@@ -1204,4 +1204,59 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'comparing-experiments',
+    title: 'Which Settings Actually Worked Best?',
+    blurb: 'Every training run is logged automatically — compare past attempts instead of remembering them.',
+    difficulty: 'intermediate',
+    minutes: 5,
+    steps: [
+      {
+        title: 'Every run, remembered automatically',
+        body:
+          'Every time you click "Export & Train," BrainBuilder quietly writes down what happened — no setup, ' +
+          'nothing to turn on. This tab is where you go to see it.',
+        target: '[data-tutorial="tab-experiments"]',
+        focusTab: { slot: 'bottom', tabId: 'experiments' },
+      },
+      {
+        title: 'Nothing yet?',
+        body:
+          "Training has to happen at least once before anything shows up here. If you've already trained " +
+          "something, you'll see a table instead of this message — that's expected too.",
+        target: '[data-tutorial="experiments-empty"]',
+      },
+      {
+        title: 'Catching up on a run in progress',
+        body:
+          "If you started training from another tab and just switched over, click \"Refresh\" to pull in " +
+          "that run's result without reloading the whole app.",
+        target: '[data-tutorial="experiments-refresh-btn"]',
+      },
+      {
+        title: 'Reading a row',
+        body:
+          'Each row is one real training run, newest first: the exact loss function, optimizer, learning ' +
+          'rate, and epoch count you used, plus how loss moved from first to last — so two runs of the same ' +
+          'model with different settings sit right next to each other for comparison.',
+        target: '[data-tutorial="experiments-table"]',
+      },
+      {
+        title: "Why this is separate from checkpoints",
+        body:
+          'Training the same model again overwrites its one saved checkpoint — but every run still gets its ' +
+          "own row here, forever. That's the difference: a checkpoint is what your model currently is, while " +
+          "this history is everything you've ever tried.",
+        target: '[data-tutorial="experiments-table"]',
+      },
+      {
+        title: "Don't want to fill this table in by hand?",
+        body:
+          "Auto-tune (on the Data tab) runs several short trials in one go and applies whichever combination " +
+          'trained best — handy before you\'ve settled on a design worth logging here for the long run.',
+        target: '[data-tutorial="autotune-btn"]',
+        focusTab: { slot: 'side', tabId: 'data' },
+      },
+    ],
+  },
 ];

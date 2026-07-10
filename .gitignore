@@ -19,6 +19,7 @@ gui/src-tauri/gen
 # Local run artifacts — real user data, not source
 checkpoints/
 provenance.sqlite3
+experiments.sqlite3
 *.sqlite3-journal
 
 # CI/CD pipeline reports (scripts/ci/pipeline.mjs) — local run history, not source

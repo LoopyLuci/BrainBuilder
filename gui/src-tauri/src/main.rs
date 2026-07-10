@@ -709,11 +709,65 @@ async fn get_nervous_system_audit(limit: i64) -> Result<Vec<brainbuilder_core::r
 async fn execute_graph(graph_json: String, state: State<'_, AppState>) -> Result<(), String> {
     let graph: BBIRGraph = serde_json::from_str(&graph_json).map_err(|e| e.to_string())?;
     log::info!("executing graph `{}` ({})", graph.name, graph.graph_id);
+
+    // Tap the same broadcast metrics stream the GUI's live chart listens to
+    // with a second, independent subscriber — broadcast channels queue every
+    // message for each subscriber separately, so this never drops or steals
+    // events the chart needs. Captures just the first/last loss so a finished
+    // run can be logged to the experiment history below.
+    let mut metrics_rx = brainbuilder_core::data::metrics::subscribe_metrics();
+    let captured: Arc<std::sync::Mutex<(Option<f32>, Option<f32>)>> = Arc::new(std::sync::Mutex::new((None, None)));
+    let captured_task = captured.clone();
+    let capture_handle = tauri::async_runtime::spawn(async move {
+        while let Ok(point) = metrics_rx.recv().await {
+            if let Ok(mut c) = captured_task.lock() {
+                if c.0.is_none() {
+                    c.0 = Some(point.loss);
+                }
+                c.1 = Some(point.loss);
+            }
+        }
+    });
+
     let orchestrator = state.orchestrator.lock().await;
-    orchestrator.execute_graph(graph).await.map_err(|e| {
+    let result = orchestrator.execute_graph(graph.clone()).await;
+    capture_handle.abort();
+
+    if let Err(e) = &result {
         log::error!("graph execution failed: {e}");
-        e.to_string()
-    })
+        return Err(e.to_string());
+    }
+
+    if let Some(training) = &graph.training {
+        let (first_loss, last_loss) = captured.lock().map(|c| *c).unwrap_or((None, None));
+        let record = brainbuilder_core::utils::experiment_log::NewExperiment {
+            graph_id: graph.graph_id.clone(),
+            graph_name: graph.name.clone(),
+            loss_fn: training.loss.clone(),
+            optimizer: training.optimizer.clone(),
+            lr: training.hyperparams.get("lr").and_then(|v| v.as_f64()).unwrap_or(0.0),
+            batch_size: training.data_source.batch_size as i64,
+            epochs: training.hyperparams.get("epochs").and_then(|v| v.as_i64()).unwrap_or(0),
+            first_loss: first_loss.map(|f| f as f64),
+            last_loss: last_loss.map(|f| f as f64),
+        };
+        if let Err(e) = orchestrator.context.experiments.log(record) {
+            // Non-fatal: the run itself succeeded, only its history entry
+            // failed to write — don't fail a successful training run over it.
+            log::warn!("failed to log experiment record: {e}");
+        }
+    }
+
+    Ok(())
+}
+
+#[command]
+async fn list_experiments(
+    limit: usize,
+    state: State<'_, AppState>,
+) -> Result<Vec<brainbuilder_core::utils::experiment_log::ExperimentRecord>, String> {
+    let orchestrator = state.orchestrator.lock().await;
+    orchestrator.context.experiments.recent(limit).map_err(|e| e.to_string())
 }
 
 #[command]
@@ -904,6 +958,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             validate_graph,
             execute_graph,
+            list_experiments,
             get_components,
             get_component_descriptors,
             preview_dataset,

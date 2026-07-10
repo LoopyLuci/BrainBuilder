@@ -54,6 +54,10 @@ pub struct AppContext {
     pub registry: std::sync::RwLock<component::registry::ComponentRegistry>,
     pub arena: Arc<interop::arena::SharedArena>,
     pub provenance: utils::provenance::ProvenanceStore,
+    /// A lightweight history of finished training runs (config + first/last
+    /// loss) — lets the GUI show "did lr=0.01 or lr=0.001 train better on
+    /// this graph?" without the user needing to remember past results.
+    pub experiments: utils::experiment_log::ExperimentLog,
     /// Directory where trained-weight checkpoints (`<graph_id>.pt`) are saved
     /// after training and loaded for inference.
     pub checkpoints_dir: std::path::PathBuf,

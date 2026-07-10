@@ -87,6 +87,28 @@ export async function getComponents(): Promise<string[]> {
   return invoke('get_components');
 }
 
+// --- Experiment history (core/src/utils/experiment_log.rs) ------------------
+// A lightweight, real record of past training runs — logged automatically by
+// the backend every time `execute_graph` finishes, so past results ("did
+// lr=0.01 or lr=0.001 train better?") don't have to be remembered by hand.
+
+export interface ExperimentRecord {
+  graph_id: string;
+  graph_name: string;
+  loss_fn: string;
+  optimizer: string;
+  lr: number;
+  batch_size: number;
+  epochs: number;
+  first_loss: number | null;
+  last_loss: number | null;
+  logged_at: string;
+}
+
+export async function listExperiments(limit: number): Promise<ExperimentRecord[]> {
+  return invoke('list_experiments', { limit });
+}
+
 // --- Task-first Intent layer (core/src/intent.rs) ---------------------------
 // The on-ramp for someone who thinks in outcomes, not graphs: pick a task,
 // point at data, get back a validated, trainable model proposal.

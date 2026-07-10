@@ -32,6 +32,9 @@ impl Orchestrator {
         let provenance_path = project_root.join("provenance.sqlite3");
         let provenance = crate::utils::provenance::ProvenanceStore::open(&provenance_path)?;
 
+        let experiments_path = project_root.join("experiments.sqlite3");
+        let experiments = crate::utils::experiment_log::ExperimentLog::open(&experiments_path)?;
+
         let checkpoints_dir = project_root.join("checkpoints");
         std::fs::create_dir_all(&checkpoints_dir)?;
 
@@ -39,6 +42,7 @@ impl Orchestrator {
             registry: std::sync::RwLock::new(registry),
             arena: arena.clone(),
             provenance,
+            experiments,
             checkpoints_dir,
         });
 

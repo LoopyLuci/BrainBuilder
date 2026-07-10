@@ -176,6 +176,14 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       'photo left-to-right — so the model sees more variety without you needing to collect a single extra ' +
       "photo. It teaches the model what your subject looks like in general, not just one exact orientation.",
   },
+  experiment: {
+    term: 'Experiment',
+    short: 'One training run, with whatever settings you used for it.',
+    long:
+      'An "experiment" just means one attempt at training — a particular combination of settings (learning ' +
+      'rate, optimizer, epochs) and the result it produced. Comparing several experiments side by side is how ' +
+      'you find out which settings actually work best, instead of guessing.',
+  },
   shape: {
     term: 'Shape',
     short: 'The size/dimensions of the numbers flowing between nodes.',

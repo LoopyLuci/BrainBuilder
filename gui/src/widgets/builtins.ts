@@ -6,6 +6,7 @@ import { Console } from '../console/Console';
 import { TrainingDashboard } from '../training/TrainingDashboard';
 import { DataPanel } from '../data/DataPanel';
 import { PredictPanel } from '../predict/PredictPanel';
+import { ExperimentsPanel } from '../experiments/ExperimentsPanel';
 import { ClusterConsole } from '../cluster/ClusterConsole';
 import { LLMAuthor } from '../llm/LLMAuthor';
 import { ModelHub } from '../models/ModelHub';
@@ -40,6 +41,7 @@ export function registerBuiltinWidgets() {
   // Bottom rail (tabs).
   registerWidget({ id: 'metrics', title: 'Metrics', slot: 'bottom', component: TrainingDashboard, order: 10 });
   registerWidget({ id: 'predict', title: 'Predict', slot: 'bottom', component: PredictPanel, order: 20 });
+  registerWidget({ id: 'experiments', title: 'History', slot: 'bottom', component: ExperimentsPanel, order: 25 });
   registerWidget({ id: 'cluster', title: 'Cluster', slot: 'bottom', component: ClusterConsole, order: 30 });
   registerWidget({ id: 'console', title: 'Console', slot: 'bottom', component: Console, order: 40 });
 }
