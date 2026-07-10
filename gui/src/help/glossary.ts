@@ -366,6 +366,18 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       'learning. Turning shuffling on genuinely re-mixes the batch order on every epoch, so the model sees a ' +
       "healthier variety pass to pass, without touching your original files or their on-disk order at all.",
   },
+  momentum: {
+    term: 'Momentum',
+    short: 'Carrying a fraction of the previous step forward, so training moves more like a rolling ball than a jittery walk.',
+    long:
+      'Plain SGD updates the weights using only the current step\'s gradient — if two consecutive batches ' +
+      'happen to point in slightly different directions, the model can zigzag instead of moving steadily ' +
+      'toward a good answer. Momentum fixes this by carrying forward a fraction of the previous step\'s ' +
+      "direction and blending it with the new one — genuine physical-momentum-style velocity, not an " +
+      'approximation. The result usually settles into a smoother, faster path, especially on noisy data. It ' +
+      "only applies to the plain SGD optimizer — Adam already has its own, different, built-in adaptive " +
+      "momentum and doesn't accept this setting at all.",
+  },
   'gradient-clipping': {
     term: 'Gradient clipping',
     short: "Capping how big a single training step is allowed to be, so one bad batch can't blow up the model.",

@@ -46,6 +46,21 @@ impl super::trainer::Trainer for StandardTrainer {
             .get("weight_decay")
             .and_then(|v| v.as_f64())
             .unwrap_or(0.0);
+        // 0.0 (the default) means "off" — SGD updates using only the
+        // current step's gradient, same as before this hyperparameter
+        // existed. A value in (0, 1) (0.9 is the classic default
+        // elsewhere) carries forward a fraction of the previous step's
+        // update direction (torch's own SGD `momentum` kwarg — real
+        // physical-momentum-style velocity, not an approximation),
+        // smoothing out noisy per-batch gradients and often reaching a
+        // good loss faster. Meaningless for `adam`, which has its own
+        // built-in adaptive momentum and doesn't accept this kwarg at all —
+        // silently ignored there rather than erroring.
+        let momentum = training_cfg
+            .hyperparams
+            .get("momentum")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0);
         // 0.0 (the default) means "off" — gradients pass through unmodified,
         // exactly as before this hyperparameter existed. A positive value
         // caps the total L2 norm of the trainable parameters' gradients at
@@ -141,6 +156,7 @@ impl super::trainer::Trainer for StandardTrainer {
                     weight_decay,
                     grad_clip,
                     label_smoothing,
+                    momentum,
                     &self.python,
                 )?;
                 self.context.provenance.log(crate::utils::provenance::ProvenanceRecord {

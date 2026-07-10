@@ -173,6 +173,18 @@ def compute_loss(loss_fn, loss_name, prediction, target, label_smoothing=0.0):
     return loss_fn(prediction, target)
 
 
+def build_optimizer(optim_cls, optimizer_name, params, lr, weight_decay=0.0, momentum=0.0):
+    """weight_decay defaults to 0.0 (off) so a request from before that key
+    existed still behaves identically. `momentum` (default 0.0, off) is
+    real SGD velocity — carries forward a fraction of the previous step's
+    update direction — but `torch.optim.Adam` has its own built-in adaptive
+    momentum and doesn't accept a `momentum` kwarg at all (raises
+    TypeError), so it's only ever passed for `sgd`."""
+    if optimizer_name == "sgd":
+        return optim_cls(params, lr=lr, weight_decay=weight_decay, momentum=momentum)
+    return optim_cls(params, lr=lr, weight_decay=weight_decay)
+
+
 def handle_call_component(req):
     mod = __import__(req["module"])
     try:
@@ -213,9 +225,14 @@ def handle_train_step(req):
         label_smoothing=req.get("label_smoothing", 0.0),
     )
     params = [live[p] for p in req["trainable_ports"]]
-    # weight_decay defaults to 0.0 (off) via .get so a request from before
-    # this key existed still behaves identically.
-    optimizer = optim_cls(params, lr=req["lr"], weight_decay=req.get("weight_decay", 0.0))
+    optimizer = build_optimizer(
+        optim_cls,
+        req["optimizer_name"],
+        params,
+        req["lr"],
+        weight_decay=req.get("weight_decay", 0.0),
+        momentum=req.get("momentum", 0.0),
+    )
     optimizer.zero_grad()
     loss.backward()
     # grad_clip defaults to 0.0 (off): gradients pass through unmodified,
@@ -287,6 +304,14 @@ def handle_apply_averaged_gradients(req):
         w.grad = read_tensor(req["gradients"][name])
         params.append(w)
 
+    # momentum is deliberately NOT threaded through here (unlike
+    # weight_decay/grad_clip, which are genuinely step-local): a fresh
+    # optimizer is constructed on every single distributed round, so any
+    # velocity momentum would carry forward is discarded immediately after
+    # this one step — it would silently accept the hyperparameter and do
+    # nothing, which is worse than not offering it. Momentum only does
+    # anything real for the non-distributed path (`handle_train_step`),
+    # whose single optimizer instance genuinely persists across steps.
     optimizer = optim_cls(params, lr=req["lr"], weight_decay=req.get("weight_decay", 0.0))
     grad_clip = req.get("grad_clip", 0.0)
     if grad_clip > 0.0:

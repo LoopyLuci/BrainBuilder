@@ -392,6 +392,7 @@ impl ExecutionPlan {
         weight_decay: f64,
         grad_clip: f64,
         label_smoothing: f64,
+        momentum: f64,
         bridge: &PythonBridge,
     ) -> Result<LossValue> {
         let err = |msg: &str| crate::interop::protocol::BrainBuilderError::ConfigError(msg.to_string());
@@ -414,6 +415,7 @@ impl ExecutionPlan {
             weight_decay,
             grad_clip,
             label_smoothing,
+            momentum,
             &self.trainable_weight_ports(),
         )?;
 

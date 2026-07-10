@@ -2268,4 +2268,48 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'momentum',
+    title: 'Rolling Instead of Jittering Toward an Answer',
+    blurb: 'A whole-run dial for SGD that carries the previous step forward, smoothing out a noisy path.',
+    difficulty: 'intermediate',
+    minutes: 4,
+    steps: [
+      {
+        title: 'Every step, starting fresh',
+        body:
+          'Plain SGD looks only at the current step\'s gradient — if two batches in a row happen to disagree ' +
+          "slightly on which direction to move, the model can zigzag rather than moving steadily. Momentum " +
+          "gives each step a little memory of where it was already heading.",
+        target: '[data-tutorial="tab-data"]',
+        focusTab: { slot: 'side', tabId: 'data' },
+      },
+      {
+        title: 'The momentum dial',
+        body:
+          '"Momentum, sgd only" sits right next to the learning rate. Leave it at 0 and nothing changes — ' +
+          'every step uses only its own gradient, same as before this existed. Set it to something like 0.9 ' +
+          '(a common starting point) and each step now carries forward most of the previous step\'s direction, ' +
+          'blended with the new gradient.',
+        target: '[data-tutorial="training-hyperparams"]',
+      },
+      {
+        title: 'sgd only — Adam already has its own',
+        body:
+          '"Adam" ships with its own, different, built-in adaptive momentum and simply doesn\'t accept this ' +
+          "setting — this dial only does something when the optimizer above it is set to \"sgd\". No error, " +
+          "no need to remember to reset it if you switch optimizers.",
+        target: '[data-tutorial="training-hyperparams"]',
+      },
+      {
+        title: 'A knob worth comparing, not guessing',
+        body:
+          "Train the same graph with momentum off, then again at 0.9, and check the History tab — a real " +
+          "side-by-side of the loss curve either way, the same way you'd compare weight decay or gradient " +
+          'clipping. A noisier dataset tends to benefit more than an already-smooth one.',
+        target: '[data-tutorial="tab-experiments"]',
+        focusTab: { slot: 'bottom', tabId: 'experiments' },
+      },
+    ],
+  },
 ];

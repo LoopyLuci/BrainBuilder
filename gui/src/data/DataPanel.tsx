@@ -22,6 +22,13 @@ const TRAINING_SCHEMA: FormSchema = {
     { name: 'loss', label: 'Loss', type: 'select', options: LOSSES },
     { name: 'optimizer', label: 'Optimizer', type: 'select', options: OPTIMIZERS },
     { name: 'lr', label: 'Learning rate', type: 'number', step: 0.001 },
+    // 0.0 (the default) means off — sgd updates using only the current
+    // step's gradient, same as before this field existed. A value in
+    // (0, 1) (0.9 is a common choice elsewhere) carries forward a fraction
+    // of the previous step's direction, smoothing out noisy per-batch
+    // gradients. Meaningless for adam, which has its own built-in adaptive
+    // momentum — silently ignored there.
+    { name: 'momentum', label: 'Momentum, sgd only (0 = off)', type: 'number', min: 0, max: 1, step: 0.01 },
     { name: 'epochs', label: 'Epochs', type: 'number' },
     { name: 'batch_size', label: 'Batch size', type: 'number' },
     // 0 means off — every configured epoch runs, same as before this field
@@ -201,6 +208,7 @@ export function DataPanel() {
   const isFileSource = training.data_source.source_type === 'file';
 
   const lr = (training.hyperparams?.lr as number) ?? 0.01;
+  const momentum = (training.hyperparams?.momentum as number) ?? 0;
   const epochs = (training.hyperparams?.epochs as number) ?? 10;
   const patience = (training.hyperparams?.patience as number) ?? 0;
   const weightDecay = (training.hyperparams?.weight_decay as number) ?? 0;
@@ -213,6 +221,7 @@ export function DataPanel() {
     loss: training.loss,
     optimizer: training.optimizer,
     lr,
+    momentum,
     epochs,
     batch_size: training.data_source.batch_size,
     patience,
@@ -223,7 +232,7 @@ export function DataPanel() {
     shuffle,
   };
   // Distribute the flat form values back into the nested TrainingConfig
-  // (lr/epochs/patience/weight_decay/grad_clip/lr_decay_epochs/
+  // (lr/momentum/epochs/patience/weight_decay/grad_clip/lr_decay_epochs/
   // label_smoothing/shuffle live under hyperparams; batch_size under
   // data_source).
   const onTrainingChange = (v: FormValues) => {
@@ -234,6 +243,7 @@ export function DataPanel() {
       hyperparams: {
         ...training.hyperparams,
         lr: Number(v.lr),
+        momentum: Number(v.momentum),
         epochs: Number(v.epochs),
         patience: Number(v.patience),
         weight_decay: Number(v.weight_decay),

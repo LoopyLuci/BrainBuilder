@@ -470,6 +470,7 @@ impl PythonBridge {
         weight_decay: f64,
         grad_clip: f64,
         label_smoothing: f64,
+        momentum: f64,
         trainable_ports: &[String],
     ) -> Result<(f32, HashMap<String, Tensor>)> {
         for op in operations {
@@ -510,6 +511,7 @@ impl PythonBridge {
             "weight_decay": weight_decay,
             "grad_clip": grad_clip,
             "label_smoothing": label_smoothing,
+            "momentum": momentum,
             "trainable_ports": trainable_ports,
             "output_paths": Value::Object(output_paths),
         }))?;
