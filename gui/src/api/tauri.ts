@@ -218,6 +218,24 @@ export async function predict(graph: BBIRGraph, datasetPath: string, rows: numbe
   return invoke('predict', { graphJson: JSON.stringify(graph), datasetPath, rows });
 }
 
+// --- Feature importance / interpretability (core/src/interpret.rs) ---------
+// Ranks each input column by how much predictions move when that column is
+// decoupled from its rows — a real, deterministic permutation-importance
+// method. Tabular ("file" source) models only.
+
+export interface FeatureImportance {
+  column: string;
+  importance: number;
+}
+
+export async function featureImportance(
+  graph: BBIRGraph,
+  datasetPath: string,
+  rows: number,
+): Promise<FeatureImportance[]> {
+  return invoke('feature_importance', { graphJson: JSON.stringify(graph), datasetPath, rows });
+}
+
 export async function hasCheckpoint(graphId: string): Promise<boolean> {
   return invoke('has_checkpoint', { graphId });
 }

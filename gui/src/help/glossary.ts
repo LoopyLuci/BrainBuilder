@@ -209,6 +209,15 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       "and gets killed automatically if it runs too long. The Console's \"Nervous System\" tab shows every one " +
       "of these sandboxed calls, so a denial or a crash is something you can see, not a silent mystery.",
   },
+  'feature-importance': {
+    term: 'Feature importance',
+    short: "A score for how much the model actually relies on each column of your data.",
+    long:
+      'Feature importance answers "which columns is the model actually using?" — BrainBuilder scrambles one ' +
+      "column at a time and checks how much the model's answers change. Barely changing means that column " +
+      "isn't doing much; a big change means the model leans on it heavily. It's a real test run against your " +
+      "own trained model, not a guess.",
+  },
   shape: {
     term: 'Shape',
     short: 'The size/dimensions of the numbers flowing between nodes.',

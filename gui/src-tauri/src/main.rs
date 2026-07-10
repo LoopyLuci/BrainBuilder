@@ -838,6 +838,24 @@ async fn predict(
         .collect()
 }
 
+/// Ranks each feature column of a tabular dataset by how much predictions
+/// move when that column is decoupled from its rows — see
+/// `interpret::feature_importance` for the real method behind this.
+#[command]
+async fn feature_importance(
+    graph_json: String,
+    dataset_path: String,
+    rows: usize,
+    state: State<'_, AppState>,
+) -> Result<Vec<brainbuilder_core::interpret::FeatureImportance>, String> {
+    let graph: BBIRGraph = serde_json::from_str(&graph_json).map_err(|e| e.to_string())?;
+    let batch = brainbuilder_core::data::source::load_batch(&dataset_path, rows)
+        .await
+        .map_err(|e| e.to_string())?;
+    let orchestrator = state.orchestrator.lock().await;
+    brainbuilder_core::interpret::feature_importance(&orchestrator, &graph, batch).map_err(|e| e.to_string())
+}
+
 #[command]
 async fn has_checkpoint(graph_id: String, state: State<'_, AppState>) -> Result<bool, String> {
     let orchestrator = state.orchestrator.lock().await;
@@ -984,6 +1002,7 @@ fn main() {
             save_graph,
             load_graph,
             predict,
+            feature_importance,
             has_checkpoint,
             export_checkpoint,
             install_component,

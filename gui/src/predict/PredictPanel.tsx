@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { save } from '@tauri-apps/api/dialog';
 import { useGraphStore } from '../state/graphStore';
 import { convertToBBIR } from '../canvas/utils';
-import { predict, hasCheckpoint, exportCheckpoint, PredictResult } from '../api/tauri';
+import { predict, hasCheckpoint, exportCheckpoint, featureImportance, PredictResult, FeatureImportance } from '../api/tauri';
 import { logError, logInfo } from '../console/logStore';
 import { Panel } from '../ui/Panel';
 import { Button } from '../ui/Button';
@@ -18,6 +18,12 @@ export function PredictPanel() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [importances, setImportances] = useState<FeatureImportance[] | null>(null);
+  const [explaining, setExplaining] = useState(false);
+  const [explainError, setExplainError] = useState<string | null>(null);
+  // Feature importance only makes sense for tabular data with real named
+  // columns — image/text sources don't have a meaningful "column" to rank.
+  const isFileSource = training.data_source.source_type === 'file';
 
   useEffect(() => {
     let cancelled = false;
@@ -53,6 +59,22 @@ export function PredictPanel() {
       logError(`Predict failed: ${e}`);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const runExplain = async () => {
+    setExplainError(null);
+    setImportances(null);
+    setExplaining(true);
+    try {
+      const graph = convertToBBIR(nodes, edges, graphId, 'untitled', training);
+      const ranked = await featureImportance(graph, training.data_source.path_or_uri, 20);
+      setImportances(ranked);
+    } catch (e) {
+      setExplainError(String(e));
+      logError(`Explaining the model failed: ${e}`);
+    } finally {
+      setExplaining(false);
     }
   };
 
@@ -110,6 +132,37 @@ export function PredictPanel() {
               shape [{r.shape.join(', ')}]: {r.values.map((v) => v.toFixed(4)).join(', ')}
             </div>
           ))}
+        </div>
+      )}
+      {checkpointExists && isFileSource && (
+        <div style={{ borderTop: '1px solid var(--border, rgba(0,0,0,0.1))', paddingTop: 8, marginTop: 8 }}>
+          <p className="bb-text-muted" style={{ margin: '0 0 6px' }}>
+            Which columns is the model actually paying attention to? <HelpTip term="feature-importance" />
+          </p>
+          <Button variant="secondary" data-tutorial="explain-btn" onClick={runExplain} disabled={explaining}>
+            {explaining ? 'Explaining…' : 'Explain this model…'}
+          </Button>
+          {explainError && <div className="bb-text-error" style={{ marginTop: 4 }}>{explainError}</div>}
+          {importances && importances.length === 0 && (
+            <p className="bb-text-muted" style={{ marginTop: 6 }}>
+              Only one column feeds this model, so there's nothing to compare it against.
+            </p>
+          )}
+          {importances && importances.length > 0 && (
+            <ul className="bb-list" data-tutorial="explain-results" style={{ marginTop: 6 }}>
+              {importances.map((imp, i) => (
+                <li
+                  key={imp.column}
+                  className="bb-list-item"
+                  style={{ fontSize: 11, fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  <span className="bb-text-muted" style={{ width: 18 }}>#{i + 1}</span>
+                  <span style={{ flex: 1 }}>{imp.column}</span>
+                  <span>{imp.importance.toFixed(4)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
     </Panel>

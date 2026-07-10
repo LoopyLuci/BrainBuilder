@@ -1378,4 +1378,53 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'feature-importance',
+    title: 'Why Did It Say That?',
+    blurb: 'Ask your trained model which columns of your data it actually pays attention to.',
+    difficulty: 'intermediate',
+    minutes: 5,
+    steps: [
+      {
+        title: 'A deeper question than "what\'s the answer"',
+        body:
+          "Once a model is trained, you can ask it something more interesting than just a prediction — " +
+          '"why did you say that?" This tab is where you ask.',
+        target: '[data-tutorial="tab-predict"]',
+        focusTab: { slot: 'bottom', tabId: 'predict' },
+      },
+      {
+        title: 'A real test, not a guess',
+        body:
+          '"Explain this model…" runs a genuine experiment against your trained model: it scrambles one ' +
+          "column of your real data at a time and checks how much that changes the model's answers. Nothing " +
+          "here is simulated or estimated — it's your actual model, actually tested.",
+        target: '[data-tutorial="explain-btn"]',
+      },
+      {
+        title: 'Reading the ranking',
+        body:
+          'The result is a ranked list: columns near the top are ones the model leans on heavily — scrambling ' +
+          "them changes its answers a lot. Columns near the bottom barely move the needle, meaning the model " +
+          "isn't really using them, whether or not you expected it to.",
+        target: '[data-tutorial="explain-results"]',
+      },
+      {
+        title: 'When the ranking surprises you',
+        body:
+          "If a column you expected to matter shows up near the bottom, or one you ignored shows up at the " +
+          "top, that's worth investigating — it can reveal a data problem (like a leaked answer hiding in an " +
+          'unexpected column) as easily as it reveals something genuinely interesting about your data.',
+        target: '[data-tutorial="explain-results"]',
+      },
+      {
+        title: 'Tabular data only, for now',
+        body:
+          'This works on spreadsheet-style data, where every column has a real name to rank. Image and text ' +
+          "models don't have that kind of column to point at, so this tool only appears for spreadsheet " +
+          '(CSV/Parquet) sources.',
+        target: '[data-tutorial="predict-run-btn"]',
+      },
+    ],
+  },
 ];

@@ -9,6 +9,7 @@ pub mod utils;
 pub mod models;
 pub mod llm;
 pub mod intent;
+pub mod interpret;
 pub mod diagnostics;
 pub mod synthesis;
 pub mod agent;
