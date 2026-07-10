@@ -203,7 +203,9 @@ def handle_train_step(req):
 
     loss = compute_loss(loss_fn, req["loss_name"], live[req["output_port"]], read_tensor(req["target"]))
     params = [live[p] for p in req["trainable_ports"]]
-    optimizer = optim_cls(params, lr=req["lr"])
+    # weight_decay defaults to 0.0 (off) via .get so a request from before
+    # this key existed still behaves identically.
+    optimizer = optim_cls(params, lr=req["lr"], weight_decay=req.get("weight_decay", 0.0))
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
@@ -268,7 +270,7 @@ def handle_apply_averaged_gradients(req):
         w.grad = read_tensor(req["gradients"][name])
         params.append(w)
 
-    optimizer = optim_cls(params, lr=req["lr"])
+    optimizer = optim_cls(params, lr=req["lr"], weight_decay=req.get("weight_decay", 0.0))
     optimizer.step()
 
     updated = {name: write_tensor(p, req["output_paths"][name]) for name, p in zip(names, params)}

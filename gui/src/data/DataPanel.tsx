@@ -29,6 +29,10 @@ const TRAINING_SCHEMA: FormSchema = {
     // row fail to improve the loss, instead of always running the full
     // budget whether or not it's still helping.
     { name: 'patience', label: 'Early-stop patience (0 = off)', type: 'number', min: 0 },
+    // 0.0 means off. A positive value pulls every weight a little toward
+    // zero each step (L2 regularization) — a whole-run setting, distinct
+    // from a dropout box on the canvas.
+    { name: 'weight_decay', label: 'Weight decay (0 = off)', type: 'number', min: 0, step: 0.0001 },
   ],
 };
 // Hidden-width hyperparameters the architecture search resizes — must mirror
@@ -179,6 +183,7 @@ export function DataPanel() {
   const lr = (training.hyperparams?.lr as number) ?? 0.01;
   const epochs = (training.hyperparams?.epochs as number) ?? 10;
   const patience = (training.hyperparams?.patience as number) ?? 0;
+  const weightDecay = (training.hyperparams?.weight_decay as number) ?? 0;
 
   const trainingValues: FormValues = {
     loss: training.loss,
@@ -187,9 +192,11 @@ export function DataPanel() {
     epochs,
     batch_size: training.data_source.batch_size,
     patience,
+    weight_decay: weightDecay,
   };
   // Distribute the flat form values back into the nested TrainingConfig
-  // (lr/epochs/patience live under hyperparams; batch_size under data_source).
+  // (lr/epochs/patience/weight_decay live under hyperparams; batch_size
+  // under data_source).
   const onTrainingChange = (v: FormValues) => {
     setTraining({
       ...training,
@@ -200,6 +207,7 @@ export function DataPanel() {
         lr: Number(v.lr),
         epochs: Number(v.epochs),
         patience: Number(v.patience),
+        weight_decay: Number(v.weight_decay),
       },
       data_source: { ...training.data_source, batch_size: Number(v.batch_size) },
     });

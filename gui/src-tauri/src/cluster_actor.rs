@@ -162,6 +162,7 @@ struct HostSession {
     weights: HashMap<String, Tensor>,
     optimizer_name: String,
     lr: f64,
+    weight_decay: f64,
     aggregator: GradientAggregator,
     losses_this_step: Vec<f32>,
     step: u64,
@@ -417,6 +418,7 @@ async fn start_hosting(state: &mut ActorState, graph_json: String, expected_clie
     let plan = scheduler::compile(&graph, &state.context).map_err(|e| e.to_string())?;
     let training = graph.training.clone().ok_or_else(|| "graph has no training config".to_string())?;
     let lr = training.hyperparams.get("lr").and_then(|v| v.as_f64()).unwrap_or(0.01);
+    let weight_decay = training.hyperparams.get("weight_decay").and_then(|v| v.as_f64()).unwrap_or(0.0);
     let total_steps = plan.epochs.max(1) as u64;
 
     let mut data = load_dataset(&training).await.map_err(|e| e.to_string())?;
@@ -438,6 +440,7 @@ async fn start_hosting(state: &mut ActorState, graph_json: String, expected_clie
         weights,
         optimizer_name: training.optimizer.clone(),
         lr,
+        weight_decay,
         aggregator: GradientAggregator::new(0, expected_clients),
         losses_this_step: Vec::new(),
         step: 0,
@@ -642,6 +645,7 @@ fn handle_submitted_gradients(
         &avg_grad_tensors,
         &session.optimizer_name,
         session.lr,
+        session.weight_decay,
         state.python.as_ref(),
     );
     let Ok(updated) = updated else { return };

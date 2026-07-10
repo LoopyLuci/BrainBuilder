@@ -1694,4 +1694,55 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'regularization',
+    title: 'Keeping Your Model From Memorizing',
+    blurb: "A whole-run dial that discourages any one weight from growing too large — a second way to fight overfitting.",
+    difficulty: 'intermediate',
+    minutes: 5,
+    steps: [
+      {
+        title: 'Memorizing isn\'t the same as learning',
+        body:
+          "A model can look great on the data it trained on by memorizing quirks of that exact data, instead " +
+          "of learning the real pattern — that's overfitting, and it shows up as good training loss but poor " +
+          "results on anything new. There's a whole-run dial that pushes back against it.",
+        target: '[data-tutorial="tab-data"]',
+        focusTab: { slot: 'side', tabId: 'data' },
+      },
+      {
+        title: 'The weight decay dial',
+        body:
+          '"Weight decay" sits right below early-stop patience. Leave it at 0 and nothing changes. Set it ' +
+          "above 0 and every weight in the model gets nudged a little smaller on every single training step " +
+          "— not deleted, just discouraged from growing huge.",
+        target: '[data-tutorial="training-hyperparams"]',
+      },
+      {
+        title: 'Not the same thing as dropout',
+        body:
+          'If you\'ve used a "dropout" box on the canvas, this does something related but different: dropout ' +
+          "randomly ignores part of the signal during training; weight decay shrinks the weights themselves, " +
+          "every step, for the whole run. Different mechanisms, same goal — and they can be combined.",
+        target: '[data-tutorial="palette"]',
+      },
+      {
+        title: 'Too much of a good thing',
+        body:
+          "A small weight decay is a gentle nudge. Too large a value fights the model so hard it can't learn " +
+          "the real pattern either — loss stops dropping the way it should. Watch the loss chart after " +
+          "changing it, the same way you would for learning rate.",
+        target: '[data-tutorial="metrics-chart"]',
+      },
+      {
+        title: 'A knob worth comparing, not guessing',
+        body:
+          "Train the same graph with weight decay off, then again with a value like 0.001, and check the " +
+          "History tab — a real side-by-side of whether it actually helped on your data, not just a guess " +
+          'either way.',
+        target: '[data-tutorial="tab-experiments"]',
+        focusTab: { slot: 'bottom', tabId: 'experiments' },
+      },
+    ],
+  },
 ];

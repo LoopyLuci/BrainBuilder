@@ -467,6 +467,7 @@ impl PythonBridge {
         loss_name: &str,
         optimizer_name: &str,
         lr: f64,
+        weight_decay: f64,
         trainable_ports: &[String],
     ) -> Result<(f32, HashMap<String, Tensor>)> {
         for op in operations {
@@ -504,6 +505,7 @@ impl PythonBridge {
             "loss_name": loss_name,
             "optimizer_name": optimizer_name,
             "lr": lr,
+            "weight_decay": weight_decay,
             "trainable_ports": trainable_ports,
             "output_paths": Value::Object(output_paths),
         }))?;
@@ -592,6 +594,7 @@ impl PythonBridge {
         averaged_gradients: &HashMap<String, Tensor>,
         optimizer_name: &str,
         lr: f64,
+        weight_decay: f64,
     ) -> Result<HashMap<String, Tensor>> {
         let mut weight_descs = serde_json::Map::new();
         let mut gradient_descs = serde_json::Map::new();
@@ -614,6 +617,7 @@ impl PythonBridge {
             "gradients": Value::Object(gradient_descs),
             "optimizer_name": optimizer_name,
             "lr": lr,
+            "weight_decay": weight_decay,
             "output_paths": Value::Object(output_paths),
         }))?;
 

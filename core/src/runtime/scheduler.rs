@@ -368,6 +368,7 @@ impl ExecutionPlan {
     /// loop (epochs x batches) so learned parameters persist between steps;
     /// entries are lazily initialized here via real `torch.randn` on first
     /// use.
+    #[allow(clippy::too_many_arguments)]
     pub fn train_step(
         &self,
         step: usize,
@@ -376,6 +377,7 @@ impl ExecutionPlan {
         loss_name: &str,
         optimizer_name: &str,
         lr: f64,
+        weight_decay: f64,
         bridge: &PythonBridge,
     ) -> Result<LossValue> {
         let err = |msg: &str| crate::interop::protocol::BrainBuilderError::ConfigError(msg.to_string());
@@ -395,6 +397,7 @@ impl ExecutionPlan {
             loss_name,
             optimizer_name,
             lr,
+            weight_decay,
             &self.trainable_weight_ports(),
         )?;
 
@@ -442,12 +445,14 @@ impl ExecutionPlan {
     /// `train_step`/`compute_gradients_step` use, so a frozen parameter
     /// (e.g. LoRA's base weight) never gets optimized just because it was
     /// present in `weights`.
+    #[allow(clippy::too_many_arguments)]
     pub fn apply_averaged_gradients_step(
         &self,
         weights: &std::collections::HashMap<String, Tensor>,
         averaged_gradients: &std::collections::HashMap<String, Tensor>,
         optimizer_name: &str,
         lr: f64,
+        weight_decay: f64,
         bridge: &PythonBridge,
     ) -> Result<std::collections::HashMap<String, Tensor>> {
         let trainable = self.trainable_weight_ports();
@@ -456,7 +461,7 @@ impl ExecutionPlan {
             .filter(|(name, _)| trainable.contains(name))
             .map(|(name, t)| (name.clone(), t.clone()))
             .collect();
-        bridge.apply_averaged_gradients(&trainable_weights, averaged_gradients, optimizer_name, lr)
+        bridge.apply_averaged_gradients(&trainable_weights, averaged_gradients, optimizer_name, lr, weight_decay)
     }
 
     /// Binds every learnable parameter port into `inputs`, lazily

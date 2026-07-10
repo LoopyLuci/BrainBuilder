@@ -33,6 +33,19 @@ impl super::trainer::Trainer for StandardTrainer {
             .get("lr")
             .and_then(|v| v.as_f64())
             .unwrap_or(0.01);
+        // 0.0 (the default) means "off" — the optimizer behaves exactly as
+        // it did before this hyperparameter existed. A positive value pulls
+        // every weight a little toward zero on each step (L2 regularization,
+        // passed straight through to torch.optim's own `weight_decay`
+        // kwarg), which discourages any single weight from growing large
+        // enough to memorize noise in the training data instead of the real
+        // pattern — a different lever from `dropout` (a per-component node
+        // on the canvas), not a replacement for it.
+        let weight_decay = training_cfg
+            .hyperparams
+            .get("weight_decay")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0);
         // 0 (the default — see gui's TRAINING_SCHEMA) means "off": every
         // epoch runs, exactly like before this feature existed. A positive
         // patience stops training once `patience` epochs in a row fail to
@@ -79,6 +92,7 @@ impl super::trainer::Trainer for StandardTrainer {
                     &loss_name,
                     &optimizer_name,
                     lr,
+                    weight_decay,
                     &self.python,
                 )?;
                 self.context.provenance.log(crate::utils::provenance::ProvenanceRecord {

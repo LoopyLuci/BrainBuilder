@@ -244,6 +244,17 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       'same forward pass Predict already uses, just run once per row across an entire dataset and written out ' +
       'as a CSV file you can open in a spreadsheet.',
   },
+  regularization: {
+    term: 'Regularization',
+    short: 'Discouraging any one weight from growing too large, to fight overfitting.',
+    long:
+      'A model can "cheat" by growing a few weights huge to memorize quirks of your specific training data ' +
+      "instead of learning the general pattern — that's overfitting. Weight decay is a whole-run dial that " +
+      "nudges every weight a little smaller on each step, which discourages that kind of memorizing without " +
+      'changing what the model is built from. This is different from a dropout box on the canvas, which ' +
+      "randomly ignores part of the signal during training — both fight overfitting, but by different means, " +
+      'and can be used together.',
+  },
   'early-stopping': {
     term: 'Early stopping',
     short: "Ending training automatically once more epochs stop helping.",
