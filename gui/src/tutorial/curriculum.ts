@@ -2230,8 +2230,18 @@ export const CURRICULUM: Tutorial[] = [
         title: 'Unload it — gone just as cleanly',
         body:
           'Click "Unload" on either example (now showing where "Load" was) and its panel disappears ' +
-          "immediately. Nothing lingers — loading and unloading a plugin is completely reversible, any time.",
-        target: '[data-tutorial="plugins-loaded-list"]',
+          "immediately. Nothing lingers — loading and unloading a plugin is completely reversible, any time. " +
+          "Unload both and this list says so plainly, rather than just sitting empty with no explanation.",
+        target: '[data-tutorial="plugins-loaded-empty"]',
+      },
+      {
+        title: "Load anything — not just the bundled examples",
+        body:
+          "The two examples above are just a starting point. Paste the URL of any plugin module — a plain ES " +
+          'module that exports a `register(host)` function — into this box and click "Load". Same rule ' +
+          'applies: it only gets the capabilities it declares, defaulting to "add a panel" and "read the ' +
+          'graph" for one you load this way.',
+        target: '[data-tutorial="plugins-manual-entry"]',
       },
       {
         title: 'Hide a panel you don\'t need',
