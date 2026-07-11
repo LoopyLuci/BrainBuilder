@@ -3,31 +3,46 @@
 // IPC command that starts BrainBuilder's predict server, then the harness's
 // own introspectApi/executeApi against the real returned URL.
 //
-// KNOWN BLOCKER (as of 2026-07-11, unrelated to universal-harness): running
-// this against a `tauri dev` session currently fails every IPC command,
-// including trivial ones, with "Command X not found". Diagnosis: the
-// dev window serves `http://tauri.localhost/` with Tauri v2's JS IPC bridge
-// (`window.__TAURI_INTERNALS__`), but `gui/src-tauri/tauri.conf.json`
-// (`devPath: http://localhost:5173`) and both `Cargo.toml`/`package.json`
-// are pinned to Tauri v1 — a real, pre-existing version/config mismatch in
-// BrainBuilder's own Tauri setup, not something this script or
-// universal-harness can work around. Fix that mismatch (or run against a
-// build where it's already resolved) before this script will get past the
-// first `invokeIpc` call.
+// Previously blocked by a real bug in BrainBuilder itself (now fixed, see
+// gui/src-tauri/src/main.rs's WEBVIEW2_USER_DATA_FOLDER override): Tauri/wry
+// defaults every app to one shared WebView2 profile directory, and since all
+// Tauri apps also share the fixed `http://tauri.localhost/` origin, a
+// service worker registered by a *different* local Tauri app was
+// intercepting BrainBuilder's own page loads, making every IPC command fail
+// "not found". Giving BrainBuilder its own profile directory fixed it.
 import { connectCdp, introspectApi, executeApi } from '../../dist/src/index.js';
 import { writeFile } from 'node:fs/promises';
+import path from 'node:path';
 
-// BrainBuilder exposes more than one CDP page target (the main window, plus
-// an `assistant.html` secondary window) — urlIncludes picks the main one
-// explicitly rather than guessing at whichever the browser lists first.
-const client = await connectCdp('http://localhost:9222', { urlIncludes: 'http://tauri.localhost/' });
+// The predict server's cwd is wherever `tauri dev` launched the Rust
+// process from (gui/src-tauri), not this script's cwd — pass an absolute
+// path so it's unambiguous regardless of how/where the dev server was started.
+const datasetPath = path.resolve('../gui/examples/first_run.csv');
 
-// This BrainBuilder build uses Tauri v2's IPC entry point
-// (window.__TAURI_INTERNALS__.invoke), not the older __TAURI_IPC__ callback
-// pattern earlier ad hoc verification scripts in this repo assumed — checked
-// directly against the real window rather than guessed.
+const client = await connectCdp('http://localhost:9222');
+
+// Real Tauri v1 IPC: a callback-pair dance through window.__TAURI_IPC__
+// (confirmed against the actual window — v1 is what's really installed:
+// tauri v1.8.3 in Cargo.lock, @tauri-apps/api@1.6.0 in package-lock.json).
 async function invokeIpc(cmd, args = {}) {
-  return client.evaluate(`window.__TAURI_INTERNALS__.invoke(${JSON.stringify(cmd)}, ${JSON.stringify(args)})`);
+  const expr = `
+  (function() {
+    function transformCallback(callback, once) {
+      const identifier = window.crypto.getRandomValues(new Uint32Array(1))[0];
+      const prop = '_' + identifier;
+      Object.defineProperty(window, prop, {
+        value: (result) => { if (once) delete window[prop]; return callback(result); },
+        writable: false, configurable: true
+      });
+      return identifier;
+    }
+    return new Promise((resolve, reject) => {
+      const callback = transformCallback((e) => resolve(e), true);
+      const error = transformCallback((e) => reject(e), true);
+      window.__TAURI_IPC__({ cmd: ${JSON.stringify(cmd)}, callback, error, ...${JSON.stringify(args)} });
+    });
+  })()`;
+  return client.evaluate(expr);
 }
 
 console.log('starting real predict server via Tauri IPC...');
@@ -62,7 +77,7 @@ const graph = {
 
 console.log('calling POST /predict for real, through universal-harness executeApi...');
 const result = await executeApi(manifest, 'predict', {
-  body: { graph_json: JSON.stringify(graph), dataset_path: 'examples/first_run.csv', rows: 5 },
+  body: { graph_json: JSON.stringify(graph), dataset_path: datasetPath, rows: 5 },
 });
 console.log('  ok:', result.ok);
 console.log('  output:', JSON.stringify(result.output));

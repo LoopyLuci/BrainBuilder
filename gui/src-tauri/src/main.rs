@@ -1036,6 +1036,27 @@ fn setup_cluster(
 fn main() {
     env_logger::init();
 
+    // WebView2 defaults to one shared profile directory
+    // (`%LOCALAPPDATA%\EBWebView`) for every Tauri/wry app on the machine
+    // that doesn't override it. Since all Tauri apps also share the same
+    // fixed `http://tauri.localhost/` origin, that means a service worker
+    // (or any other origin-scoped storage) registered by a *different*
+    // local Tauri app can silently intercept BrainBuilder's own page loads —
+    // observed directly: a stale service worker from an unrelated app was
+    // serving its own UI in place of BrainBuilder's, with every Tauri IPC
+    // command failing "not found" as a result, since the two apps'
+    // `invoke_handler`s are naturally different. Giving this app its own
+    // profile directory closes that off entirely. Must be set before the
+    // webview is created (i.e. before `tauri::Builder::run`), and only
+    // matters on Windows — other platforms' webviews don't read it.
+    #[cfg(target_os = "windows")]
+    if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+        std::env::set_var(
+            "WEBVIEW2_USER_DATA_FOLDER",
+            std::path::Path::new(&local_app_data).join("BrainBuilder").join("EBWebView"),
+        );
+    }
+
     // Components directory is resolved relative to the executable's working
     // directory at dev time; for a packaged build this should instead be
     // bundled as a Tauri resource and resolved via `tauri::api::path`. The
