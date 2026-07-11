@@ -100,13 +100,17 @@ pub fn classify_failure(changed_or_failing_paths: &[PathBuf]) -> FailureClass {
     }
 }
 
-/// Build the `Capabilities` grant for an auto-fix attempt: read/write access
-/// (via the existing worktree-scoped grant machinery) restricted to *only*
-/// the test paths involved, plus network (the agent still needs to reach its
-/// model provider, same as any other agent step) and a bounded timeout/memory
-/// ceiling. No grant is given to any path outside `test_paths` — in
-/// particular the worktree's product/source files are not readable by this
-/// session, so even a misbehaving agent invocation can't touch them.
+/// Build the `Capabilities` grant for an auto-fix attempt: read access
+/// restricted to *only* the test paths involved, plus network (the agent
+/// still needs to reach its model provider, same as any other agent step)
+/// and a bounded timeout/memory ceiling. No grant is given to any path
+/// outside `test_paths` — actually applied via `run_agent_step_scoped` (see
+/// `attempt_auto_fix`), which checks the intended edit surface against this
+/// grant instead of the default full-worktree one every other agent step
+/// uses. Same caveat as the rest of this sandbox on the current platform
+/// (see `runtime::nervous_system::job_object`'s module doc): this narrows
+/// what's asserted/checked, not a guaranteed OS-level jail against an
+/// already-spawned process reaching outside the grant.
 pub fn scoped_capabilities_for_test_paths(test_paths: &[PathBuf]) -> Capabilities {
     let mut caps = Capabilities::none()
         .allow_network()
@@ -166,16 +170,16 @@ pub fn attempt_auto_fix(
 
     let session = AgentSession::create(repo_root, AutonomyMode::AutoApply)?;
 
-    // Capabilities are computed for documentation/audit purposes and to keep
-    // the "what is this session allowed to touch" decision colocated with
-    // the classification — `run_agent_step` itself still scopes reads to the
-    // worktree (see agent/mod.rs), and test_paths here further narrows the
-    // *intended* edit surface communicated to the agent in the task prompt.
+    // Actually applied (not just computed for documentation) via
+    // `run_agent_step_scoped`: the narrower test-paths-only grant, checked
+    // against the same narrower `touched_paths` list, instead of the
+    // default full-worktree grant `run_agent_step` would otherwise use.
     let worktree_test_paths: Vec<PathBuf> = test_paths
         .iter()
         .map(|p| session.worktree.join(p))
         .collect();
-    let _scoped_caps = scoped_capabilities_for_test_paths(&worktree_test_paths);
+    let scoped_caps = scoped_capabilities_for_test_paths(&worktree_test_paths);
+    let touched_paths: Vec<&Path> = worktree_test_paths.iter().map(PathBuf::as_path).collect();
 
     let path_list = test_paths
         .iter()
@@ -188,7 +192,7 @@ pub fn attempt_auto_fix(
          any product/source file) so the suite passes."
     );
 
-    let agent_output = session.run_agent_step(&task, model_selector)?;
+    let agent_output = session.run_agent_step_scoped(&task, model_selector, scoped_caps, &touched_paths)?;
     let test_gate = session.run_test_gate();
 
     Ok(AutoFixOutcome {

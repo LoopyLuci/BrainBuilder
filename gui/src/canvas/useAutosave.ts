@@ -56,8 +56,20 @@ export function useAutosave() {
     })();
   }, [descriptorsReady, descriptors, setGraph, setTraining]);
 
+  // Read the latest graph state from a ref inside the interval callback
+  // instead of closing over `nodes`/`edges`/`training` directly. Those
+  // change on essentially every canvas interaction (a single node drag
+  // included), so depending on them here used to tear down and recreate the
+  // interval — resetting its 30s countdown — on every edit. A user actively
+  // iterating on a graph for several minutes could go the whole time without
+  // ever hitting a quiet 30s gap, so autosave silently never fired, directly
+  // contradicting this hook's own "closing the app never loses work" promise.
+  const latest = useRef({ graphId, nodes, edges, training });
+  latest.current = { graphId, nodes, edges, training };
+
   useEffect(() => {
     const interval = setInterval(async () => {
+      const { graphId, nodes, edges, training } = latest.current;
       if (nodes.length === 0) return;
       try {
         const path = await autosavePath();
@@ -67,5 +79,5 @@ export function useAutosave() {
       }
     }, AUTOSAVE_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [graphId, nodes, edges, training]);
+  }, []);
 }

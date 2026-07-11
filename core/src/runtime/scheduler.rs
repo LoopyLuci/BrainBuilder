@@ -219,6 +219,25 @@ impl ExecutionPlan {
         bridge: &PythonBridge,
         device: &dyn Device,
     ) -> Result<Vec<Tensor>> {
+        Ok(self.forward_named(data_inputs, weights, bridge, device)?.into_values().collect())
+    }
+
+    /// Same computation as `forward`, but keeps each tensor's port name
+    /// instead of discarding it — `forward`'s `Vec<Tensor>` has no way to
+    /// tell a caller which entry is the graph's real declared output versus
+    /// an echoed input or a weight matrix, which is exactly what led
+    /// `interpret.rs`'s original `predict_flat` to guess by tensor shape
+    /// (unsound for any model whose echoed input happens to be narrower
+    /// than its real output, or whose real output has more than one value
+    /// per row). Callers that need *the* output unambiguously should look
+    /// it up by `output_port()` in the returned map instead of guessing.
+    pub fn forward_named(
+        &self,
+        data_inputs: &[Tensor],
+        weights: &std::collections::HashMap<String, Tensor>,
+        bridge: &PythonBridge,
+        device: &dyn Device,
+    ) -> Result<std::collections::HashMap<String, Tensor>> {
         let mut intermediate = self.bind_data_ports(data_inputs.to_vec())?;
         for port in self.weight_ports() {
             let tensor = weights.get(&port).cloned().ok_or_else(|| {
@@ -264,14 +283,14 @@ impl ExecutionPlan {
                 intermediate.insert(out_name.clone(), result.clone());
             }
         }
-        Ok(intermediate.into_values().collect())
+        Ok(intermediate)
     }
 
     /// The port name of the graph's final output — the last op's first
     /// declared output. (BBIR doesn't have a distinct "graph output" concept
     /// beyond node ports, so this mirrors `forward`'s existing simplification
     /// rather than inventing a new one.)
-    fn output_port(&self) -> Option<&str> {
+    pub fn output_port(&self) -> Option<&str> {
         self.operations.last().and_then(|op| op.outputs.first()).map(String::as_str)
     }
 

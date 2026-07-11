@@ -23,10 +23,16 @@ export class WidgetBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // Surface it in the console tab too, without importing the store at module
-    // scope (avoids a cycle if a widget imports the boundary transitively).
     // eslint-disable-next-line no-console
     console.error(`[widget:${this.props.widgetId}] crashed:`, error, info.componentStack);
+    // Surface it in the console tab too, without importing the store at module
+    // scope (avoids a cycle if a widget imports the boundary transitively) —
+    // a dynamic import still reaches the same store instance since ES module
+    // imports are singletons, it just defers resolution until a crash
+    // actually happens instead of at boundary-module load time.
+    import('../console/logStore')
+      .then(({ logError }) => logError(`"${this.props.title}" crashed: ${error.message}`))
+      .catch(() => {});
   }
 
   reset = () => this.setState({ error: null });

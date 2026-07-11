@@ -112,7 +112,33 @@ impl AgentSession {
             .allow_network()
             .with_timeout(Duration::from_secs(600))
             .with_memory_limit(4 * 1024 * 1024 * 1024);
+        self.run_agent_step_scoped(task, model_selector, caps, &[&self.worktree])
+    }
 
+    /// Same as `run_agent_step`, but with a caller-supplied `Capabilities`
+    /// grant and `touched_paths` list instead of the default "the whole
+    /// worktree" one. Used by `test_doctor::attempt_auto_fix` to actually
+    /// apply the narrower test-paths-only grant it computes — before this
+    /// existed, that computed grant was built but never passed anywhere,
+    /// so every auto-fix step ran with full-worktree read access regardless
+    /// of how narrowly `scoped_capabilities_for_test_paths` had scoped it.
+    ///
+    /// Same caveat as the rest of this module's sandboxing: `Capabilities`
+    /// here drives a pre-spawn path-grant check (`touched_paths` must be
+    /// covered by `caps`), not an OS-level filesystem/network jail on every
+    /// platform (see `runtime::nervous_system::job_object`'s module doc for
+    /// the real, currently-documented per-platform enforcement gap). A
+    /// narrower grant here still meaningfully narrows what a *caller*
+    /// asserts and gets checked against, and keeps the intended edit surface
+    /// visible in the audit log — it does not by itself guarantee an
+    /// already-spawned `opencode` process can't reach outside it on Windows.
+    pub fn run_agent_step_scoped(
+        &self,
+        task: &str,
+        model_selector: &str,
+        caps: Capabilities,
+        touched_paths: &[&Path],
+    ) -> Result<String> {
         // `opencode run <task>` is OpenCode's non-interactive one-shot mode.
         // `--model` threads the same provider:model selector the rest of
         // BrainBuilder uses.
@@ -124,7 +150,7 @@ impl AgentSession {
             .arg("--model")
             .arg(model_selector);
 
-        let output = Supervisor::run_checked_named("agent-opencode", &mut command, &caps, &[&self.worktree], None)
+        let output = Supervisor::run_checked_named("agent-opencode", &mut command, &caps, touched_paths, None)
             .map_err(|e| {
                 BrainBuilderError::ConfigError(format!(
                     "couldn't run the OpenCode agent (is `opencode` installed and on PATH?): {e}"

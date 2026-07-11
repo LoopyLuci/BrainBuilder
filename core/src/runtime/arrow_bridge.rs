@@ -94,13 +94,25 @@ fn column_to_tensor(batch: &RecordBatch, index: usize, arena: &SharedArena) -> R
                 lanes: 1,
             }, arena)
         }
+        // Narrowed to float32, same as the `Float64` branch above and for
+        // the same reason: every ML component here works in float32, and
+        // `stack_columns_into_matrix` (below) requires it unconditionally
+        // when multiple columns feed one multi-feature data port. Real bug
+        // this fixes: DataFusion's CSV schema inference picks `Int64` for
+        // any column whose values all happen to look whole (an "age" or
+        // "count" column, or even a `Float64`-typed column whose CSV rows
+        // are all coincidentally integral) — before this, stacking that
+        // column next to a genuinely fractional one crashed with "requires
+        // a float32 tensor" instead of just narrowing like every other
+        // numeric column already does.
         ArrowDataType::Int32 => {
             let array = column
                 .as_any()
                 .downcast_ref::<Int32Array>()
                 .expect("DataType::Int32 field backed by a non-Int32Array");
-            copy_into_tensor(array.values(), dlpack::DataType {
-                code: dlpack::data_type_codes::INT,
+            let narrowed: Vec<f32> = array.values().iter().map(|&v| v as f32).collect();
+            copy_into_tensor(&narrowed, dlpack::DataType {
+                code: dlpack::data_type_codes::FLOAT,
                 bits: 32,
                 lanes: 1,
             }, arena)
@@ -110,9 +122,10 @@ fn column_to_tensor(batch: &RecordBatch, index: usize, arena: &SharedArena) -> R
                 .as_any()
                 .downcast_ref::<Int64Array>()
                 .expect("DataType::Int64 field backed by a non-Int64Array");
-            copy_into_tensor(array.values(), dlpack::DataType {
-                code: dlpack::data_type_codes::INT,
-                bits: 64,
+            let narrowed: Vec<f32> = array.values().iter().map(|&v| v as f32).collect();
+            copy_into_tensor(&narrowed, dlpack::DataType {
+                code: dlpack::data_type_codes::FLOAT,
+                bits: 32,
                 lanes: 1,
             }, arena)
         }
@@ -194,6 +207,55 @@ mod tests {
             let t = &(*tensors[0].0).dl_tensor;
             let values = std::slice::from_raw_parts(t.data as *const f32, 3);
             assert_eq!(values, &[1.5f32, 2.5, 3.5]);
+        }
+    }
+
+    #[test]
+    fn converts_int64_column_narrowing_to_float32() {
+        // Regression test: DataFusion's CSV schema inference picks Int64 for
+        // any column whose every value looks whole (an "age"/"count" column,
+        // or any numeric column that happens to have no fractional rows) —
+        // before this, that column stayed an INT-typed tensor, which crashed
+        // `stack_columns_into_matrix` with "requires a float32 tensor" the
+        // moment it needed to sit next to a genuinely fractional column in
+        // the same multi-feature matrix (see the next test).
+        let schema = Arc::new(Schema::new(vec![Field::new("x", ArrowDataType::Int64, false)]));
+        let array: ArrayRef = Arc::new(Int64Array::from(vec![1, 2, 3]));
+        let batch = RecordBatch::try_new(schema, vec![array]).unwrap();
+
+        let arena = SharedArena::new();
+        let tensors = record_batch_to_tensors(&batch, &arena).unwrap();
+
+        unsafe {
+            let t = &(*tensors[0].0).dl_tensor;
+            assert_eq!(t.dtype.code, dlpack::data_type_codes::FLOAT, "should narrow to float32, not stay INT");
+            assert_eq!(t.dtype.bits, 32);
+            let values = std::slice::from_raw_parts(t.data as *const f32, 3);
+            assert_eq!(values, &[1.0f32, 2.0, 3.0]);
+        }
+    }
+
+    #[test]
+    fn stacking_a_whole_number_int_column_with_a_fractional_float_column_works() {
+        // The exact real-world shape that used to crash: a CSV with one
+        // all-integer-looking column (e.g. "age") and one genuinely
+        // fractional column (e.g. "score"), both feeding the same `linear`
+        // node's single multi-feature data port.
+        let schema = Arc::new(Schema::new(vec![
+            Field::new("age", ArrowDataType::Int64, false),
+            Field::new("score", ArrowDataType::Float64, false),
+        ]));
+        let ages: ArrayRef = Arc::new(Int64Array::from(vec![25, 40]));
+        let scores: ArrayRef = Arc::new(arrow::array::Float64Array::from(vec![1.5, 2.5]));
+        let batch = RecordBatch::try_new(schema, vec![ages, scores]).unwrap();
+
+        let arena = SharedArena::new();
+        let columns = record_batch_to_tensors(&batch, &arena).unwrap();
+        let matrix = stack_columns_into_matrix(&columns, &arena).expect("stacking a mixed int+float column set should work");
+        unsafe {
+            let t = &(*matrix.0).dl_tensor;
+            let values = std::slice::from_raw_parts(t.data as *const f32, 4);
+            assert_eq!(values, &[25.0f32, 1.5, 40.0, 2.5]);
         }
     }
 

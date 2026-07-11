@@ -67,31 +67,20 @@ fn drop_last_column(batch: &RecordBatch) -> Result<RecordBatch> {
         .map_err(|e| BrainBuilderError::ConfigError(format!("failed to drop target column: {e}")))
 }
 
-/// `ExecutionPlan::forward` returns every named intermediate tensor in the
-/// graph (echoed data-port inputs, weight ports, and real op outputs alike)
-/// in unspecified order, not just the final prediction — there's no
-/// dedicated "graph output" concept in BBIR beyond node ports. The real
-/// per-row output is identified here by shape instead: it's the *smallest*
-/// returned tensor whose element count divides evenly by the batch's row
-/// count (an echoed multi-feature input divides evenly too, but is wider;
-/// weight/bias tensors don't generally divide evenly by an arbitrary row
-/// count at all).
+/// The graph's real per-row prediction, flattened. Used to be identified by
+/// guessing which of `predict`'s tensors was "the" output from its shape
+/// (the smallest tensor whose element count divides evenly by the row
+/// count) — that guess is unsound: an echoed multi-column input can be
+/// *narrower* than the real output (a sequence model's context window vs. a
+/// wide vocabulary head), and any model with more than one value per row (a
+/// classifier's `[batch, num_classes]` output) would silently return the
+/// wrong tensor entirely under the old heuristic. `Orchestrator::predict_output`
+/// resolves this unambiguously via the graph's own declared output port
+/// instead of guessing.
 pub(crate) fn predict_flat(orchestrator: &Orchestrator, graph: &BBIRGraph, batch: RecordBatch) -> Result<Vec<f32>> {
-    let num_rows = batch.num_rows();
-    let tensors = orchestrator.predict(graph.clone(), batch)?;
-    let mut best: Option<Vec<f32>> = None;
-    for t in &tensors {
-        let (_, values) = crate::interop::dlpack_support::tensor_to_vec_f32(t)?;
-        if num_rows == 0 || values.is_empty() || values.len() % num_rows != 0 {
-            continue;
-        }
-        if best.as_ref().map_or(true, |b| values.len() < b.len()) {
-            best = Some(values);
-        }
-    }
-    best.ok_or_else(|| {
-        BrainBuilderError::ConfigError("predict didn't return an output tensor shaped for this batch's rows".into())
-    })
+    let tensor = orchestrator.predict_output(graph.clone(), batch)?;
+    let (_, values) = crate::interop::dlpack_support::tensor_to_vec_f32(&tensor)?;
+    Ok(values)
 }
 
 fn mean_abs_diff(a: &[f32], b: &[f32]) -> f32 {

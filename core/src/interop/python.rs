@@ -516,7 +516,16 @@ impl PythonBridge {
             "output_paths": Value::Object(output_paths),
         }))?;
 
-        let loss_value = resp["loss"].as_f64().unwrap_or(0.0) as f32;
+        // `request()` already turns a worker-reported failure (`ok: false`)
+        // into a real `Err` before this line is ever reached, so this only
+        // guards against a malformed *successful* response — but a silent
+        // `unwrap_or(0.0)` would misreport that as "loss reached exactly
+        // zero" instead of the real defect it is, indistinguishable from a
+        // model that's perfectly converged. Erroring here keeps that
+        // ambiguity from ever reaching a caller as a fake number.
+        let loss_value = resp["loss"].as_f64().ok_or_else(|| {
+            BrainBuilderError::Python(format!("worker response missing/invalid `loss` field despite ok:true: {resp}"))
+        })? as f32;
         let mut updated = HashMap::new();
         let updated_json = resp["updated_weights"]
             .as_object()
@@ -580,7 +589,11 @@ impl PythonBridge {
             "gradient_paths": Value::Object(gradient_paths),
         }))?;
 
-        let loss_value = resp["loss"].as_f64().unwrap_or(0.0) as f32;
+        // See the identical guard in `train_step` above for why this errors
+        // instead of defaulting to 0.0.
+        let loss_value = resp["loss"].as_f64().ok_or_else(|| {
+            BrainBuilderError::Python(format!("worker response missing/invalid `loss` field despite ok:true: {resp}"))
+        })? as f32;
         let mut gradients = HashMap::new();
         let gradients_json = resp["gradients"]
             .as_object()

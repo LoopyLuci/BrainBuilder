@@ -133,6 +133,46 @@ impl Orchestrator {
     /// clearly (via `ExecutionPlan::forward`) if the graph has parameter
     /// ports but no checkpoint has been trained yet.
     pub fn predict(&self, graph: BBIRGraph, batch: arrow::record_batch::RecordBatch) -> Result<Vec<crate::Tensor>> {
+        let (plan, inputs, weights, device) = self.prepare_forward(graph, batch)?;
+        plan.forward(&inputs, &weights, &self.python, device.as_ref())
+    }
+
+    /// Like `predict`, but returns only the graph's real designated output
+    /// tensor (looked up by `ExecutionPlan::output_port()`), not every
+    /// intermediate value `predict` exposes. Existing callers that need
+    /// "the" prediction (batch CSV export, feature importance) used to get
+    /// this by guessing which of `predict`'s tensors was the real one from
+    /// its shape (the smallest tensor whose length divides evenly by the
+    /// row count) — unsound the moment a model's echoed input is narrower
+    /// than its real output (a sequence model's context window) or its real
+    /// output has more than one value per row (any classifier). This
+    /// resolves it unambiguously via the graph's own declared structure.
+    pub fn predict_output(&self, graph: BBIRGraph, batch: arrow::record_batch::RecordBatch) -> Result<crate::Tensor> {
+        let (plan, inputs, weights, device) = self.prepare_forward(graph, batch)?;
+        let named = plan.forward_named(&inputs, &weights, &self.python, device.as_ref())?;
+        let port = plan.output_port().ok_or_else(|| {
+            crate::interop::protocol::BrainBuilderError::ConfigError(
+                "execution plan has no operations / output port".into(),
+            )
+        })?;
+        named.get(port).cloned().ok_or_else(|| {
+            crate::interop::protocol::BrainBuilderError::ConfigError(format!(
+                "forward pass didn't produce the declared output port `{port}`"
+            ))
+        })
+    }
+
+    #[allow(clippy::type_complexity)]
+    fn prepare_forward(
+        &self,
+        graph: BBIRGraph,
+        batch: arrow::record_batch::RecordBatch,
+    ) -> Result<(
+        crate::runtime::scheduler::ExecutionPlan,
+        Vec<crate::Tensor>,
+        std::collections::HashMap<String, crate::Tensor>,
+        std::sync::Arc<dyn crate::runtime::device::Device>,
+    )> {
         self.validate(&graph)?;
         let plan = self.compile(&graph)?;
         let inputs = plan.prepare_inputs(batch)?;
@@ -148,7 +188,7 @@ impl Orchestrator {
             crate::interop::protocol::BrainBuilderError::ConfigError("preferred_gpu lock poisoned".into())
         })?.clone();
         let device = crate::runtime::device_select::resolve_device(preferred.as_deref());
-        plan.forward(&inputs, &weights, &self.python, device.as_ref())
+        Ok((plan, inputs, weights, device))
     }
 
     pub fn has_checkpoint(&self, graph_id: &str) -> bool {

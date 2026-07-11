@@ -51,6 +51,23 @@ pub async fn run_batch_predict(
         }
 
         let predictions = predict_flat(orchestrator, graph, batch.clone())?;
+        let num_rows = batch.num_rows();
+        // `predict_flat` returns one *tensor's worth* of values, not
+        // necessarily one scalar per row — a classifier's real output is
+        // `[batch, num_classes]`. Indexing it as if it were `num_rows`
+        // scalars (`predictions.get(row)`) used to silently misread
+        // class-interleaved values as row predictions for any such model.
+        // `per_row` values divide evenly for a real model output (checked
+        // below); when there's more than one, write the predicted class
+        // index (argmax) — the natural "prediction" for a classification
+        // row — instead of a meaningless raw logit.
+        let per_row = if num_rows == 0 { 0 } else { predictions.len() / num_rows.max(1) };
+        if per_row == 0 || predictions.len() != num_rows * per_row {
+            return Err(BrainBuilderError::ConfigError(format!(
+                "predicted output has {} value(s) for {num_rows} row(s) — not an even per-row count",
+                predictions.len()
+            )));
+        }
         let opts = FormatOptions::default();
         let formatters: Vec<ArrayFormatter> = batch
             .columns()
@@ -59,9 +76,19 @@ pub async fn run_batch_predict(
             .collect::<std::result::Result<_, _>>()
             .map_err(|e| BrainBuilderError::ConfigError(e.to_string()))?;
 
-        for row in 0..batch.num_rows() {
+        for row in 0..num_rows {
             let mut fields: Vec<String> = formatters.iter().map(|f| csv_escape(&f.value(row).to_string())).collect();
-            let pred = predictions.get(row).copied().unwrap_or(f32::NAN);
+            let row_values = &predictions[row * per_row..(row + 1) * per_row];
+            let pred = if per_row == 1 {
+                row_values[0]
+            } else {
+                row_values
+                    .iter()
+                    .enumerate()
+                    .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(std::cmp::Ordering::Equal))
+                    .map(|(i, _)| i as f32)
+                    .unwrap_or(f32::NAN)
+            };
             fields.push(pred.to_string());
             writeln!(file, "{}", fields.join(","))
                 .map_err(|e| BrainBuilderError::ConfigError(format!("failed writing CSV row: {e}")))?;
