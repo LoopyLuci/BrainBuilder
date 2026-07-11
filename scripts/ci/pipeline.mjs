@@ -21,6 +21,23 @@ const args = new Set(process.argv.slice(2));
 const FULL = args.has("--full");
 const PACKAGE = args.has("--package");
 const INSTALL_HOOKS = args.has("--install-hooks");
+const HELP = args.has("--help") || args.has("-h");
+
+const USAGE = `pipeline.mjs — BrainBuilder's local CI/CD pipeline (no GitHub dependency)
+
+Usage: node scripts/ci/pipeline.mjs [options]
+
+Options:
+  --full            Also run rust-test-full (needs python+torch on PATH)
+  --package         Also run package (builds a native installer for this OS)
+  --install-hooks   Install a git pre-push hook that runs this pipeline, then exit
+  --help, -h        Show this help
+`;
+
+if (HELP) {
+  process.stdout.write(USAGE);
+  process.exit(0);
+}
 
 /** @type {{name: string, cwd: string, cmd: string, cmdArgs: string[], when: boolean}[]} */
 const stages = [
