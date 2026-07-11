@@ -1001,6 +1001,14 @@ export const CURRICULUM: Tutorial[] = [
         target: '[data-tutorial="modelhub-inspect-btn"]',
       },
       {
+        title: 'Real tensors, read straight off the file',
+        body:
+          "This is what actually opened when you clicked Inspect — every tensor's real name, shape, and data " +
+          "type, read straight out of the model file on disk. Nothing here is a description or a guess; it's " +
+          "the file's own contents.",
+        target: '[data-tutorial="modelhub-manifest"]',
+      },
+      {
         title: '(If GGUF) Register it with Ollama',
         body:
           'A GGUF-format model can be "Register"ed — this hands it to Ollama so you can chat with it from the ' +
@@ -2280,10 +2288,19 @@ export const CURRICULUM: Tutorial[] = [
       {
         title: 'Where the key actually goes',
         body:
-          'Paste an API key into the box and click "Connect". That key is written straight to your operating ' +
-          'system\'s own secure keychain — never a plain file, never browser storage. The app itself never ' +
-          'reads the raw key back afterward, only whether one happens to be saved.',
+          'Paste an API key into this box. That key is written straight to your operating system\'s own ' +
+          'secure keychain — never a plain file, never browser storage. The app itself never reads the raw ' +
+          'key back afterward, only whether one happens to be saved.',
         target: '[data-tutorial="opencode-key-input"]',
+      },
+      {
+        title: 'Click Connect',
+        body:
+          'The keychain write itself is fast — local, no network — so this button never sits waiting on ' +
+          "OpenCode Go's own servers before it lets you go do something else. Pulling its actual model list " +
+          "in happens right after, quietly in the background; check the Console if that part doesn't seem " +
+          "to have worked.",
+        target: '[data-tutorial="opencode-connect-btn"]',
       },
       {
         title: 'Connected',
