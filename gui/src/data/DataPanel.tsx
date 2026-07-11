@@ -109,6 +109,8 @@ export function DataPanel() {
         path_or_uri: selected,
         sequence_length: isText ? training.data_source.sequence_length ?? 32 : undefined,
         vocab_size: isText ? training.data_source.vocab_size ?? 5000 : undefined,
+        text_column: undefined,
+        label_column: undefined,
       },
     });
     if (isText) {
@@ -122,6 +124,28 @@ export function DataPanel() {
       setPreview(null);
       logError(`Previewing dataset failed: ${e}`);
     }
+  };
+
+  // Toggling this switches a plain tabular CSV/Parquet ("file") between the
+  // numeric-columns reading (`source_type: "file"`) and the bag-of-words
+  // free-text reading (`source_type: "text_column"` — core/src/data/
+  // tabular_text.rs), the only route to a text_column dataset for a
+  // manually-built graph (e.g. the "Text Sentiment Classifier" template) —
+  // the Intent panel's own text_column option builds its own graph
+  // automatically and doesn't apply to a graph placed from the Templates
+  // panel.
+  const isTextColumnSource = training.data_source.source_type === 'text_column';
+  const setIsTextColumn = (on: boolean) => {
+    setTraining({
+      ...training,
+      data_source: {
+        ...training.data_source,
+        source_type: on ? 'text_column' : 'file',
+        vocab_size: on ? training.data_source.vocab_size ?? 2000 : undefined,
+        text_column: on ? training.data_source.text_column : undefined,
+        label_column: on ? training.data_source.label_column : undefined,
+      },
+    });
   };
 
   const edges = useGraphStore((s) => s.edges);
@@ -267,12 +291,63 @@ export function DataPanel() {
       <p className="bb-text-muted" style={{ margin: 0 }}>
         {isTextSequence ? (
           'Text file: tokenized word-by-word and windowed into (context, next-word) training examples.'
+        ) : isTextColumnSource ? (
+          'Text column: turned into a bag-of-words feature vector per row; the label column becomes the class to predict.'
         ) : (
           <>
             Convention: the <strong>last column</strong> is the training target.
           </>
         )}
       </p>
+
+      {!isTextSequence && training.data_source.path_or_uri && (
+        <div>
+          <label className="bb-label" data-tutorial="text-column-toggle" style={{ margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <input type="checkbox" checked={isTextColumnSource} onChange={(e) => setIsTextColumn(e.target.checked)} />
+            This is text data (e.g. reviews) — classify it by a text column, not plain numbers
+          </label>
+          {isTextColumnSource && (
+            <div className="bb-form-grid">
+              <label className="bb-label">Text column</label>
+              <input
+                className="bb-input"
+                data-tutorial="text-column-input"
+                placeholder="e.g. review"
+                value={training.data_source.text_column ?? ''}
+                onChange={(e) =>
+                  setTraining({ ...training, data_source: { ...training.data_source, text_column: e.target.value } })
+                }
+                list={preview ? 'preproc-columns' : undefined}
+              />
+              <label className="bb-label">Label column (optional)</label>
+              <input
+                className="bb-input"
+                data-tutorial="label-column-input"
+                placeholder="defaults to the last column"
+                value={training.data_source.label_column ?? ''}
+                onChange={(e) =>
+                  setTraining({ ...training, data_source: { ...training.data_source, label_column: e.target.value } })
+                }
+                list={preview ? 'preproc-columns' : undefined}
+              />
+              <label className="bb-label">Vocab size</label>
+              <input
+                className="bb-input"
+                type="number"
+                value={training.data_source.vocab_size ?? 2000}
+                onChange={(e) =>
+                  setTraining({ ...training, data_source: { ...training.data_source, vocab_size: Number(e.target.value) } })
+                }
+              />
+              <p className="bb-text-muted" style={{ gridColumn: '1 / -1', margin: 0 }}>
+                Caps the bag-of-words vocabulary — the first <code className="bb-code">linear</code> node's{' '}
+                <code className="bb-code">in_features</code> must match the real realized width (shown once you
+                train; usually smaller than this cap for a small dataset).
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {isTextSequence && (
         <div className="bb-form-grid">
@@ -323,6 +398,14 @@ export function DataPanel() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {preview && (
+        <datalist id="preproc-columns">
+          {preview.columns.map((c) => (
+            <option key={c} value={c} />
+          ))}
+        </datalist>
       )}
 
       {isFileSource && (
@@ -383,13 +466,6 @@ export function DataPanel() {
             style={{ width: 120 }}
             list={preview ? 'preproc-columns' : undefined}
           />
-          {preview && (
-            <datalist id="preproc-columns">
-              {preview.columns.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
-          )}
           {newOp === 'cast' && (
             <select
               className="bb-select"

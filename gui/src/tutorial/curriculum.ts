@@ -471,7 +471,7 @@ export const CURRICULUM: Tutorial[] = [
     title: 'More Than One Blueprint',
     blurb: 'Templates come in categories built for different jobs — including the transformer block behind modern language models.',
     difficulty: 'intermediate',
-    minutes: 5,
+    minutes: 8,
     steps: [
       {
         title: 'Templates are grouped by job',
@@ -509,6 +509,64 @@ export const CURRICULUM: Tutorial[] = [
           "this one after another. You've just placed the same core repeating unit they're built from — feel " +
           'free to keep extending it, or head to Metrics and train it as-is.',
         target: '[data-tutorial="canvas"]',
+      },
+      {
+        title: 'The same idea, finished',
+        body:
+          "\"Next-Word Predictor\" takes attention the rest of the way: embedding → attention → keep only the " +
+          "last position → a linear head that scores every word in your vocabulary. Real self-attention " +
+          "over the whole context, not just the word right before — genuinely necessary here, since a word " +
+          'like "the" alone can precede many different next words.',
+        target: '[data-tutorial="templates-item-next-word-predictor"]',
+      },
+      {
+        title: 'Use it',
+        body: 'Click "Use" to drop all four boxes onto the canvas, wired end to end.',
+        target: '[data-tutorial="templates-use-next-word-predictor"]',
+      },
+      {
+        title: 'A finished example, proven',
+        body:
+          'This one trains and predicts real next words, not just a repeating unit to extend. The bundled ' +
+          '"story" example uses this exact shape and reaches 100% next-word accuracy on its little story — a ' +
+          'genuine trained result, not a demo number.',
+        target: '[data-tutorial="canvas"]',
+      },
+      {
+        title: 'A category for plain text',
+        body:
+          "Not every model needs attention. The \"Text\" category is for the common case: a spreadsheet where " +
+          'one column is free text (a review, a message, a ticket) and another is a label.',
+        target: '[data-tutorial="templates-category-text"]',
+      },
+      {
+        title: 'Text Sentiment Classifier',
+        body:
+          'Linear → GELU → linear, fed by a bag-of-words count of your text instead of raw numbers. The bundled ' +
+          'review example trains this exact shape to 100% accuracy telling positive from negative reviews.',
+        target: '[data-tutorial="templates-item-sentiment-classifier"]',
+      },
+      {
+        title: 'Use it',
+        body: 'Click "Use" to drop it onto the canvas.',
+        target: '[data-tutorial="templates-use-sentiment-classifier"]',
+      },
+      {
+        title: 'Point it at text, not numbers',
+        body:
+          'Head to the Data tab and choose your CSV. A plain spreadsheet source normally means "every column is ' +
+          'a number" — this template needs the opposite.',
+        target: '[data-tutorial="tab-data"]',
+        focusTab: { slot: 'side', tabId: 'data' },
+      },
+      {
+        title: 'Check the box, name your columns',
+        body:
+          'Check "This is text data", then type the name of your text column and (optionally) your label ' +
+          "column. BrainBuilder turns each row's text into a bag-of-words vector behind the scenes — this is " +
+          "the only place that switch exists, since the Templates panel only places boxes, it doesn't know " +
+          'what your data looks like.',
+        target: '[data-tutorial="text-column-toggle"]',
       },
     ],
   },

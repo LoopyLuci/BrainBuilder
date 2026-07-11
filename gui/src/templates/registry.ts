@@ -132,10 +132,10 @@ export const TEMPLATES: Template[] = [
     category: 'Text',
     description:
       "A bag-of-words text classifier (linear → GELU → linear) for a spreadsheet of reviews/messages/tickets " +
-      "plus a label column — pick a \"text_column\" dataset in the Data panel, then set this template's first " +
-      "linear node's in_features to match your dataset's real vocabulary width (shown once you pick a dataset). " +
-      "Proven on a real 60-row positive/negative review example: 100% training accuracy — see " +
-      'gui/examples/sentiment.bbir.edn.',
+      'plus a label column — pick your CSV in the Data panel, check "This is text data", and name the text/label ' +
+      "columns there. Then set this template's first linear node's in_features to match the real vocabulary " +
+      'width the Data panel reports once you train. Proven on a real 60-row positive/negative review example: ' +
+      '100% training accuracy — see gui/examples/sentiment.bbir.edn.',
     nodes: [
       { key: 'l1', component: 'linear', hyperparams: { in_features: 200, out_features: 32 }, position: { x: 80, y: 120 } },
       { key: 'act', component: 'gelu', position: { x: 320, y: 120 } },
