@@ -6,6 +6,7 @@ import { saveGraph, loadGraph } from '../api/tauri';
 import { logError, logInfo } from '../console/logStore';
 import { Button } from '../ui/Button';
 import { confirmAction } from '../ui/confirmStore';
+import { HelpTip } from '../help/HelpTip';
 
 export function GraphToolbar() {
   const graphId = useGraphStore((s) => s.graphId);
@@ -101,8 +102,9 @@ export function GraphToolbar() {
       <Button variant="secondary" data-tutorial="graph-save-btn" onClick={onSave}>Save…</Button>
       <Button variant="secondary" data-tutorial="graph-load-btn" onClick={onLoad}>Load…</Button>
       <div className="bb-toolbar-divider" />
-      <Button variant="ghost" onClick={undo} disabled={past.length === 0} title="Undo">↶ Undo</Button>
-      <Button variant="ghost" onClick={redo} disabled={future.length === 0} title="Redo">↷ Redo</Button>
+      <Button variant="ghost" data-tutorial="graph-undo-btn" onClick={undo} disabled={past.length === 0} title="Undo">↶ Undo</Button>
+      <Button variant="ghost" data-tutorial="graph-redo-btn" onClick={redo} disabled={future.length === 0} title="Redo">↷ Redo</Button>
+      <HelpTip term="undo-history" />
     </div>
   );
 }

@@ -419,6 +419,18 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       "actual sequence and decides on the fly what's relevant. Stacking embedding → attention → layer norm is " +
       'the core repeating block inside a transformer, the architecture behind most modern language models.',
   },
+  'undo-history': {
+    term: 'Undo history',
+    short: 'Ctrl+Z / Ctrl+Shift+Z step backward and forward through your recent edits.',
+    long:
+      "Every time you add, remove, or reconnect a node, or change a hyperparameter, BrainBuilder remembers " +
+      'what the canvas looked like just before — up to the last 50 edits. Ctrl+Z steps back one edit at a ' +
+      "time; Ctrl+Shift+Z (or the Redo button) steps forward again, as long as you haven't made a new edit " +
+      'since undoing (a new edit clears the "forward" trail, the same way it works in most editors). Starting ' +
+      'a blank canvas or loading a different file clears this history entirely — there\'s nothing to undo ' +
+      "back to once you've replaced what was on screen, which is why both of those actions ask you to confirm " +
+      'first.',
+  },
 };
 
 export function getGlossaryEntry(key: string): GlossaryEntry | undefined {

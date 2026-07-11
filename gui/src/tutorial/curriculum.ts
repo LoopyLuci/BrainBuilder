@@ -625,6 +625,46 @@ export const CURRICULUM: Tutorial[] = [
     ],
   },
   {
+    id: 'undo-redo',
+    title: 'Never Afraid to Try Something',
+    blurb: "Ctrl+Z (and Ctrl+Shift+Z) step back and forward through your recent edits — so experimenting is free.",
+    difficulty: 'beginner',
+    minutes: 3,
+    steps: [
+      {
+        title: 'Made a mistake? Just undo it',
+        body:
+          "Every time you add, remove, or reconnect a box, or change a setting, BrainBuilder quietly remembers " +
+          "what the canvas looked like just before. Wire something wrong, or change your mind — you're never " +
+          "stuck with it.",
+        target: '[data-tutorial="canvas"]',
+      },
+      {
+        title: 'The Undo button — or Ctrl+Z',
+        body:
+          'Click "Undo" on the canvas toolbar, or just press Ctrl+Z. It steps back one edit at a time, same as ' +
+          "most editors you've used. It's grayed out when there's nothing left to undo.",
+        target: '[data-tutorial="graph-undo-btn"]',
+      },
+      {
+        title: 'Changed your mind again? Redo',
+        body:
+          'Click "Redo", or press Ctrl+Shift+Z, to step forward again — as long as you haven\'t made a new ' +
+          "edit since undoing. Making a new edit after undoing clears the \"forward\" trail, same as it works " +
+          'everywhere else.',
+        target: '[data-tutorial="graph-redo-btn"]',
+      },
+      {
+        title: "Where undo can't reach",
+        body:
+          'Starting a blank canvas ("New") or loading a different file clears this history entirely — there\'s ' +
+          "nothing left to undo back to once you've replaced what was on screen. That's exactly why both of " +
+          "those actions ask you to confirm first, rather than silently wiping your work.",
+        target: '[data-tutorial="graph-new-btn"]',
+      },
+    ],
+  },
+  {
     id: 'from-scratch-text',
     title: 'Build a Text Model From Scratch',
     blurb: 'Hand-wire the same "words become numbers" pipeline you saw in Look Inside a Text Model.',
