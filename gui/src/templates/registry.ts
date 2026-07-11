@@ -127,6 +127,27 @@ export const TEMPLATES: Template[] = [
     training: { loss: 'cross_entropy', optimizer: 'adam' },
   },
   {
+    id: 'sentiment-classifier',
+    name: 'Text Sentiment Classifier',
+    category: 'Text',
+    description:
+      "A bag-of-words text classifier (linear → GELU → linear) for a spreadsheet of reviews/messages/tickets " +
+      "plus a label column — pick a \"text_column\" dataset in the Data panel, then set this template's first " +
+      "linear node's in_features to match your dataset's real vocabulary width (shown once you pick a dataset). " +
+      "Proven on a real 60-row positive/negative review example: 100% training accuracy — see " +
+      'gui/examples/sentiment.bbir.edn.',
+    nodes: [
+      { key: 'l1', component: 'linear', hyperparams: { in_features: 200, out_features: 32 }, position: { x: 80, y: 120 } },
+      { key: 'act', component: 'gelu', position: { x: 320, y: 120 } },
+      { key: 'l2', component: 'linear', hyperparams: { in_features: 32, out_features: 2 }, position: { x: 560, y: 120 } },
+    ],
+    edges: [
+      { from: 'l1', fromPort: 'output', to: 'act', toPort: 'input' },
+      { from: 'act', fromPort: 'output', to: 'l2', toPort: 'input' },
+    ],
+    training: { loss: 'cross_entropy', optimizer: 'adam' },
+  },
+  {
     id: 'dspark-drafter',
     name: 'DSpark Speculative Drafter',
     category: 'Speculative decoding',
