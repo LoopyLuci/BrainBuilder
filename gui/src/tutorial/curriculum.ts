@@ -560,13 +560,81 @@ export const CURRICULUM: Tutorial[] = [
         focusTab: { slot: 'side', tabId: 'data' },
       },
       {
-        title: 'Check the box, name your columns',
+        title: 'Check the box',
         body:
-          'Check "This is text data", then type the name of your text column and (optionally) your label ' +
-          "column. BrainBuilder turns each row's text into a bag-of-words vector behind the scenes — this is " +
-          "the only place that switch exists, since the Templates panel only places boxes, it doesn't know " +
-          'what your data looks like.',
+          'Check "This is text data". BrainBuilder turns each row\'s text into a bag-of-words vector behind ' +
+          "the scenes — this is the only place that switch exists, since the Templates panel only places " +
+          "boxes, it doesn't know what your data looks like.",
         target: '[data-tutorial="text-column-toggle"]',
+      },
+      {
+        title: 'Name your columns',
+        body:
+          'Type the exact name of the column that holds your text (e.g. "review"), and optionally which ' +
+          'column holds the label — left blank, BrainBuilder uses the last column, same convention as a ' +
+          'plain numeric dataset.',
+        target: '[data-tutorial="text-column-input"]',
+      },
+    ],
+  },
+  {
+    id: 'speculative-decoding',
+    title: 'Draft Many Tokens, Verify Once',
+    blurb: 'The DeepSeek-style drafter stack that speeds up text generation — guess several words ahead, then check the whole guess in one pass.',
+    difficulty: 'advanced',
+    minutes: 5,
+    steps: [
+      {
+        title: 'Why generation is normally slow',
+        body:
+          'Every time an AI writes one word, it normally reruns the whole model to guess the next one — one ' +
+          'word, one full pass, over and over. Speculative decoding breaks that pattern: a small, fast ' +
+          '"drafter" guesses several words ahead at once, and the real model only has to check that whole ' +
+          'guess in a single pass instead of generating word by word.',
+        target: '[data-tutorial="tab-templates"]',
+        focusTab: { slot: 'side', tabId: 'templates' },
+      },
+      {
+        title: 'The "Speculative decoding" category',
+        body:
+          "This category holds BrainBuilder's real DeepSeek-style drafter — a genuine implementation of the " +
+          'idea, not a placeholder.',
+        target: '[data-tutorial="templates-category-speculative-decoding"]',
+      },
+      {
+        title: 'Three heads, one job each',
+        body:
+          'The DSpark Speculative Drafter has three parts. The Parallel Intern drafts several tokens at once ' +
+          'from the current hidden state — an "Intern" guessing several words ahead for the "Boss" (the real ' +
+          'model) to check all at once. The Low-Rank Markov Head corrects for "suffix decay": the later words ' +
+          "in that draft naturally get guessed worse, since they lean on less real context — this head cheaply " +
+          'biases them back on track. The Confidence Head scores how likely each draft is to actually be ' +
+          "accepted, so a shaky draft can bail out early instead of wasting the whole block.",
+        target: '[data-tutorial="templates-item-dspark-drafter"]',
+      },
+      {
+        title: 'Use it',
+        body: 'Click "Use" to drop all three heads onto the canvas, already sized to match each other.',
+        target: '[data-tutorial="templates-use-dspark-drafter"]',
+      },
+      {
+        title: 'Three boxes, no wires — on purpose',
+        body:
+          "Unlike other templates, these three boxes aren't connected to each other, and that's intentional. " +
+          'Each one independently reads the *same* incoming hidden state from a real backbone (a full ' +
+          'attention stack, like the one the Next-Word Predictor template builds) — wiring that backbone\'s ' +
+          'output into all three "input" ports is exactly the piece left for you to add.',
+        target: '[data-tutorial="canvas"]',
+      },
+      {
+        title: 'What each one needs to match',
+        body:
+          'Click any of the three boxes and open the Inspector. Every one declares its own "features" ' +
+          "hyperparameter — the width of the hidden state it expects, and it must match whatever backbone you " +
+          'wire in. The Parallel Intern also needs "vocab" (how many words it can guess) and "draft_len" (how ' +
+          'many tokens ahead it drafts each time).',
+        target: '[data-tutorial="tab-inspector"]',
+        focusTab: { slot: 'side', tabId: 'inspector' },
       },
     ],
   },
