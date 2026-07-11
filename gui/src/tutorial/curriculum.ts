@@ -910,6 +910,15 @@ export const CURRICULUM: Tutorial[] = [
         target: '[data-tutorial="cluster-pairing-btn"]',
       },
       {
+        title: 'On the other device: enter the code',
+        body:
+          "On the device you're adding — its own copy of BrainBuilder, its own Cluster tab — you'll see this " +
+          "same \"Join\" box. Type in the code you just generated and click Join to add it to the Cluster. " +
+          "(This box only shows up on a device that hasn't joined a Cluster yet, so as the Manager you " +
+          "generally won't see it here on this screen.)",
+        target: '[data-tutorial="cluster-join"]',
+      },
+      {
         title: 'See who\'s connected',
         body:
           "Every paired device shows up in this list, along with its hardware — CPU cores and RAM. This is " +
@@ -931,6 +940,15 @@ export const CURRICULUM: Tutorial[] = [
           'Training on Cluster". Each joined device works on its own slice of the data and everyone\'s real ' +
           'gradients get averaged together every round — genuinely faster training, not a simulation.',
         target: '[data-tutorial="cluster-host-btn"]',
+      },
+      {
+        title: 'On a joined device: pick the job',
+        body:
+          'The moment you click Host, every already-joined device sees the job appear in its own "Joinable ' +
+          'Jobs" list — including the job name and who\'s hosting it. Clicking that device\'s own "Join" ' +
+          "button is what actually puts it to work on the run. (Same as before: this list only fills in on a " +
+          "device watching for jobs, so it likely stays empty here on the Manager's own screen.)",
+        target: '[data-tutorial="cluster-jobs"]',
       },
       {
         title: 'Watch it train',
