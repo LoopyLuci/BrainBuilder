@@ -1362,6 +1362,61 @@ export const CURRICULUM: Tutorial[] = [
     ],
   },
   {
+    id: 'nervous-system-audit',
+    title: 'Watching BrainBuilder Watch Itself',
+    blurb: 'Every sandboxed process BrainBuilder runs gets logged — see the safety system that keeps it that way.',
+    difficulty: 'intermediate',
+    minutes: 4,
+    steps: [
+      {
+        title: 'The Console has two views',
+        body:
+          'The Console panel down here has two tabs: "Output", a plain log of what BrainBuilder just did, and ' +
+          '"Nervous System" — a real safety audit trail of every sandboxed process it ran to do it.',
+        target: '[data-tutorial="tab-console"]',
+        focusTab: { slot: 'bottom', tabId: 'console' },
+      },
+      {
+        title: 'Output: what just happened',
+        body:
+          'Every action you take that succeeds or fails — saving, loading, training, exporting — leaves a ' +
+          'line here, in the order it happened. It\'s the first place to check when something goes wrong.',
+        target: '[data-tutorial="console-output"]',
+      },
+      {
+        title: '"Clear" only tidies this one log',
+        body:
+          "This button empties the Output log above — nothing else. The safety audit trail on the other tab " +
+          "isn't affected by it at all, on purpose: a record of what actually ran shouldn't be something you " +
+          'can accidentally erase.',
+        target: '[data-tutorial="console-clear-btn"]',
+      },
+      {
+        title: 'Click "Nervous System"',
+        body:
+          "BrainBuilder never runs training code directly — every call to the Python worker that actually " +
+          "trains or predicts goes through a sandboxed, capability-checked process first. Every one of those " +
+          'calls gets a row here: allowed, denied, killed for running too long, or crashed.',
+        target: '[data-tutorial="tab-audit"]',
+      },
+      {
+        title: 'Generate a real one',
+        body:
+          'Click "Export & Train" on a model you\'ve built (any of the earlier tutorials leave one ready). ' +
+          "Training genuinely calls out to the sandboxed Python worker — nothing here is simulated.",
+        target: '[data-tutorial="export-train-btn"]',
+      },
+      {
+        title: 'Switch back and look',
+        body:
+          'A fresh "python — allowed" row should be waiting on the Nervous System tab for every step training ' +
+          "just ran — real proof the sandbox actually ran something on your behalf, not just a status message " +
+          'telling you it did.',
+        target: '[data-tutorial="console-audit"]',
+      },
+    ],
+  },
+  {
     id: 'export-and-deploy',
     title: 'Taking Your Model Outside BrainBuilder',
     blurb: 'Export your trained checkpoint as a standard file you can use in your own scripts or projects.',
