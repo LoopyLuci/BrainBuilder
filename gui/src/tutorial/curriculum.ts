@@ -2632,4 +2632,37 @@ export const CURRICULUM: Tutorial[] = [
       },
     ],
   },
+  {
+    id: 'learn-panel',
+    title: 'Where to Find Help Later',
+    blurb: 'The Learn tab is more than a tutorial list — replay anything, and look up jargon without leaving the app.',
+    difficulty: 'beginner',
+    minutes: 2,
+    steps: [
+      {
+        title: 'One tab for the whole manual',
+        body:
+          "Every tutorial you've done — or skipped — lives in one place: the Learn tab. It's sorted from " +
+          "Beginner to Advanced, so if you ever feel lost, this is where to come back to.",
+        target: '[data-tutorial="tab-learn"]',
+        focusTab: { slot: 'side', tabId: 'learn' },
+      },
+      {
+        title: "Nothing here is one-and-done",
+        body:
+          'Finished a tutorial already? It gets a checkmark and its button turns into "Replay" instead of ' +
+          '"Start" — nothing is locked after you\'ve seen it once. Come back any time a feature stops making ' +
+          'sense.',
+        target: '[data-tutorial="learn-tutorial-list"]',
+      },
+      {
+        title: 'A glossary for the jargon',
+        body:
+          'Scroll down and you\'ll find a plain-English glossary — the same definitions behind every little ' +
+          '"?" you\'ve seen next to a setting around the app, all in one list you can skim without hunting for ' +
+          'the right tooltip.',
+        target: '[data-tutorial="learn-glossary"]',
+      },
+    ],
+  },
 ];

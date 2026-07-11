@@ -29,34 +29,36 @@ export function LearnPanel() {
         building a whole model by hand.
       </p>
 
-      {DIFFICULTY_ORDER.map((level) => {
-        const tutorials = CURRICULUM.filter((t) => t.difficulty === level);
-        if (tutorials.length === 0) return null;
-        return (
-          <div key={level} style={{ marginTop: 10 }}>
-            <label className="bb-label">{DIFFICULTY_LABEL[level]}</label>
-            {tutorials.map((t) => {
-              const done = completed.has(t.id);
-              return (
-                <div key={t.id} className="bb-card" style={{ marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <strong>{t.title}</strong>
-                    {done && <span className="bb-text-success" title="Completed">✓</span>}
+      <div data-tutorial="learn-tutorial-list">
+        {DIFFICULTY_ORDER.map((level) => {
+          const tutorials = CURRICULUM.filter((t) => t.difficulty === level);
+          if (tutorials.length === 0) return null;
+          return (
+            <div key={level} style={{ marginTop: 10 }}>
+              <label className="bb-label">{DIFFICULTY_LABEL[level]}</label>
+              {tutorials.map((t) => {
+                const done = completed.has(t.id);
+                return (
+                  <div key={t.id} className="bb-card" style={{ marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <strong>{t.title}</strong>
+                      {done && <span className="bb-text-success" title="Completed">✓</span>}
+                    </div>
+                    <p className="bb-text-muted" style={{ margin: 0 }}>
+                      {t.blurb} · ~{t.minutes} min
+                    </p>
+                    <Button variant={done ? 'secondary' : 'primary'} onClick={() => start(t.id)}>
+                      {done ? 'Replay' : 'Start'}
+                    </Button>
                   </div>
-                  <p className="bb-text-muted" style={{ margin: 0 }}>
-                    {t.blurb} · ~{t.minutes} min
-                  </p>
-                  <Button variant={done ? 'secondary' : 'primary'} onClick={() => start(t.id)}>
-                    {done ? 'Replay' : 'Start'}
-                  </Button>
-                </div>
-              );
-            })}
-          </div>
-        );
-      })}
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
 
-      <div style={{ marginTop: 16 }}>
+      <div style={{ marginTop: 16 }} data-tutorial="learn-glossary">
         <label className="bb-label">Quick glossary</label>
         <p className="bb-text-muted" style={{ margin: '0 0 6px' }}>
           Jargon, explained in plain English. You'll also see a little "?" next to these words around the app.
