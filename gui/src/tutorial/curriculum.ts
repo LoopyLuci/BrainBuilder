@@ -2227,6 +2227,14 @@ export const CURRICULUM: Tutorial[] = [
         target: '[data-tutorial="plugins-examples"]',
       },
       {
+        title: "Don't take that on faith — read it yourself",
+        body:
+          'Every loaded plugin lists its exact granted capabilities right here, e.g. "v1.0.0 · register-widget, ' +
+          'read-graph" for graph-stats. Nothing about what a plugin can touch is hidden or assumed — it\'s ' +
+          'printed in plain sight the moment it loads.',
+        target: '[data-tutorial="plugins-loaded-list"]',
+      },
+      {
         title: 'Unload it — gone just as cleanly',
         body:
           'Click "Unload" on either example (now showing where "Load" was) and its panel disappears ' +
