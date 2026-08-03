@@ -1,0 +1,1 @@
+    pub catalog_registry: Arc<tokio::sync::RwLock<crate::model_catalog::registry::ModelRegistry>>,
