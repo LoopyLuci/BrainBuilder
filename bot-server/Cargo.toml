@@ -5,7 +5,7 @@ edition = "2021"
 
 [features]
 default = []
-discord = ["serenity"]
+discord = ["twilight-http", "twilight-gateway", "twilight-model"]
 matrix = ["matrix-sdk"]
 
 [dependencies]
@@ -27,8 +27,10 @@ teloxide = { version = "0.13", features = ["macros"] }
 twilio = "1"
 webrtc = "0.11"
 
-serenity = { version = "0.9", default-features = false, features = ["client", "gateway", "model", "cache", "framework", "rustls_backend"], optional = true }
-matrix-sdk = { version = "0.8", optional = true }
+twilight-http = { version = "0.17", optional = true }
+twilight-gateway = { version = "0.17", optional = true }
+twilight-model = { version = "0.17", optional = true }
+matrix-sdk = { version = "0.18", default-features = false, optional = true }
 
 [dev-dependencies]
 tokio-test = "0.4"
