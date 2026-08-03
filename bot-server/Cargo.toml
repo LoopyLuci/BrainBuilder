@@ -1,0 +1,28 @@
+[package]
+name = "bot-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+futures = "0.3"
+async-trait = "0.1"
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+tracing = "0.1"
+axum = "0.7"
+dotenvy = "0.15"
+thiserror = "2"
+url = "2"
+bytes = "1"
+lettre = { version = "0.11", features = ["tokio1-rustls-tls", "smtp-transport", "hostname"], default-features = false }
+teloxide = { version = "0.13", features = ["macros"] }
+twilio = "1"
+matrix-sdk = "0.8"
+serenity = { version = "0.9", default-features = false, features = ["client", "gateway", "model", "cache", "framework", "rustls_backend"] }
+webrtc = "0.11"
+
+[dev-dependencies]
+tokio-test = "0.4"
