@@ -1,7 +1,15 @@
 [workspace]
-members = ["core", "gui/src-tauri"]
+members = ["core", "gui/src-tauri", "concierge-core", "bot-server", "crates/aquamarine", "crates/proc-macro-error2", "crates/proc-macro-error-attr2"]
 resolver = "2"
+
+[profile.dev]
+opt-level = 0
 
 [profile.release]
 opt-level = 3
 lto = true
+
+[patch.crates-io]
+aquamarine = { path = "crates/aquamarine" }
+proc-macro-error2 = { path = "crates/proc-macro-error2" }
+proc-macro-error-attr2 = { path = "crates/proc-macro-error-attr2" }
