@@ -3,6 +3,11 @@ name = "bot-server"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = []
+discord = ["serenity"]
+matrix = ["matrix-sdk"]
+
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -21,6 +26,9 @@ lettre = { version = "0.11", features = ["tokio1-rustls-tls", "smtp-transport", 
 teloxide = { version = "0.13", features = ["macros"] }
 twilio = "1"
 webrtc = "0.11"
+
+serenity = { version = "0.9", default-features = false, features = ["client", "gateway", "model", "cache", "framework", "rustls_backend"], optional = true }
+matrix-sdk = { version = "0.8", optional = true }
 
 [dev-dependencies]
 tokio-test = "0.4"
