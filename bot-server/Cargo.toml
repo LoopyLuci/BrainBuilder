@@ -20,8 +20,6 @@ bytes = "1"
 lettre = { version = "0.11", features = ["tokio1-rustls-tls", "smtp-transport", "hostname"], default-features = false }
 teloxide = { version = "0.13", features = ["macros"] }
 twilio = "1"
-matrix-sdk = "0.8"
-serenity = { version = "0.9", default-features = false, features = ["client", "gateway", "model", "cache", "framework", "rustls_backend"] }
 webrtc = "0.11"
 
 [dev-dependencies]
