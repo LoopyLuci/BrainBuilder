@@ -317,3 +317,176 @@ export interface NervousSystemAuditRecord {
 export async function getNervousSystemAudit(limit = 100): Promise<NervousSystemAuditRecord[]> {
   return invoke('get_nervous_system_audit', { limit });
 }
+
+// --- Luci tool executor API ---
+
+export interface ToolExecutionResult {
+  id: string;
+  tool_name: string;
+  status: string;
+  result: any;
+  error: string | null;
+  started_at: string;
+  finished_at: string | null;
+}
+
+export async function toolExecutorRun(toolName: string, args: Record<string, any>): Promise<ToolExecutionResult> {
+  return invoke('tool_executor_run', { toolName, args });
+}
+
+export async function toolExecutorList(): Promise<string[]> {
+  return invoke('tool_executor_list');
+}
+
+// --- Bot Dashboard API ---
+
+export async function botDashboardStatus(): Promise<{
+  running: boolean;
+  platform: string;
+  uptime_secs: number;
+  message_count: number;
+  command_count: number;
+  error_count: number;
+  ping_ms: number | null;
+}> {
+  return invoke('bot_dashboard_status');
+}
+
+export async function botDashboardTelemetry(): Promise<{
+  ping_ms: number | null;
+  upload_mbps: number;
+  download_mbps: number;
+  jitter_ms: number | null;
+  response_time_ms: number | null;
+  cpu_percent: number;
+  memory_mb: number;
+}> {
+  return invoke('bot_dashboard_telemetry');
+}
+
+export async function botDashboardEvents(): Promise<{ id: number; kind: string; message: string; at: number }[]> {
+  return invoke('bot_dashboard_events');
+}
+
+export async function botDashboardSettingsGet(): Promise<{
+  platform: string;
+  enabled: boolean;
+  credentials: Record<string, string>;
+  home_channel: string | null;
+  allowed_users: string[];
+  proxy: string | null;
+}> {
+  return invoke('bot_dashboard_settings_get');
+}
+
+export async function botDashboardSettingsSet(settings: {
+  platform: string;
+  enabled: boolean;
+  credentials: Record<string, string>;
+  home_channel: string | null;
+  allowed_users: string[];
+  proxy: string | null;
+}): Promise<void> {
+  return invoke('bot_dashboard_settings_set', { settings });
+}
+
+export async function botDashboardStart(config: {
+  platform: string;
+  credentials: Record<string, string>;
+  home_channel: string | null;
+  allowed_users: string[];
+  proxy: string | null;
+}): Promise<void> {
+  return invoke('bot_dashboard_start', { config });
+}
+
+export async function botDashboardStop(): Promise<void> {
+  return invoke('bot_dashboard_stop');
+}
+
+export async function botDashboardRestart(config: {
+  platform: string;
+  credentials: Record<string, string>;
+  home_channel: string | null;
+  allowed_users: string[];
+  proxy: string | null;
+}): Promise<void> {
+  return invoke('bot_dashboard_restart', { config });
+}
+
+export async function botAutostart(): Promise<void> {
+  return invoke('bot_autostart');
+}
+
+// --- WebView debug / agent UI control API ---
+
+export async function webviewDebugEval(js: string): Promise<{
+  success: boolean;
+  result?: any;
+  error?: string;
+}> {
+  return invoke('webview_debug_eval', { js });
+}
+
+export async function webviewDebugQuery(selector: string): Promise<{
+  selector: string;
+  count: number;
+  html?: string;
+  text?: string;
+}> {
+  return invoke('webview_debug_query', { selector });
+}
+
+export async function webviewDebugClick(selector: string): Promise<{
+  success: boolean;
+  result?: string;
+  error?: string;
+}> {
+  return invoke('webview_debug_click', { selector });
+}
+
+export async function webviewDebugFill(selector: string, value: string): Promise<{
+  success: boolean;
+  result?: string;
+  error?: string;
+}> {
+  return invoke('webview_debug_fill', { selector, value });
+}
+
+export async function webviewDebugSnapshot(): Promise<{
+  url: string;
+  title: string;
+  elements: Array<{
+    tag: string;
+    id?: string | null;
+    class?: string | null;
+    text?: string | null;
+    href?: string | null;
+    xpath: string;
+  }>;
+}> {
+  return invoke('webview_debug_snapshot');
+}
+
+export async function webviewDebugGetState(): Promise<{
+  url: string;
+  title: string;
+  elements: Array<{
+    tag: string;
+    id?: string | null;
+    class?: string | null;
+    text?: string | null;
+    href?: string | null;
+    xpath: string;
+  }>;
+}> {
+  return invoke('webview_debug_get_state');
+}
+
+export async function webviewDebugSetEnabled(enabled: boolean): Promise<void> {
+  return invoke('webview_debug_set_enabled', { enabled });
+}
+
+export async function webviewDebugIsEnabled(): Promise<boolean> {
+  return invoke('webview_debug_is_enabled');
+}

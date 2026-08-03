@@ -6,6 +6,8 @@ import { WidgetSlot } from './types';
 import { Tabs, TabDef } from '../ui/Tabs';
 import { useTutorialStore } from '../tutorial/tutorialStore';
 
+type FocusTabEventDetail = { tabId: string; slot?: WidgetSlot };
+
 // Renders every widget registered for a slot, each inside its own error
 // boundary. `side`/`bottom` render as tabs (matching the previous shell);
 // `palette`/`canvas`/`header` render their widgets stacked, since those slots
@@ -45,7 +47,20 @@ export function SlotRenderer({ slot, asTabs }: { slot: WidgetSlot; asTabs?: bool
     }
   }, [tutorial, slot]);
 
-  const forceActive = stepForceActive ?? (returnToLearn ? 'learn' : undefined);
+  const [externalFocus, setExternalFocus] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const handler = (ev: Event) => {
+      const detail = (ev as CustomEvent<FocusTabEventDetail>).detail;
+      if (!detail) return;
+      if (detail.slot && detail.slot !== slot) return;
+      const target = detail.slot ? detail.tabId : detail.tabId;
+      if (target) setExternalFocus(target);
+    };
+    window.addEventListener('bb:focus-tab', handler as EventListener);
+    return () => window.removeEventListener('bb:focus-tab', handler as EventListener);
+  }, [slot]);
+
+  const forceActive = externalFocus ?? stepForceActive ?? (returnToLearn ? 'learn' : undefined);
 
   const widgets = Object.values(widgetsMap)
     .filter((w) => w.slot === slot && !hidden.has(w.id))

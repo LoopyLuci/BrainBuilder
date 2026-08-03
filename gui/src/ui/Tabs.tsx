@@ -36,6 +36,7 @@ export function Tabs({
           <button
             key={tab.id}
             role="tab"
+            data-tab-id={tab.id}
             data-tutorial={`tab-${tab.id}`}
             aria-selected={tab.id === activeTab?.id}
             className={`bb-tabs__tab ${tab.id === activeTab?.id ? 'bb-tabs__tab--active' : ''}`}

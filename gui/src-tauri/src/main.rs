@@ -1,14 +1,76 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod bot_dashboard;
 mod cluster_actor;
 mod observer_server;
 mod predict_server;
+mod model_catalog;
+mod multimodal_merger;
+mod model_executor;
+mod causal_reasoning;
+mod graph_of_thoughts;
+mod concept_bottleneck;
+mod mixture_of_experts;
+mod neural_architecture_search;
+mod differentiable_neural_computer;
+mod hyperdimensional_computing;
+mod spiking_neural_network;
+mod world_model;
+mod program_synthesis;
+mod multimodal_alignment;
+mod next_gen_attention;
+mod retrieval_augmented_generation;
+mod adaptive_reasoning;
+mod knowledge_graph;
+mod flow_analyzer;
+mod counterfactual_explainer;
+mod continual_learning;
+mod symbolic_reasoning;
+mod temporal_point_process;
+mod interactive_explainability;
+mod compositional_reasoning;
+mod neuro_symbolic_prover;
+mod federated_learning;
+mod pmi_analyzer;
+mod uncertainty_quantification;
+mod hyperparameter_optimizer;
+mod power_manager;
+mod compression_agent;
+mod self_improving_commands;
+mod meta_model_builder;
+mod telemetry;
+mod active_learning_loop;
+mod online_learning_loop;
+mod fact_checking_model;
+mod data_assistant_model;
+mod scraping_model;
+mod sandbox_executor;
+mod meta_controller;
+mod memory_recall;
+mod safety_harness;
+mod eval_harness;
+mod model_mistress;
+mod luci;
+mod luci_store;
+mod nervous_system;
+pub mod tool_executor;
+mod webview_debug;
 
 use tauri::{command, Manager, State};
 use brainbuilder_core::orchestrator::Orchestrator;
 use brainbuilder_core::bbir::BBIRGraph;
 use brainbuilder_core::data::metrics::subscribe_metrics;
 use cluster_actor::{ClusterHandle, ClusterStatus};
+use power_manager::{pm_health, pm_list_domains, pm_apply_power_limit, pm_recent_telemetry, pm_list_blueprints, pm_build_mpc_spec};
+use compression_agent::{ca_health, ca_compress, ca_recent_stats, ca_list_blueprints, ca_build_compressor_spec};
+use self_improving_commands::{
+  luci_status, luci_greet, luci_chat, luci_propose_plan, luci_list_plans, luci_update_plan_status, luci_reflect, luci_recent_reflections, luci_set_preference, luci_get_preference, luci_remember_fact, luci_recall_memories, luci_forget_memory, luci_audit, luci_recent_audit, luci_register_tool, luci_improve,
+};
+use nervous_system::commands::{nervous_system_status, nervous_system_providers, nervous_system_submit, nervous_system_start, nervous_system_stop, nervous_system_list};
+use tool_executor::registry::ToolRegistry;
+use tool_executor::commands::{tool_executor_run, tool_executor_list};
+use bot_dashboard::{bot_dashboard_status, bot_dashboard_settings_get, bot_dashboard_settings_set, bot_dashboard_start, bot_dashboard_stop, bot_dashboard_restart, bot_dashboard_events, bot_dashboard_clear_events, bot_dashboard_telemetry, bot_autostart};
+use webview_debug::{webview_debug_eval, webview_debug_query, webview_debug_click, webview_debug_fill, webview_debug_snapshot, webview_debug_get_state, webview_debug_set_enabled, webview_debug_is_enabled};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{Mutex, OnceCell};
@@ -36,6 +98,10 @@ struct AppState {
     // one has been started: its URL plus the sender that shuts it down. At
     // most one at a time, same reasoning as `agent` above.
     predict_server: Mutex<Option<(String, tokio::sync::oneshot::Sender<()>)>>,
+    // Bot dashboard state
+    bot: Arc<Mutex<bot_dashboard::BotServerHandle>>,
+    // WebView2 debugging / agent control state
+    debug: Arc<Mutex<webview_debug::DebugState>>,
 }
 
 async fn cluster_handle(state: &State<'_, AppState>) -> Result<ClusterHandle, String> {
@@ -1095,6 +1161,7 @@ fn main() {
 
     let cluster_cell = Arc::new(OnceCell::new());
     let observer_cell = Arc::new(OnceCell::new());
+    let bot_handle = Arc::new(Mutex::new(bot_dashboard::BotServerHandle::default()));
 
     tauri::Builder::default()
         .manage(AppState {
@@ -1104,10 +1171,20 @@ fn main() {
             components_dir: components_dir.clone(),
             agent: Mutex::new(None),
             predict_server: Mutex::new(None),
+            bot: bot_handle.clone(),
+            debug: Arc::new(Mutex::new(webview_debug::DebugState::default())),
+        })
+        .manage(crate::nervous_system::commands::NervousSystemState {
+            registry: crate::nervous_system::registry::ProviderRegistry::new(),
+            system: crate::nervous_system::nervous_system::NervousSystem::new(),
         })
         .setup(move |app| {
             setup_metrics_event(app)?;
             setup_cluster(app, cluster_cell.clone(), observer_cell.clone(), cluster_context.clone())?;
+            app.manage(crate::tool_executor::commands::ToolExecutorState {
+                registry: crate::tool_executor::registry::ToolRegistry::new(),
+            });
+            let _ = bot_dashboard::try_autostart(&bot_handle);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -1163,8 +1240,74 @@ fn main() {
             list_local_models,
             inspect_safetensors,
             inspect_onnx,
-            register_gguf_model
+            register_gguf_model,
+            pm_health,
+            pm_list_domains,
+            pm_apply_power_limit,
+            pm_recent_telemetry,
+            pm_list_blueprints,
+            pm_build_mpc_spec,
+            ca_health,
+            ca_compress,
+            ca_recent_stats,
+            ca_list_blueprints,
+            ca_build_compressor_spec,
+            luci_status,
+            luci_greet,
+            luci_chat,
+            luci_propose_plan,
+            luci_list_plans,
+            luci_update_plan_status,
+            luci_reflect,
+            luci_recent_reflections,
+            luci_set_preference,
+            luci_get_preference,
+            luci_remember_fact,
+            luci_recall_memories,
+            luci_forget_memory,
+            luci_audit,
+            luci_recent_audit,
+            luci_register_tool,
+            luci_improve,
+            self_improving_commands::luci_register_skill,
+            self_improving_commands::luci_list_skills,
+            self_improving_commands::luci_observe_and_learn,
+            self_improving_commands::luci_imitate_skill,
+            self_improving_commands::luci_decompose_task,
+            self_improving_commands::luci_register_model,
+            self_improving_commands::luci_list_models,
+            self_improving_commands::luci_register_dataset,
+            self_improving_commands::luci_list_datasets,
+            self_improving_commands::luci_start_training,
+            self_improving_commands::luci_list_training_jobs,
+            self_improving_commands::bot_start_adapter,
+            self_improving_commands::bot_list_adapters,
+            self_improving_commands::bot_adapter_health,
+            self_improving_commands::bot_send_message,
+            self_improving_commands::bot_start_call,
+            self_improving_commands::bot_end_call,
+            tool_executor_run,
+            tool_executor_list,
+            bot_dashboard_status,
+            bot_dashboard_settings_get,
+            bot_dashboard_settings_set,
+            bot_dashboard_start,
+            bot_dashboard_stop,
+            bot_dashboard_restart,
+            bot_dashboard_events,
+            bot_dashboard_clear_events,
+            bot_dashboard_telemetry,
+            bot_autostart,
+            webview_debug_eval,
+            webview_debug_query,
+            webview_debug_click,
+            webview_debug_fill,
+            webview_debug_snapshot,
+            webview_debug_get_state,
+            webview_debug_set_enabled,
+            webview_debug_is_enabled
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+

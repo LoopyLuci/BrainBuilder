@@ -212,3 +212,250 @@ export interface TrialResult {
 export async function autotune(graphJson: string, budget: number, searchArch: boolean): Promise<TrialResult[]> {
   return JSON.parse(await invoke<string>('autotune', { graphJson, budget, searchArch }));
 }
+
+// --- Luci assistant API ---
+
+export interface LuciMemory {
+  id: string;
+  memory_type: string;
+  content: string;
+  embedding?: number[];
+  tags: string[];
+  confidence: number;
+  created_at: string;
+  accessed_count: number;
+  last_accessed: string;
+}
+
+export interface LuciPlan {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: number;
+  steps: string[];
+  current_step: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LuciReflection {
+  id: string;
+  session_id: string;
+  content: string;
+  mood: string;
+  insights: string[];
+  improvements: string[];
+  created_at: string;
+}
+
+export interface LuciTool {
+  name: string;
+  description: string;
+  input_schema: Record<string, unknown>;
+}
+
+export interface LuciAuditEvent {
+  id: string;
+  event_type: string;
+  source: string;
+  details: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface LuciStatusResponse {
+  status: string;
+  name: string;
+  mood: string;
+  energy: number;
+  total_interactions: number;
+  current_focus: string;
+  active_plans: number;
+  memory_count: number;
+}
+
+export interface LuciChatResponse {
+  turn: {
+    role: string;
+    content: string;
+    mood: string;
+    timestamp: string;
+  };
+  plan?: LuciPlan;
+}
+
+export async function luciStatus(): Promise<LuciStatusResponse> {
+  return invoke('luci_status');
+}
+
+export async function luciGreet(): Promise<{ greeting: string; mood: string }> {
+  return invoke('luci_greet');
+}
+
+export async function luciChat(content: string): Promise<LuciChatResponse> {
+  return invoke('luci_chat', { content });
+}
+
+export async function luciProposePlan(title: string, description: string, steps: string[]): Promise<LuciPlan> {
+  return invoke('luci_propose_plan', { title, description, steps });
+}
+
+export async function luciListPlans(): Promise<LuciPlan[]> {
+  return invoke('luci_list_plans');
+}
+
+export async function luciUpdatePlanStatus(planId: string, status: string): Promise<LuciPlan> {
+  return invoke('luci_update_plan_status', { planId, status });
+}
+
+export async function luciReflect(content: string): Promise<LuciReflection> {
+  return invoke('luci_reflect', { content });
+}
+
+export async function luciRecentReflections(limit = 10): Promise<LuciReflection[]> {
+  return invoke('luci_recent_reflections', { limit });
+}
+
+export async function luciSetPreference(key: string, value: string): Promise<void> {
+  return invoke('luci_set_preference', { key, value });
+}
+
+export async function luciGetPreference(key: string): Promise<string> {
+  return invoke('luci_get_preference', { key });
+}
+
+export async function luciRememberFact(content: string, tags: string[] = []): Promise<LuciMemory> {
+  return invoke('luci_remember_fact', { content, tags });
+}
+
+export async function luciRecallMemories(query: string, limit = 10): Promise<LuciMemory[]> {
+  return invoke('luci_recall_memories', { query, limit });
+}
+
+export async function luciForgetMemory(id: string): Promise<void> {
+  return invoke('luci_forget_memory', { id });
+}
+
+export async function luciAudit(eventType: string, source: string, details: Record<string, unknown> = {}): Promise<LuciAuditEvent> {
+  return invoke('luci_audit', { eventType, source, details });
+}
+
+export async function luciRecentAudit(limit = 20): Promise<LuciAuditEvent[]> {
+  return invoke('luci_recent_audit', { limit });
+}
+
+export async function luciRegisterTool(tool: LuciTool): Promise<void> {
+  return invoke('luci_register_tool', { tool });
+}
+
+export async function luciListTools(): Promise<LuciTool[]> {
+  return invoke('luci_list_tools');
+}
+
+export async function luciImprove(): Promise<{ status: string; changes: string[] }> {
+  return invoke('luci_improve');
+}
+
+export interface LuciSkill {
+  id: string;
+  name: string;
+  description: string;
+  tags: string[];
+  params: Record<string, unknown>;
+  implementation: string;
+  source: string;
+  confidence: number;
+  success_count: number;
+  failure_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LuciTaskCase {
+  id: string;
+  title: string;
+  description: string;
+  input_example: Record<string, unknown>;
+  output_example: Record<string, unknown>;
+  tags: string[];
+  source: string;
+  created_at: string;
+}
+
+export interface LuciModelRecord {
+  id: string;
+  name: string;
+  source: string;
+  model_type: string;
+  format: string;
+  path?: string;
+  url?: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface LuciDatasetRecord {
+  id: string;
+  name: string;
+  source: string;
+  size: number;
+  format: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface LuciTrainingJob {
+  id: string;
+  model_id: string;
+  mode: string;
+  dataset_ids: string[];
+  status: string;
+  metrics: Record<string, unknown>;
+  artifact_path?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function luciRegisterSkill(skill: LuciSkill): Promise<void> {
+  return invoke('luci_register_skill', { skill });
+}
+
+export async function luciListSkills(limit = 50): Promise<LuciSkill[]> {
+  return invoke('luci_list_skills', { limit });
+}
+
+export async function luciObserveAndLearn(task: string, observation: string, outcome: Record<string, unknown>): Promise<string> {
+  return invoke('luci_observe_and_learn', { task, observation, outcome });
+}
+
+export async function luciImitateSkill(from_case: LuciTaskCase): Promise<LuciSkill> {
+  return invoke('luci_imitate_skill', { from_case });
+}
+
+export async function luciDecomposeTask(task: string): Promise<LuciPlan> {
+  return invoke('luci_decompose_task', { task });
+}
+
+export async function luciRegisterModel(model: LuciModelRecord): Promise<void> {
+  return invoke('luci_register_model', { model });
+}
+
+export async function luciListModels(): Promise<LuciModelRecord[]> {
+  return invoke('luci_list_models');
+}
+
+export async function luciRegisterDataset(dataset: LuciDatasetRecord): Promise<void> {
+  return invoke('luci_register_dataset', { dataset });
+}
+
+export async function luciListDatasets(): Promise<LuciDatasetRecord[]> {
+  return invoke('luci_list_datasets');
+}
+
+export async function luciStartTraining(model_id: string, mode: string, dataset_ids: string[]): Promise<LuciTrainingJob> {
+  return invoke('luci_start_training', { model_id, mode, dataset_ids });
+}
+
+export async function luciListTrainingJobs(): Promise<LuciTrainingJob[]> {
+  return invoke('luci_list_training_jobs');
+}

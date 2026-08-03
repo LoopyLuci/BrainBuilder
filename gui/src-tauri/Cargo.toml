@@ -8,10 +8,8 @@ tauri-build = { version = "1", features = [] }
 
 [dependencies]
 tauri = { version = "1", features = ["shell-open", "dialog-all", "fs-create-dir", "fs-exists", "path-all"] }
-# wgpu + pollster (not the `gpu` feature, which also pulls cudarc/CUDA toolkit)
-# enable the cross-platform GPU backend so the app can enumerate + bind GPUs
-# (the device picker) — e.g. an AMD RX 7900 XTX over Vulkan/DX12.
 brainbuilder-core = { path = "../../core", features = ["gui", "onnx", "wgpu", "pollster"] }
+concierge-core = { path = "../../concierge-core" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }
@@ -20,12 +18,14 @@ env_logger = "0.10"
 libp2p = { version = "0.54", features = ["tokio", "noise", "yamux", "macros", "tcp", "mdns", "gossipsub", "request-response", "cbor"] }
 axum = "0.7"
 uuid = { version = "1", features = ["v4"] }
-# OS-native secret storage for the OpenCode API key (Keychain / Credential
-# Manager / libsecret) — the key never touches disk or the graph EDN.
 keyring = "2"
-
-[features]
-default = ["custom-protocol"]
-# Required by `tauri build`/production bundling to serve the built frontend
-# assets via a custom protocol instead of a devserver URL.
-custom-protocol = ["tauri/custom-protocol"]
+chrono = { version = "0.4", features = ["serde"] }
+reqwest = { version = "0.11", features = ["rustls-tls", "blocking", "json", "stream", "gzip", "brotli", "deflate"], default-features = false }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+zip = "0.6"
+rand = "0.8"
+async-trait = "0.1"
+rusqlite = { version = "0.31", features = ["bundled"] }
+futures = "0.3"
+bytes = "1"
