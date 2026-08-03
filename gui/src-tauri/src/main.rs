@@ -1,4 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![allow(unused)]
 
 mod bot_dashboard;
 mod cluster_actor;
@@ -66,8 +67,6 @@ use compression_agent::{ca_health, ca_compress, ca_recent_stats, ca_list_bluepri
 use self_improving_commands::{
   luci_status, luci_greet, luci_chat, luci_propose_plan, luci_list_plans, luci_update_plan_status, luci_reflect, luci_recent_reflections, luci_set_preference, luci_get_preference, luci_remember_fact, luci_recall_memories, luci_forget_memory, luci_audit, luci_recent_audit, luci_register_tool, luci_improve,
 };
-use nervous_system::commands::{nervous_system_status, nervous_system_providers, nervous_system_submit, nervous_system_start, nervous_system_stop, nervous_system_list};
-use tool_executor::registry::ToolRegistry;
 use tool_executor::commands::{tool_executor_run, tool_executor_list};
 use bot_dashboard::{bot_dashboard_status, bot_dashboard_settings_get, bot_dashboard_settings_set, bot_dashboard_start, bot_dashboard_stop, bot_dashboard_restart, bot_dashboard_events, bot_dashboard_clear_events, bot_dashboard_telemetry, bot_autostart};
 use webview_debug::{webview_debug_eval, webview_debug_query, webview_debug_click, webview_debug_fill, webview_debug_snapshot, webview_debug_get_state, webview_debug_set_enabled, webview_debug_is_enabled};

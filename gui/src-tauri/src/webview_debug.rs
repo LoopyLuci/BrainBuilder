@@ -1,4 +1,4 @@
-use tauri::{command, Manager, State, Window};
+use tauri::{command, State, Window};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::Mutex;
