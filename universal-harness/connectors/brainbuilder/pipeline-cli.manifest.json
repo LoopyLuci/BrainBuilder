@@ -1,0 +1,43 @@
+{
+  "name": "node ../scripts/ci/pipeline.mjs",
+  "description": "CLI tool introspected from `node ../scripts/ci/pipeline.mjs --help`",
+  "target": {
+    "kind": "cli",
+    "command": "node ../scripts/ci/pipeline.mjs"
+  },
+  "generatedAt": "2026-07-11T00:33:06.102Z",
+  "operations": [
+    {
+      "kind": "cli",
+      "name": "pipeline",
+      "description": "pipeline.mjs — BrainBuilder's local CI/CD pipeline (no GitHub dependency)",
+      "subcommandPath": [],
+      "params": [
+        {
+          "name": "full",
+          "flag": "--full",
+          "description": "Also run rust-test-full (needs python+torch on PATH)",
+          "required": false,
+          "isSwitch": true,
+          "type": "boolean"
+        },
+        {
+          "name": "package",
+          "flag": "--package",
+          "description": "Also run package (builds a native installer for this OS)",
+          "required": false,
+          "isSwitch": true,
+          "type": "boolean"
+        },
+        {
+          "name": "install-hooks",
+          "flag": "--install-hooks",
+          "description": "Install a git pre-push hook that runs this pipeline, then exit",
+          "required": false,
+          "isSwitch": true,
+          "type": "boolean"
+        }
+      ]
+    }
+  ]
+}

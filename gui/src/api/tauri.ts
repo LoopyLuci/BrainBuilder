@@ -1,0 +1,492 @@
+import { invoke } from '@tauri-apps/api/tauri';
+
+export interface BBIRNode {
+  id: string;
+  component: string;
+  label?: string;
+  hyperparams: any;
+  ports: {
+    input_ports: string[];
+    output_ports: string[];
+  };
+  position?: { x: number; y: number };
+}
+
+export interface BBIREdge {
+  from_node: string;
+  from_port: string;
+  to_node: string;
+  to_port: string;
+}
+
+export interface DataSourceConfig {
+  source_type: string;
+  path_or_uri: string;
+  batch_size: number;
+  preprocessing: { op: string; params: any }[];
+  // Only meaningful when source_type === "text_sequence" — see
+  // core/src/data/text.rs. Must match the embedding node's vocab_size
+  // hyperparameter (not auto-synced yet).
+  sequence_length?: number;
+  vocab_size?: number;
+  // Only meaningful when source_type === "image_folder" — see core/src/data/vision.rs.
+  image_size?: number;
+  grayscale?: boolean;
+  // Only meaningful when source_type === "text_column" — see core/src/data/tabular_text.rs.
+  text_column?: string;
+  label_column?: string;
+}
+
+export interface TrainingConfig {
+  loss: string;
+  optimizer: string;
+  trainer_type: string;
+  hyperparams: any;
+  data_source: DataSourceConfig;
+}
+
+export interface BBIRGraph {
+  graph_id: string;
+  name: string;
+  nodes: BBIRNode[];
+  edges: BBIREdge[];
+  training?: TrainingConfig;
+}
+
+export interface PortSummary {
+  name: string;
+  role: 'data' | 'parameter';
+  dtype: string;
+}
+
+export interface HyperParamSummary {
+  name: string;
+  param_type: string;
+  default: any;
+}
+
+export interface ComponentSummary {
+  name: string;
+  meta_type: string;
+  inputs: PortSummary[];
+  outputs: PortSummary[];
+  hyperparameters: HyperParamSummary[];
+}
+
+export async function executeGraph(graph: BBIRGraph): Promise<void> {
+  return invoke('execute_graph', { graphJson: JSON.stringify(graph) });
+}
+
+// Structural + shape check only (`component::validation::validate_graph`),
+// no training — fast feedback before committing to a full run.
+export async function validateGraph(graph: BBIRGraph): Promise<void> {
+  return invoke('validate_graph', { graphJson: JSON.stringify(graph) });
+}
+
+export async function getComponents(): Promise<string[]> {
+  return invoke('get_components');
+}
+
+// --- Experiment history (core/src/utils/experiment_log.rs) ------------------
+// A lightweight, real record of past training runs — logged automatically by
+// the backend every time `execute_graph` finishes, so past results ("did
+// lr=0.01 or lr=0.001 train better?") don't have to be remembered by hand.
+
+export interface ExperimentRecord {
+  graph_id: string;
+  graph_name: string;
+  // Each node's component name, in graph order, joined with " → " (e.g.
+  // "linear → relu → linear") — a legible signature that lets runs on
+  // genuinely different architectures be compared, not just different
+  // hyperparameters on the same graph.
+  architecture: string;
+  loss_fn: string;
+  optimizer: string;
+  lr: number;
+  batch_size: number;
+  epochs: number;
+  first_loss: number | null;
+  last_loss: number | null;
+  logged_at: string;
+}
+
+export async function listExperiments(limit: number): Promise<ExperimentRecord[]> {
+  return invoke('list_experiments', { limit });
+}
+
+// --- Task-first Intent layer (core/src/intent.rs) ---------------------------
+// The on-ramp for someone who thinks in outcomes, not graphs: pick a task,
+// point at data, get back a validated, trainable model proposal.
+
+export type TaskKind = 'classification' | 'regression';
+
+export interface DataSpec {
+  source_type: string; // 'image_folder' | 'text_column' | 'file'
+  path: string;
+  image_size?: number;
+  grayscale?: boolean;
+  // Only meaningful when source_type === 'image_folder': mirrors every other
+  // image left-to-right (by sorted filename, within its class) before
+  // training — a real, deterministic data-augmentation policy.
+  augment?: boolean;
+  text_column?: string;
+  label_column?: string;
+  vocab_size?: number;
+}
+
+export interface IntentRequest {
+  task: TaskKind;
+  data: DataSpec;
+}
+
+export interface ProposedModel {
+  graph: BBIRGraph;
+  class_names: string[];
+  feature_count: number;
+  num_outputs: number;
+  rationale: string;
+}
+
+// Inspect the real data and return a validated, ready-to-train model proposal.
+// Throws (rejects) with a plain-English message if the data can't support the
+// chosen task (e.g. only one class for classification).
+export async function proposeModel(request: IntentRequest): Promise<ProposedModel> {
+  const json = await invoke<string>('propose_model', { requestJson: JSON.stringify(request) });
+  return JSON.parse(json);
+}
+
+export interface TransferRequest {
+  task: TaskKind;
+  data: DataSpec;
+  pretrained_file: string;
+  pretrained_tensor: string;
+}
+
+// Adapt a real pretrained .safetensors backbone (frozen) to the user's data
+// with a fresh trainable head. Rejects with a plain-English message if the
+// backbone's input dimension doesn't match the data's feature count.
+export async function proposeTransferModel(request: TransferRequest): Promise<ProposedModel> {
+  const json = await invoke<string>('propose_transfer_model', { requestJson: JSON.stringify(request) });
+  return JSON.parse(json);
+}
+
+// --- Plain-English diagnostics (core/src/diagnostics.rs) --------------------
+
+export type DiagnosticSeverity = 'error' | 'warning' | 'info';
+
+export interface Diagnostic {
+  severity: DiagnosticSeverity;
+  title: string;
+  explanation: string;
+  suggestion: string;
+}
+
+// Data-time checks (class imbalance, tiny classes, feature/target leakage) run
+// against the real data before training.
+export async function diagnoseData(request: IntentRequest): Promise<Diagnostic[]> {
+  return invoke('diagnose_data', { requestJson: JSON.stringify(request) });
+}
+
+// Training-time check: interpret a loss curve in plain English.
+export async function diagnoseTraining(losses: number[]): Promise<Diagnostic[]> {
+  return invoke('diagnose_training', { losses });
+}
+
+export async function getComponentDescriptors(): Promise<ComponentSummary[]> {
+  return invoke('get_component_descriptors');
+}
+
+export interface DatasetPreview {
+  columns: string[];
+  rows: string[][];
+}
+
+export async function previewDataset(path: string, limit = 10): Promise<DatasetPreview> {
+  return invoke('preview_dataset', { path, limit });
+}
+
+export async function saveGraph(path: string, graph: BBIRGraph): Promise<void> {
+  return invoke('save_graph', { path, graphJson: JSON.stringify(graph) });
+}
+
+export async function loadGraph(path: string): Promise<BBIRGraph> {
+  const json = await invoke<string>('load_graph', { path });
+  return JSON.parse(json);
+}
+
+export interface PredictResult {
+  shape: number[];
+  values: number[];
+}
+
+export async function predict(graph: BBIRGraph, datasetPath: string, rows: number): Promise<PredictResult[]> {
+  return invoke('predict', { graphJson: JSON.stringify(graph), datasetPath, rows });
+}
+
+// --- Batch inference / bulk prediction (core/src/batch_predict.rs) ---------
+// Unlike `predict` above (a fixed-size in-memory preview), this runs the
+// trained checkpoint over every row of a dataset file — streamed in chunks,
+// not loaded as one giant batch — and writes the results straight to a CSV
+// file on disk. Returns the number of rows written.
+
+export async function batchPredict(graph: BBIRGraph, datasetPath: string, outputPath: string): Promise<number> {
+  return invoke('batch_predict', { graphJson: JSON.stringify(graph), datasetPath, outputPath });
+}
+
+// --- Local model serving (gui/src-tauri/src/predict_server.rs) -------------
+// Unlike exporting a checkpoint file, this starts a real, loopback-only HTTP
+// server in-process that answers POST /predict — any script or program on
+// this machine can get real predictions from BrainBuilder over the network,
+// no export step required.
+
+export async function startPredictServer(): Promise<string> {
+  return invoke('start_predict_server');
+}
+
+export async function stopPredictServer(): Promise<void> {
+  return invoke('stop_predict_server');
+}
+
+export async function predictServerStatus(): Promise<string | null> {
+  return invoke('predict_server_status');
+}
+
+// --- Feature importance / interpretability (core/src/interpret.rs) ---------
+// Ranks each input column by how much predictions move when that column is
+// decoupled from its rows — a real, deterministic permutation-importance
+// method. Tabular ("file" source) models only.
+
+export interface FeatureImportance {
+  column: string;
+  importance: number;
+}
+
+export async function featureImportance(
+  graph: BBIRGraph,
+  datasetPath: string,
+  rows: number,
+): Promise<FeatureImportance[]> {
+  return invoke('feature_importance', { graphJson: JSON.stringify(graph), datasetPath, rows });
+}
+
+export async function hasCheckpoint(graphId: string): Promise<boolean> {
+  return invoke('has_checkpoint', { graphId });
+}
+
+// Copies the trained checkpoint out of BrainBuilder's internal folder to a
+// user-chosen destination — a genuine, standard PyTorch state-dict file,
+// loadable anywhere with plain `torch.load()`.
+export async function exportCheckpoint(graphId: string, destPath: string): Promise<void> {
+  return invoke('export_checkpoint', { graphId, destPath });
+}
+
+// --- Checkpoint version history (core/src/utils/checkpoint_versions.rs) ----
+// Training the same graph twice used to silently overwrite the only saved
+// checkpoint with no way back. Now the previous checkpoint is archived
+// automatically right before every training run that would overwrite it, so
+// a bad retrain is always recoverable.
+
+export interface CheckpointVersion {
+  id: string; // milliseconds since the Unix epoch — also sortable as a string
+  size_bytes: number;
+}
+
+export async function listCheckpointVersions(graphId: string): Promise<CheckpointVersion[]> {
+  return invoke('list_checkpoint_versions', { graphId });
+}
+
+export async function restoreCheckpointVersion(graphId: string, versionId: string): Promise<void> {
+  return invoke('restore_checkpoint_version', { graphId, versionId });
+}
+
+export async function installComponent(path: string): Promise<void> {
+  return invoke('install_component', { path });
+}
+
+export interface NervousSystemAuditRecord {
+  runtime: string;
+  outcome: string;
+  duration_ms?: number;
+  detail: string;
+  logged_at: string;
+}
+
+/// Every sandboxed subprocess invocation (Racket/Clojure/Python) the
+/// nervous system's `Supervisor`/worker has recorded this session: allowed,
+/// capability-denied, or timeout-killed.
+export async function getNervousSystemAudit(limit = 100): Promise<NervousSystemAuditRecord[]> {
+  return invoke('get_nervous_system_audit', { limit });
+}
+
+// --- Luci tool executor API ---
+
+export interface ToolExecutionResult {
+  id: string;
+  tool_name: string;
+  status: string;
+  result: any;
+  error: string | null;
+  started_at: string;
+  finished_at: string | null;
+}
+
+export async function toolExecutorRun(toolName: string, args: Record<string, any>): Promise<ToolExecutionResult> {
+  return invoke('tool_executor_run', { toolName, args });
+}
+
+export async function toolExecutorList(): Promise<string[]> {
+  return invoke('tool_executor_list');
+}
+
+// --- Bot Dashboard API ---
+
+export async function botDashboardStatus(): Promise<{
+  running: boolean;
+  platform: string;
+  uptime_secs: number;
+  message_count: number;
+  command_count: number;
+  error_count: number;
+  ping_ms: number | null;
+}> {
+  return invoke('bot_dashboard_status');
+}
+
+export async function botDashboardTelemetry(): Promise<{
+  ping_ms: number | null;
+  upload_mbps: number;
+  download_mbps: number;
+  jitter_ms: number | null;
+  response_time_ms: number | null;
+  cpu_percent: number;
+  memory_mb: number;
+}> {
+  return invoke('bot_dashboard_telemetry');
+}
+
+export async function botDashboardEvents(): Promise<{ id: number; kind: string; message: string; at: number }[]> {
+  return invoke('bot_dashboard_events');
+}
+
+export async function botDashboardSettingsGet(): Promise<{
+  platform: string;
+  enabled: boolean;
+  credentials: Record<string, string>;
+  home_channel: string | null;
+  allowed_users: string[];
+  proxy: string | null;
+}> {
+  return invoke('bot_dashboard_settings_get');
+}
+
+export async function botDashboardSettingsSet(settings: {
+  platform: string;
+  enabled: boolean;
+  credentials: Record<string, string>;
+  home_channel: string | null;
+  allowed_users: string[];
+  proxy: string | null;
+}): Promise<void> {
+  return invoke('bot_dashboard_settings_set', { settings });
+}
+
+export async function botDashboardStart(config: {
+  platform: string;
+  credentials: Record<string, string>;
+  home_channel: string | null;
+  allowed_users: string[];
+  proxy: string | null;
+}): Promise<void> {
+  return invoke('bot_dashboard_start', { config });
+}
+
+export async function botDashboardStop(): Promise<void> {
+  return invoke('bot_dashboard_stop');
+}
+
+export async function botDashboardRestart(config: {
+  platform: string;
+  credentials: Record<string, string>;
+  home_channel: string | null;
+  allowed_users: string[];
+  proxy: string | null;
+}): Promise<void> {
+  return invoke('bot_dashboard_restart', { config });
+}
+
+export async function botAutostart(): Promise<void> {
+  return invoke('bot_autostart');
+}
+
+// --- WebView debug / agent UI control API ---
+
+export async function webviewDebugEval(js: string): Promise<{
+  success: boolean;
+  result?: any;
+  error?: string;
+}> {
+  return invoke('webview_debug_eval', { js });
+}
+
+export async function webviewDebugQuery(selector: string): Promise<{
+  selector: string;
+  count: number;
+  html?: string;
+  text?: string;
+}> {
+  return invoke('webview_debug_query', { selector });
+}
+
+export async function webviewDebugClick(selector: string): Promise<{
+  success: boolean;
+  result?: string;
+  error?: string;
+}> {
+  return invoke('webview_debug_click', { selector });
+}
+
+export async function webviewDebugFill(selector: string, value: string): Promise<{
+  success: boolean;
+  result?: string;
+  error?: string;
+}> {
+  return invoke('webview_debug_fill', { selector, value });
+}
+
+export async function webviewDebugSnapshot(): Promise<{
+  url: string;
+  title: string;
+  elements: Array<{
+    tag: string;
+    id?: string | null;
+    class?: string | null;
+    text?: string | null;
+    href?: string | null;
+    xpath: string;
+  }>;
+}> {
+  return invoke('webview_debug_snapshot');
+}
+
+export async function webviewDebugGetState(): Promise<{
+  url: string;
+  title: string;
+  elements: Array<{
+    tag: string;
+    id?: string | null;
+    class?: string | null;
+    text?: string | null;
+    href?: string | null;
+    xpath: string;
+  }>;
+}> {
+  return invoke('webview_debug_get_state');
+}
+
+export async function webviewDebugSetEnabled(enabled: boolean): Promise<void> {
+  return invoke('webview_debug_set_enabled', { enabled });
+}
+
+export async function webviewDebugIsEnabled(): Promise<boolean> {
+  return invoke('webview_debug_is_enabled');
+}

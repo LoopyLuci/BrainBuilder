@@ -1,0 +1,31 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "BrainBuilder Predict Server",
+    "description": "Real local inference endpoint started by BrainBuilder's Predict panel (\"Serve Model\"). Loopback-only, OS-assigned port — hand-authored from gui/src-tauri/src/predict_server.rs since it doesn't self-serve a spec."
+  },
+  "paths": {
+    "/predict": {
+      "post": {
+        "operationId": "predict",
+        "summary": "Run the currently trained checkpoint over rows from a dataset and return real predictions",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["graph_json", "dataset_path", "rows"],
+                "properties": {
+                  "graph_json": { "type": "string", "description": "The BBIR graph, JSON-serialized (same shape as saved .bbir.edn graphs, but JSON)" },
+                  "dataset_path": { "type": "string", "description": "Path to the dataset file to predict from" },
+                  "rows": { "type": "integer", "description": "How many rows to predict" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -10,6 +10,8 @@ __pycache__/
 gui/node_modules
 gui/dist
 gui/src-tauri/target
+gui/test-results
+gui/playwright-report
 
 # Tauri build artifacts
 gui/src-tauri/gen
@@ -17,6 +19,7 @@ gui/src-tauri/gen
 # Local run artifacts — real user data, not source
 checkpoints/
 provenance.sqlite3
+experiments.sqlite3
 *.sqlite3-journal
 
 # CI/CD pipeline reports (scripts/ci/pipeline.mjs) — local run history, not source
@@ -27,3 +30,9 @@ ci-reports/
 .idea/
 .DS_Store
 Thumbs.db
+ProjectData.md
+
+# Local data and archives (added 2026-09-29)
+gui/data/
+gui/src-tauri/data/
+ModelBuilder.archive/

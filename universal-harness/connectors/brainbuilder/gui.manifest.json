@@ -1,0 +1,694 @@
+{
+  "name": "BrainBuilder GUI",
+  "description": "Interactive elements discovered live via CDP at http://localhost:9222",
+  "target": {
+    "kind": "gui",
+    "cdpUrl": "http://localhost:9222",
+    "urlIncludes": "localhost:5173"
+  },
+  "generatedAt": "2026-07-11T04:45:19.302Z",
+  "operations": [
+    {
+      "kind": "gui",
+      "name": "toggle-theme",
+      "description": "button: Toggle theme",
+      "action": "click",
+      "selector": "button[aria-label=\"Toggle theme\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "filter-components",
+      "description": "input: Filter components…",
+      "action": "fill",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > input:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": [
+        {
+          "name": "value",
+          "required": true,
+          "type": "string",
+          "description": "Text to type into the element"
+        }
+      ]
+    },
+    {
+      "kind": "gui",
+      "name": "graph-new-btn",
+      "description": "button: graph-new-btn",
+      "action": "click",
+      "selector": "[data-tutorial=\"graph-new-btn\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "graph-save-btn",
+      "description": "button: graph-save-btn",
+      "action": "click",
+      "selector": "[data-tutorial=\"graph-save-btn\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "graph-load-btn",
+      "description": "button: graph-load-btn",
+      "action": "click",
+      "selector": "[data-tutorial=\"graph-load-btn\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "undo",
+      "description": "button: ↶ Undo",
+      "action": "click",
+      "selector": "div:nth-child(2) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > button:nth-child(5)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "redo",
+      "description": "button: ↷ Redo",
+      "action": "click",
+      "selector": "div:nth-child(2) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > button:nth-child(6)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "validate-btn",
+      "description": "button: validate-btn",
+      "action": "click",
+      "selector": "[data-tutorial=\"validate-btn\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "export-train-btn",
+      "description": "button: export-train-btn",
+      "action": "click",
+      "selector": "[data-tutorial=\"export-train-btn\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "zoom-in",
+      "description": "button[type=button]: zoom in",
+      "action": "click",
+      "selector": "button[aria-label=\"zoom in\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "zoom-out",
+      "description": "button[type=button]: zoom out",
+      "action": "click",
+      "selector": "button[aria-label=\"zoom out\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "fit-view",
+      "description": "button[type=button]: fit view",
+      "action": "click",
+      "selector": "button[aria-label=\"fit view\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "toggle-interactivity",
+      "description": "button[type=button]: toggle interactivity",
+      "action": "click",
+      "selector": "button[aria-label=\"toggle interactivity\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "react-flow-attribution",
+      "description": "a: React Flow attribution",
+      "action": "click",
+      "selector": "a[aria-label=\"React Flow attribution\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "use",
+      "description": "button: Use",
+      "action": "click",
+      "selector": "div:nth-child(4) > div:nth-child(1) > ul:nth-child(3) > li:nth-child(1) > button:nth-child(2)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "use-2",
+      "description": "button: Use",
+      "action": "click",
+      "selector": "div:nth-child(4) > div:nth-child(1) > ul:nth-child(3) > li:nth-child(2) > button:nth-child(2)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "use-3",
+      "description": "button: Use",
+      "action": "click",
+      "selector": "div:nth-child(4) > div:nth-child(1) > ul:nth-child(3) > li:nth-child(3) > button:nth-child(2)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "tab-learn",
+      "description": "button: tab-learn",
+      "action": "click",
+      "selector": "[data-tutorial=\"tab-learn\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "tab-build",
+      "description": "button: tab-build",
+      "action": "click",
+      "selector": "[data-tutorial=\"tab-build\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "tab-templates",
+      "description": "button: tab-templates",
+      "action": "click",
+      "selector": "[data-tutorial=\"tab-templates\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "tab-inspector",
+      "description": "button: tab-inspector",
+      "action": "click",
+      "selector": "[data-tutorial=\"tab-inspector\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "tab-data",
+      "description": "button: tab-data",
+      "action": "click",
+      "selector": "[data-tutorial=\"tab-data\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "tab-author",
+      "description": "button: tab-author",
+      "action": "click",
+      "selector": "[data-tutorial=\"tab-author\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "tab-synthesize",
+      "description": "button: tab-synthesize",
+      "action": "click",
+      "selector": "[data-tutorial=\"tab-synthesize\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "tab-models",
+      "description": "button: tab-models",
+      "action": "click",
+      "selector": "[data-tutorial=\"tab-models\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "tab-agent",
+      "description": "button: tab-agent",
+      "action": "click",
+      "selector": "[data-tutorial=\"tab-agent\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "tab-plugins",
+      "description": "button: tab-plugins",
+      "action": "click",
+      "selector": "[data-tutorial=\"tab-plugins\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(2) > div:nth-child(2) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-2",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(2) > div:nth-child(3) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-3",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(2) > div:nth-child(4) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-4",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(2) > div:nth-child(5) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-5",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(2) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-6",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(3) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-7",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(4) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-8",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(5) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-9",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(6) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-10",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(7) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-11",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(8) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-12",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(9) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-13",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(10) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-14",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(11) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-15",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(12) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-16",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(13) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-17",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(14) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-18",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(15) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-19",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(16) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-20",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(17) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-21",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(18) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-22",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(19) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-23",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(20) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-24",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(21) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-25",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(22) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-26",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(23) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-27",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(24) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-28",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(25) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-29",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(26) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-30",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(27) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-31",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(28) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-32",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(29) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-33",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(3) > div:nth-child(30) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-34",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(4) > div:nth-child(2) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-35",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(4) > div:nth-child(3) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-36",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(4) > div:nth-child(4) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-37",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(4) > div:nth-child(5) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-38",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(4) > div:nth-child(6) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-39",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(4) > div:nth-child(7) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-40",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(4) > div:nth-child(8) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-41",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(4) > div:nth-child(9) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-42",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(4) > div:nth-child(10) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "start-43",
+      "description": "button: Start",
+      "action": "click",
+      "selector": "div:nth-child(1) > div:nth-child(2) > div:nth-child(4) > div:nth-child(11) > button:nth-child(3)",
+      "selectorConfidence": "best-effort",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "tab-metrics",
+      "description": "button: tab-metrics",
+      "action": "click",
+      "selector": "[data-tutorial=\"tab-metrics\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "tab-predict",
+      "description": "button: tab-predict",
+      "action": "click",
+      "selector": "[data-tutorial=\"tab-predict\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "tab-experiments",
+      "description": "button: tab-experiments",
+      "action": "click",
+      "selector": "[data-tutorial=\"tab-experiments\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "tab-cluster",
+      "description": "button: tab-cluster",
+      "action": "click",
+      "selector": "[data-tutorial=\"tab-cluster\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    },
+    {
+      "kind": "gui",
+      "name": "tab-console",
+      "description": "button: tab-console",
+      "action": "click",
+      "selector": "[data-tutorial=\"tab-console\"]",
+      "selectorConfidence": "stable",
+      "params": []
+    }
+  ]
+}

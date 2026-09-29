@@ -1,0 +1,13 @@
+{:component/id ""
+ :component/name "confidence_head"
+ :meta-type "stateful-module"
+ :version "1.0.0"
+ :tags ["dspark" "speculative" "drafter"]
+ :interface/inputs [{:name "input" :tensor {:shape [:batch :features] :dtype "float32"}}
+                     {:name "hidden_weight" :role "parameter" :tensor {:shape [:proj :features] :dtype "float32"}}
+                     {:name "score_weight" :role "parameter" :tensor {:shape [1 :proj] :dtype "float32"}}]
+ :interface/outputs [{:name "output" :tensor {:shape [:batch] :dtype "float32"}}]
+ :hyperparameters {"features" {:type "int" :default 1024}
+                    "proj" {:type "int" :default 512}}
+ :implementation [{:language "python" :entry "forward"}]
+ :compatibility {:devices ["cpu" "cuda"] :dtypes ["float32"] :autograd true}}

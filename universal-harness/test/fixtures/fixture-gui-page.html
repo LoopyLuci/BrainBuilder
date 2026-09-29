@@ -1,0 +1,10 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>fixture-gui-page</title></head>
+<body>
+  <button data-testid="my-button" onclick="document.querySelector('[data-testid=output]').textContent = 'clicked'">Click me</button>
+  <input data-testid="my-input" oninput="document.querySelector('[data-testid=echo]').textContent = this.value" />
+  <div data-testid="output">idle</div>
+  <div data-testid="echo"></div>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Fixture Item API", "description": "Test double for universal-harness's API layer" },
+  "paths": {
+    "/items": {
+      "get": {
+        "operationId": "list_items",
+        "summary": "List items, optionally filtered by name substring",
+        "parameters": [
+          { "name": "query", "in": "query", "required": false, "schema": { "type": "string" } }
+        ]
+      },
+      "post": {
+        "operationId": "create_item",
+        "summary": "Create a new item",
+        "requestBody": { "required": true }
+      }
+    },
+    "/items/{id}": {
+      "get": {
+        "operationId": "get_item",
+        "summary": "Fetch one item by id",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ]
+      }
+    }
+  }
+}
