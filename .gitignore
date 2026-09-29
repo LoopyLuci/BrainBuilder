@@ -30,3 +30,9 @@ ci-reports/
 .idea/
 .DS_Store
 Thumbs.db
+ProjectData.md
+
+# Local data and archives (added 2026-09-29)
+gui/data/
+gui/src-tauri/data/
+ModelBuilder.archive/

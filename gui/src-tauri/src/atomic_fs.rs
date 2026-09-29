@@ -178,7 +178,6 @@ pub fn atomic_cas(
 fn replace_file(tmp: &Path, dest: &Path) -> Result<(), AtomicFsError> {
     #[cfg(windows)]
     {
-        use std::os::windows::ffi::OsStrExt;
         // Prefer rename; on Windows replace existing via remove+rename fallback
         match fs::rename(tmp, dest) {
             Ok(()) => Ok(()),

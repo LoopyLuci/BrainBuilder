@@ -6,14 +6,19 @@ import { WidgetSlot } from './types';
 import { Tabs, TabDef } from '../ui/Tabs';
 import { useTutorialStore } from '../tutorial/tutorialStore';
 
-type FocusTabEventDetail = { tabId: string; slot?: WidgetSlot };
+export type FocusTabEventDetail = { tabId: string; slot?: WidgetSlot };
 
-// Renders every widget registered for a slot, each inside its own error
-// boundary. `side`/`bottom` render as tabs (matching the previous shell);
-// `palette`/`canvas`/`header` render their widgets stacked, since those slots
-// are single-purpose today but stay pluggable.
 export function SlotRenderer({ slot, asTabs }: { slot: WidgetSlot; asTabs?: boolean }) {
-  // Subscribe to the widgets map so runtime (un)registration re-renders.
+  const focusLuci = () => {
+    if (slot === 'side') {
+      window.dispatchEvent(new CustomEvent<FocusTabEventDetail>('bb:focus-tab', { detail: { tabId: 'luci', slot: 'side' } }));
+    }
+  };
+  if (slot === 'side') {
+    window.addEventListener('bb:focus-luci', focusLuci, { once: false });
+  }
+
+  // Subscribe to the widgets map so runtime (un)loading re-renders.
   const widgetsMap = useWidgetRegistry((s) => s.widgets);
   // Subscribe to the hidden set so toggling visibility re-renders the slot.
   const hidden = useLayoutStore((s) => s.hidden);

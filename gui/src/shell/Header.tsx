@@ -1,4 +1,5 @@
 import { useTheme } from '../theme/useTheme';
+import { useLayoutStore } from '../state/layoutStore';
 
 function SunIcon() {
   return (
@@ -17,6 +18,38 @@ function MoonIcon() {
   );
 }
 
+function PaletteIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+    </svg>
+  );
+}
+
+function RightIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 7h16M4 12h10M4 17h6" />
+    </svg>
+  );
+}
+
+function BottomIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  );
+}
+
+function LuciIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+    </svg>
+  );
+}
+
 function Logo() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -30,6 +63,15 @@ function Logo() {
 
 export function Header() {
   const { theme, toggle } = useTheme();
+  const paletteVisible = useLayoutStore((s) => s.paletteVisible);
+  const sideRailVisible = useLayoutStore((s) => s.sideRailVisible);
+  const rightRailVisible = useLayoutStore((s) => s.rightRailVisible);
+  const bottomHeight = useLayoutStore((s) => s.bottomHeight);
+  const togglePalette = useLayoutStore((s) => s.togglePalette);
+  const toggleSideRail = useLayoutStore((s) => s.toggleSideRail);
+  const toggleRightRail = useLayoutStore((s) => s.toggleRightRail);
+  const setBottomHeight = useLayoutStore((s) => s.setBottomHeight);
+
   return (
     <header className="bb-header">
       <div className="bb-header__brand">
@@ -37,7 +79,44 @@ export function Header() {
         <span>BrainBuilder</span>
       </div>
       <div className="bb-header__actions">
-        <button className="bb-btn bb-btn--ghost bb-btn--sm" onClick={toggle} title="Toggle light/dark theme" aria-label="Toggle theme">
+        <button
+          className="bb-btn bb-btn--ghost bb-btn--sm"
+          onClick={togglePalette}
+          title={paletteVisible ? 'Hide palette' : 'Show palette'}
+          aria-label={paletteVisible ? 'Hide palette' : 'Show palette'}
+        >
+          <PaletteIcon />
+        </button>
+        <button
+          className="bb-btn bb-btn--ghost bb-btn--sm"
+          onClick={toggleSideRail}
+          title={sideRailVisible ? 'Close Luci Agent Dashboard' : 'Open Luci Agent Dashboard'}
+          aria-label={sideRailVisible ? 'Close Luci Agent Dashboard' : 'Open Luci Agent Dashboard'}
+        >
+          <LuciIcon />
+        </button>
+        <button
+          className="bb-btn bb-btn--ghost bb-btn--sm"
+          onClick={toggleRightRail}
+          title={rightRailVisible ? 'Hide right panel' : 'Show right panel'}
+          aria-label={rightRailVisible ? 'Hide right panel' : 'Show right panel'}
+        >
+          <RightIcon />
+        </button>
+        <button
+          className="bb-btn bb-btn--ghost bb-btn--sm"
+          onClick={() => setBottomHeight(bottomHeight === 0 ? 260 : 0)}
+          title={bottomHeight === 0 ? 'Show bottom panel' : 'Hide bottom panel'}
+          aria-label={bottomHeight === 0 ? 'Show bottom panel' : 'Hide bottom panel'}
+        >
+          <BottomIcon />
+        </button>
+        <button
+          className="bb-btn bb-btn--ghost bb-btn--sm"
+          onClick={toggle}
+          title="Toggle light/dark theme"
+          aria-label="Toggle theme"
+        >
           {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
         </button>
       </div>

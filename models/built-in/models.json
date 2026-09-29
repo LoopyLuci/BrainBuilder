@@ -1,0 +1,14 @@
+[
+  {
+    "repo_id": "qwen/Qwen2.5-0.5B-Instruct",
+    "path": "qwen/qwen2.5-0.5B-Instruct",
+    "formats": ["safetensors"],
+    "files": ["config.json", "model.safetensors", "tokenizer.json"]
+  },
+  {
+    "repo_id": "kimi-k3/Kimi-K3-Final",
+    "path": "kimi-k3",
+    "formats": ["python"],
+    "files": ["kimi_k3_final.py"]
+  }
+]

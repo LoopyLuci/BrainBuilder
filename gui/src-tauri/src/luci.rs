@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 use crate::luci_store::LuciStore;
+use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -15,6 +16,20 @@ pub enum LuciMood {
     Concerned,
     Sleepy,
     Overwhelmed,
+}
+
+impl LuciMood {
+    fn from_str(value: &str) -> Option<Self> {
+        match value.to_ascii_lowercase().as_str() {
+            "cheerful" => Some(Self::Cheerful),
+            "curious" => Some(Self::Curious),
+            "focused" => Some(Self::Focused),
+            "concerned" => Some(Self::Concerned),
+            "sleepy" => Some(Self::Sleepy),
+            "overwhelmed" => Some(Self::Overwhelmed),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -41,6 +56,56 @@ impl LuciPersonality {
                 "humility".into(),
             ],
         }
+    }
+
+    fn mood_from_str(value: &str) -> LuciMood {
+        match value.to_ascii_lowercase().as_str() {
+            "cheerful" => LuciMood::Cheerful,
+            "curious" => LuciMood::Curious,
+            "focused" => LuciMood::Focused,
+            "concerned" => LuciMood::Concerned,
+            "sleepy" => LuciMood::Sleepy,
+            "overwhelmed" => LuciMood::Overwhelmed,
+            _ => LuciMood::Cheerful,
+        }
+    }
+
+    fn apply_disk_overrides(&mut self, overrides: &LuciPersonality) {
+        if !overrides.name.is_empty() {
+            self.name = overrides.name.clone();
+        }
+        if !overrides.archetype.is_empty() {
+            self.archetype = overrides.archetype.clone();
+        }
+        if !overrides.tone.is_empty() {
+            self.tone = overrides.tone.clone();
+        }
+        if !overrides.values.is_empty() {
+            self.values = overrides.values.clone();
+        }
+    }
+
+    fn load_personality_from_path(path: std::path::PathBuf) -> Option<Self> {
+        let contents = std::fs::read_to_string(path).ok()?;
+        let overrides: Self = serde_json::from_str(&contents).ok()?;
+        Some(overrides)
+    }
+
+    pub fn load_builtin() -> Self {
+        let mut personality = Self::default();
+        let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let candidates = [
+            manifest_dir.join("../../models/built-in/luci/personality.json"),
+            manifest_dir.join("../models/built-in/luci/personality.json"),
+            manifest_dir.join("models/built-in/luci/personality.json"),
+        ];
+        for path in candidates {
+            if let Some(overrides) = Self::load_personality_from_path(path) {
+                personality.apply_disk_overrides(&overrides);
+                return personality;
+            }
+        }
+        personality
     }
 }
 
@@ -77,7 +142,7 @@ pub struct LuciState {
 impl Default for LuciState {
     fn default() -> Self {
         Self {
-            personality: LuciPersonality::default(),
+            personality: LuciPersonality::load_builtin(),
             context: LuciContext {
                 user_id: None,
                 session_id: Uuid::new_v4().to_string(),
@@ -86,7 +151,7 @@ impl Default for LuciState {
                 recent_tool_calls: VecDeque::new(),
                 last_user_emotion: None,
             },
-            mood: LuciPersonality::default().default_mood,
+            mood: LuciPersonality::load_builtin().default_mood,
             confidence: 0.8,
             conversation_history: VecDeque::with_capacity(64),
             self_model: HashMap::new(),

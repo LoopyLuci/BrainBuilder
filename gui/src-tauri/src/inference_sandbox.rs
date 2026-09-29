@@ -16,9 +16,8 @@ use tracing::{info, warn};
 
 use crate::model_executor::ModelExecutor;
 use crate::platform_host::OmniForgeHost;
-use concierge_core::tools::implementations::PlatformHost;
 
-pub async fn omniforge_execute_graph(
+pub async fn execute_graph(
     graph: &Value,
     host: &Arc<OmniForgeHost>,
     executor: &Arc<ModelExecutor>,
@@ -178,10 +177,10 @@ async fn run_onnx(
     prompt: &str,
 ) -> Result<Value, String> {
     let sid = executor.load_onnx(path).await?;
-    let inputs = json!({
-            "input": vec![0.0_f32; 8],
-            "__shapes__": { "input": [1, 8] }
-        });
+    let inputs = serde_json::json!({
+        "input": vec![0.0; 8],
+        "__shapes__": { "input": [1, 8] }
+    });
     match executor.infer_onnx(&sid, inputs).await {
         Ok(r) => Ok(json!({
             "backend": r.backend,

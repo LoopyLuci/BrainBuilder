@@ -6,8 +6,11 @@ resolver = "2"
 opt-level = 0
 
 [profile.release]
-opt-level = 3
-lto = true
+opt-level = "z"
+lto = "thin"
+codegen-units = 16
+panic = "unwind"
+strip = "debuginfo"
 
 [patch.crates-io]
 aquamarine = { path = "crates/aquamarine" }

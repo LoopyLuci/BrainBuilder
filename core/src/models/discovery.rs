@@ -308,8 +308,11 @@ mod tests {
     #[test]
     fn scans_the_developers_real_local_model_directory_if_present() {
         let real_dir = Path::new("D:/Models/general");
-        if !real_dir.is_dir() {
-            eprintln!("D:/Models/general not present on this machine — skipping (not a failure)");
+        let has_subdirs = std::fs::read_dir(real_dir)
+            .map(|rd| rd.flatten().any(|e| e.path().is_dir()))
+            .unwrap_or(false);
+        if !has_subdirs {
+            eprintln!("D:/Models/general is absent or holds no model folders on this machine — skipping (not a failure)");
             return;
         }
         let models = scan_directory_for_models(real_dir, 4);

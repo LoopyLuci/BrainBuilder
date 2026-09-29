@@ -61,6 +61,10 @@ export async function registerGgufModel(path: string, modelName: string): Promis
   return invoke('register_gguf_model', { path, modelName });
 }
 
+export async function copyModelToBuiltin(src: string, destName?: string): Promise<string> {
+  return invoke<string>('copy_model_to_builtin', { src, destName });
+}
+
 // LLM-assisted authoring, provider-agnostic. `selector` is a "provider:model"
 // string (e.g. "ollama:llama3.2" or "opencode:opencode-go/glm-5.2"); a bare
 // model name still defaults to Ollama on the backend. Returns the generated
@@ -458,4 +462,39 @@ export async function luciStartTraining(model_id: string, mode: string, dataset_
 
 export async function luciListTrainingJobs(): Promise<LuciTrainingJob[]> {
   return invoke('luci_list_training_jobs');
+}
+
+// --- Live Runtime unified frontend bindings ---
+
+export interface LiveRuntimeRunOptions {
+  provider?: string;
+  model?: string;
+  catalogModelId?: string;
+  stream?: boolean;
+  temperature?: number;
+  topP?: number;
+  maxTokens?: number;
+}
+
+export async function liveRuntimeRun(
+  graphJson: string,
+  opts: LiveRuntimeRunOptions = {},
+): Promise<string> {
+  return invoke<string>('live_runtime_run', { graphJson, opts });
+}
+
+export async function liveRuntimeStatus(): Promise<string> {
+  return invoke<string>('live_runtime_status');
+}
+
+export async function liveRuntimeStop(): Promise<string> {
+  return invoke<string>('live_runtime_stop');
+}
+
+export async function liveRuntimeStreamEvents(): Promise<void> {
+  return invoke<void>('live_runtime_stream_events');
+}
+
+export async function liveRuntimeSmokeTest(): Promise<string> {
+  return invoke<string>('live_runtime_smoke_test');
 }

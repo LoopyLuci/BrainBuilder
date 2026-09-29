@@ -53,11 +53,20 @@ use tokio::sync::Mutex;
 
 #[tauri::command]
 pub async fn catalog_model_run(
-    state: tauri::State<'_, std::sync::Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, crate::AppState>,
     model_id: String,
-    params: HashMap<String, Value>,
-) -> Result<Value, String> {
-    let ext = state.lock().await;
+    params: std::collections::HashMap<String, serde_json::Value>,
+) -> Result<serde_json::Value, String> {
+    let ext = state.ext.lock().await;
     let registry = ext.catalog_registry.read().await;
     registry.execute(&model_id, params).await
+}
+
+#[tauri::command]
+pub async fn model_catalog_list(
+    state: tauri::State<'_, crate::AppState>,
+) -> Result<Vec<(String, String)>, String> {
+    let ext = state.ext.lock().await;
+    let registry = ext.catalog_registry.read().await;
+    Ok(registry.list().into_iter().map(|(a, b)| (a.to_string(), b.to_string())).collect())
 }

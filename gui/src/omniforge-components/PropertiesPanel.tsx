@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/tauri";
 
 interface Props {
-  nodeId: string;
+  nodeId?: string;
 }
 
-export default function PropertiesPanel({ nodeId }: Props) {
+export default function PropertiesPanel({ nodeId = '' }: Props) {
   const [info, setInfo] = useState<string>("");
 
   useEffect(() => {

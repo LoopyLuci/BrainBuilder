@@ -3,7 +3,7 @@ import { ComponentType } from 'react';
 // Where a widget mounts in the app shell. The shell renders each slot by
 // querying the registry, so adding/removing/reordering panels never touches
 // App.tsx — the precondition for hot-swapping UI at runtime.
-export type WidgetSlot = 'palette' | 'side' | 'bottom' | 'canvas' | 'header';
+export type WidgetSlot = 'palette' | 'side' | 'right' | 'bottom' | 'canvas' | 'header';
 
 // One registered piece of UI. `component` is a normal React component; the
 // shell wraps every widget in an error boundary so a broken one (including a

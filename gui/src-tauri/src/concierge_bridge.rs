@@ -3,7 +3,7 @@
 use crate::model_executor::ModelExecutor;
 use crate::platform_host::OmniForgeHost;
 use concierge_core::ConciergeAgent;
-use concierge_core::tools::implementations::PlatformHost;
+
 use std::sync::Arc;
 use tauri::State;
 use tokio::sync::Mutex;
@@ -15,7 +15,7 @@ pub struct AppState {
 }
 
 #[tauri::command]
-pub async fn omniforge_concierge_chat(
+pub async fn concierge_chat(
     state: State<'_, AppState>,
     message: String,
 ) -> Result<String, String> {
@@ -24,7 +24,7 @@ pub async fn omniforge_concierge_chat(
 }
 
 #[tauri::command]
-pub async fn omniforge_get_canvas(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+pub async fn get_canvas(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     let snap = state.host.get_canvas_snapshot().await;
     let nodes: Vec<_> = snap
         .nodes
@@ -59,7 +59,7 @@ pub async fn omniforge_get_canvas(state: State<'_, AppState>) -> Result<serde_js
 }
 
 #[tauri::command]
-pub async fn omniforge_import_model(
+pub async fn import_model(
     state: State<'_, AppState>,
     path: String,
     format: Option<String>,
@@ -73,7 +73,7 @@ pub async fn omniforge_import_model(
 }
 
 #[tauri::command]
-pub async fn omniforge_add_node(
+pub async fn add_node(
     state: State<'_, AppState>,
     node_type: String,
     model_id: Option<String>,
@@ -97,7 +97,7 @@ pub async fn omniforge_add_node(
 }
 
 #[tauri::command]
-pub async fn omniforge_connect_nodes(
+pub async fn connect_nodes(
     state: State<'_, AppState>,
     source_node: String,
     source_socket: String,
@@ -112,7 +112,7 @@ pub async fn omniforge_connect_nodes(
 }
 
 #[tauri::command]
-pub async fn omniforge_inspect_node(
+pub async fn inspect_node(
     state: State<'_, AppState>,
     node_id: String,
 ) -> Result<String, String> {
@@ -124,7 +124,7 @@ pub async fn omniforge_inspect_node(
 }
 
 #[tauri::command]
-pub async fn omniforge_execute_graph(
+pub async fn execute_graph(
     state: State<'_, AppState>,
     inputs: serde_json::Value,
 ) -> Result<String, String> {
@@ -136,7 +136,7 @@ pub async fn omniforge_execute_graph(
 }
 
 #[tauri::command]
-pub async fn omniforge_run_training(
+pub async fn run_training(
     state: State<'_, AppState>,
     base_model: String,
     dataset: String,
@@ -160,7 +160,7 @@ pub async fn omniforge_run_training(
 }
 
 #[tauri::command]
-pub async fn omniforge_get_platform_status(state: State<'_, AppState>) -> Result<String, String> {
+pub async fn get_platform_status(state: State<'_, AppState>) -> Result<String, String> {
     state
         .host
         .get_platform_status()
@@ -169,7 +169,7 @@ pub async fn omniforge_get_platform_status(state: State<'_, AppState>) -> Result
 }
 
 #[tauri::command]
-pub async fn omniforge_list_models(
+pub async fn list_models(
     state: State<'_, AppState>,
     limit: Option<usize>,
 ) -> Result<String, String> {
@@ -181,7 +181,7 @@ pub async fn omniforge_list_models(
 }
 
 #[tauri::command]
-pub async fn omniforge_search_models(
+pub async fn search_models(
     state: State<'_, AppState>,
     query: String,
     modality: Option<String>,
@@ -197,7 +197,7 @@ pub async fn omniforge_search_models(
 // ── Model execution commands ────────────────────────────────────────────
 
 #[tauri::command]
-pub async fn omniforge_load_onnx_model(
+pub async fn load_onnx_model(
     state: State<'_, AppState>,
     path: String,
 ) -> Result<String, String> {
@@ -205,7 +205,7 @@ pub async fn omniforge_load_onnx_model(
 }
 
 #[tauri::command]
-pub async fn omniforge_infer_onnx(
+pub async fn infer_onnx(
     state: State<'_, AppState>,
     session_id: String,
     inputs: serde_json::Value,
@@ -215,7 +215,7 @@ pub async fn omniforge_infer_onnx(
 }
 
 #[tauri::command]
-pub async fn omniforge_start_gguf_model(
+pub async fn start_gguf_model(
     state: State<'_, AppState>,
     path: String,
     port: Option<u16>,
@@ -224,7 +224,7 @@ pub async fn omniforge_start_gguf_model(
 }
 
 #[tauri::command]
-pub async fn omniforge_stop_model(
+pub async fn stop_model(
     state: State<'_, AppState>,
     process_id: String,
 ) -> Result<(), String> {
@@ -232,14 +232,14 @@ pub async fn omniforge_stop_model(
 }
 
 #[tauri::command]
-pub async fn omniforge_list_running_models(
+pub async fn list_running_models(
     state: State<'_, AppState>,
 ) -> Result<Vec<String>, String> {
     Ok(state.executor.list().await)
 }
 
 #[tauri::command]
-pub async fn omniforge_list_gguf_models(
+pub async fn list_gguf_models(
     state: State<'_, AppState>,
 ) -> Result<Vec<serde_json::Value>, String> {
     let infos = state.executor.list_gguf().await;
@@ -263,13 +263,13 @@ pub async fn omniforge_list_gguf_models(
 use crate::dataset_tools;
 use crate::export_bundle;
 use crate::inference_sandbox;
-use crate::km_format::{self, AdapterMeta, BaseModelFingerprint, KmManifest, ProvenanceInfo};
+use crate::km_format;
 use crate::multimodal_merger::{self, MultimodalConfig, MultimodalInput};
 use crate::plugin_system;
 use crate::training_executor::{self, TrainingConfig};
 
 #[tauri::command]
-pub async fn omniforge_start_training(
+pub async fn start_training(
     state: State<'_, AppState>,
     app: tauri::AppHandle,
     config: TrainingConfig,
@@ -279,7 +279,7 @@ pub async fn omniforge_start_training(
 }
 
 #[tauri::command]
-pub async fn omniforge_create_km(
+pub async fn create_km(
     base_model: String,
     adapter_path: String,
     name: String,
@@ -299,7 +299,7 @@ pub async fn omniforge_create_km(
 }
 
 #[tauri::command]
-pub async fn omniforge_export_model_bundle(
+pub async fn export_model_bundle(
     base_model: String,
     km_paths: Vec<String>,
     graph: String,
@@ -309,21 +309,21 @@ pub async fn omniforge_export_model_bundle(
 }
 
 #[tauri::command]
-pub fn omniforge_get_plugins() -> Vec<plugin_system::PluginManifest> {
-    crate::plugin_system::discover_plugins()
+pub fn get_plugins() -> Vec<plugin_system::PluginManifest> {
+    plugin_system::discover_plugins()
 }
 
 #[tauri::command]
-pub async fn omniforge_run_plugin_tool(
+pub async fn run_plugin_tool(
     plugin: String,
     tool: String,
     arguments: String,
 ) -> Result<String, String> {
-    crate::plugin_system::execute_plugin_tool(&plugin, &tool, &arguments).await
+    plugin_system::execute_plugin_tool(&plugin, &tool, &arguments).await
 }
 
 #[tauri::command]
-pub async fn omniforge_augment_dataset(
+pub async fn augment_dataset(
     path: String,
     methods: Vec<String>,
 ) -> Result<String, String> {
@@ -331,7 +331,7 @@ pub async fn omniforge_augment_dataset(
 }
 
 #[tauri::command]
-pub async fn omniforge_process_multimodal(
+pub async fn process_multimodal(
     state: State<'_, AppState>,
     config: MultimodalConfig,
     input: MultimodalInput,
@@ -341,17 +341,17 @@ pub async fn omniforge_process_multimodal(
 }
 
 #[tauri::command]
-pub async fn omniforge_execute_canvas_graph(
+pub async fn execute_canvas_graph(
     state: State<'_, AppState>,
     app: tauri::AppHandle,
     graph: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
-    inference_sandbox::omniforge_execute_graph(&graph, &state.host, &state.executor, &app).await
+    inference_sandbox::execute_graph(&graph, &state.host, &state.executor, &app).await
 }
 
 
 #[tauri::command]
-pub async fn omniforge_rag_retrieve(
+pub async fn rag_retrieve(
     source: String,
     query: String,
     k: Option<usize>,
@@ -361,13 +361,13 @@ pub async fn omniforge_rag_retrieve(
 }
 
 #[tauri::command]
-pub async fn omniforge_rag_index_km(km_path: String) -> Result<String, String> {
+pub async fn rag_index_km(km_path: String) -> Result<String, String> {
     crate::rag::index_km(&km_path).await
 }
 
 
 #[tauri::command]
-pub async fn omniforge_hybrid_search(
+pub async fn hybrid_search(
     source: String,
     query: String,
     k: Option<usize>,
@@ -384,7 +384,7 @@ pub async fn omniforge_hybrid_search(
 }
 
 #[tauri::command]
-pub async fn omniforge_vector_upsert(
+pub async fn vector_upsert(
     items: Vec<(String, String)>,
 ) -> Result<usize, String> {
     // Ephemeral in-memory upsert for experimentation from the UI
@@ -400,17 +400,17 @@ pub async fn omniforge_vector_upsert(
 
 
 #[tauri::command]
-pub fn omniforge_list_editable_sources() -> Result<Vec<crate::self_edit::FileEntry>, String> {
+pub fn list_editable_sources() -> Result<Vec<crate::self_edit::FileEntry>, String> {
     crate::self_edit::list_editable_sources()
 }
 
 #[tauri::command]
-pub fn omniforge_read_source_file(path: String) -> Result<String, String> {
+pub fn read_source_file(path: String) -> Result<String, String> {
     crate::self_edit::read_source_file(&path)
 }
 
 #[tauri::command]
-pub fn omniforge_atomic_write_source(
+pub fn atomic_write_source(
     app: tauri::AppHandle,
     path: String,
     content: String,
@@ -426,7 +426,7 @@ pub fn omniforge_atomic_write_source(
 
 /// Concierge / agent can push a generative UI surface described as JSON.
 #[tauri::command]
-pub fn omniforge_push_generative_ui(
+pub fn push_generative_ui(
     app: tauri::AppHandle,
     title: String,
     root: serde_json::Value,
@@ -444,38 +444,43 @@ pub fn omniforge_push_generative_ui(
 // ── omniforge-fs plugin commands ────────────────────────────────────────
 
 #[tauri::command]
-pub fn omniforge_fs_atomic_write(path: String, content: String) -> Result<(), String> {
+pub fn fs_atomic_write(path: String, content: String) -> Result<(), String> {
     crate::plugins::fs_plugin::FsPlugin::atomic_write(path, content)
 }
 
 #[tauri::command]
-pub fn omniforge_fs_atomic_copy(from: String, to: String) -> Result<u64, String> {
+pub fn fs_atomic_copy(from: String, to: String) -> Result<u64, String> {
     crate::plugins::fs_plugin::FsPlugin::atomic_copy(from, to)
 }
 
 #[tauri::command]
-pub fn omniforge_fs_cas(path: String, expected: Option<String>, content: String) -> Result<bool, String> {
+pub fn fs_cas(path: String, expected: Option<String>, content: String) -> Result<bool, String> {
     crate::plugins::fs_plugin::FsPlugin::cas(path, expected, content)
 }
 
 #[tauri::command]
-pub fn omniforge_fs_cleanup_orphans(dir: String) -> Result<usize, String> {
+pub fn fs_cleanup_orphans(dir: String) -> Result<usize, String> {
     crate::plugins::fs_plugin::FsPlugin::cleanup_orphans(dir)
 }
 
 #[tauri::command]
-pub fn omniforge_list_rust_plugins() -> Vec<crate::plugins::PluginMeta> {
+pub fn list_rust_plugins() -> Vec<crate::plugins::PluginMeta> {
     let mut reg = crate::plugins::PluginRegistry::new();
     reg.register(std::sync::Arc::new(crate::plugins::fs_plugin::FsPlugin));
     reg.list()
 }
 
 #[tauri::command]
-pub fn omniforge_cas_write_source(
+pub fn cas_write_source(
     app: tauri::AppHandle,
     path: String,
     expected: Option<String>,
     content: String,
 ) -> Result<bool, String> {
     crate::self_edit::cas_write_source(&path, expected.as_deref(), &content, Some(&app))
+}
+
+#[tauri::command]
+pub fn live_runtime_smoke_test() -> &'static str {
+    "smoke-test-ok"
 }
