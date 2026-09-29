@@ -1,11 +1,12 @@
 #![allow(dead_code)]
-//! ModelMistress connector — treat ModelMistress as an external HTTP service
-//! and expose a thin command surface to the frontend. BrainBuilder does NOT
+//! ModelMistress connector — treats ModelMistress as an external HTTP service
+//! and exposes a thin command surface to the frontend. BrainBuilder does NOT
 //! link against `model-mistress` directly; all interaction is over HTTP so
 //! the two repos can evolve independently.
 
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use tauri::Manager;
 use tokio::sync::Mutex;
 
 #[derive(Debug, Clone)]
@@ -77,6 +78,28 @@ pub struct MmHealth {
     pub local_models_loaded: usize,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MmStreamChunk {
+    pub id: Option<String>,
+    pub object: Option<String>,
+    pub created: Option<i64>,
+    pub model: Option<String>,
+    pub choices: Option<Vec<MmStreamChoice>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MmStreamChoice {
+    pub index: Option<u32>,
+    pub delta: Option<MmStreamDelta>,
+    pub finish_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct MmStreamDelta {
+    pub role: Option<String>,
+    pub content: Option<String>,
+}
+
 impl ModelMistressBridge {
     pub fn new(base_url: impl Into<String>) -> Self {
         Self {
@@ -131,4 +154,164 @@ impl ModelMistressBridge {
             .await
             .map_err(|e| e.to_string())
     }
+
+    pub async fn stream_chat(&self, req: MmChatRequest, app: &tauri::AppHandle, node_id: &str) -> Result<String, String> {
+        let url = format!("{}/v1/chat/completions", self.base_url.lock().await.clone());
+        let mut full = String::new();
+        let resp = self.http
+            .post(&url)
+            .json(&req)
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+        if !resp.status().is_success() {
+            return Err(format!("stream failed: HTTP {}", resp.status()));
+        }
+        let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
+        let text = String::from_utf8_lossy(&bytes).to_string();
+        full = text.clone();
+
+        // Best-effort chunk emission: frontend can also parse raw SSE text
+        let _ = app.emit_all("model-mistress-token", text);
+        Ok(full)
+    }
+}
+
+// --- Tauri command wrappers ---
+// These wrap the bridge so the frontend can call them via `invoke()`.
+// State follows the app-wide convention: `State<'_, crate::AppState>` and
+// then `state.ext.lock().await` for shared services.
+
+#[tauri::command]
+pub async fn model_mistress_set_base_url(
+    state: tauri::State<'_, crate::AppState>,
+    url: String,
+) -> Result<(), String> {
+    let ext = state.ext.lock().await;
+    ext.model_mistress.set_base_url(url).await;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn model_mistress_health(
+    state: tauri::State<'_, crate::AppState>,
+) -> Result<MmHealth, String> {
+    let ext = state.ext.lock().await;
+    ext.model_mistress.health().await
+}
+
+#[tauri::command]
+pub async fn model_mistress_list_models(
+    state: tauri::State<'_, crate::AppState>,
+) -> Result<Vec<MmModelInfo>, String> {
+    let ext = state.ext.lock().await;
+    ext.model_mistress.list_models().await
+}
+
+#[tauri::command]
+pub async fn model_mistress_chat(
+    state: tauri::State<'_, crate::AppState>,
+    model: String,
+    messages: Vec<MmChatMessage>,
+    stream: Option<bool>,
+    temperature: Option<f32>,
+    top_p: Option<f32>,
+    max_tokens: Option<u32>,
+) -> Result<MmChatResponse, String> {
+    let ext = state.ext.lock().await;
+    let resp = ext.model_mistress.chat(MmChatRequest {
+        model,
+        messages,
+        stream,
+        temperature,
+        top_p,
+        max_tokens,
+    }).await?;
+    Ok(resp)
+}
+
+#[tauri::command]
+pub async fn model_mistress_stream_tokens(
+    state: tauri::State<'_, crate::AppState>,
+    app: tauri::AppHandle,
+    node_id: String,
+    model: String,
+    messages: Vec<MmChatMessage>,
+    prompt: Option<String>,
+    temperature: Option<f32>,
+    top_p: Option<f32>,
+    max_tokens: Option<u32>,
+) -> Result<String, String> {
+    let ext = state.ext.lock().await;
+    let mut final_messages = messages;
+    if let Some(p) = prompt {
+        final_messages.push(MmChatMessage { role: "user".into(), content: Some(p), tool_calls: None, tool_call_id: None });
+    }
+    ext.model_mistress.stream_chat(
+        MmChatRequest {
+            model,
+            messages: final_messages,
+            stream: Some(true),
+            temperature,
+            top_p,
+            max_tokens,
+        },
+        &app,
+        &node_id,
+    ).await
+}
+
+#[tauri::command]
+pub async fn model_mistress_chat_completion(
+    state: tauri::State<'_, crate::AppState>,
+    app: tauri::AppHandle,
+    model: String,
+    messages: Vec<MmChatMessage>,
+    prompt: Option<String>,
+    stream: Option<bool>,
+    temperature: Option<f32>,
+    top_p: Option<f32>,
+    max_tokens: Option<u32>,
+) -> Result<String, String> {
+    let ext = state.ext.lock().await;
+    let mut final_messages = messages;
+    if let Some(p) = prompt {
+        final_messages.push(MmChatMessage { role: "user".into(), content: Some(p), tool_calls: None, tool_call_id: None });
+    }
+    let node_id = format!("model-mistress-{}", uuid::Uuid::new_v4());
+    if stream.unwrap_or(false) {
+        ext.model_mistress.stream_chat(
+            MmChatRequest {
+                model,
+                messages: final_messages,
+                stream: Some(true),
+                temperature,
+                top_p,
+                max_tokens,
+            },
+            &app,
+            &node_id,
+        ).await
+    } else {
+        let resp = ext.model_mistress.chat(MmChatRequest {
+            model,
+            messages: final_messages,
+            stream: Some(false),
+            temperature,
+            top_p,
+            max_tokens,
+        }).await?;
+        Ok(resp.choices.into_iter().next().and_then(|c| c.message.content).unwrap_or_default())
+    }
+}
+
+pub mod commands {
+    pub use super::{
+        model_mistress_chat,
+        model_mistress_chat_completion,
+        model_mistress_health,
+        model_mistress_list_models,
+        model_mistress_set_base_url,
+        model_mistress_stream_tokens,
+    };
 }

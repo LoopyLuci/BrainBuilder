@@ -28,4 +28,5 @@
 pub mod fs_plugin;
 pub mod registry;
 
+#[allow(unused_imports)]
 pub use registry::{OmniPlugin, PluginContext, PluginMeta, PluginRegistry};

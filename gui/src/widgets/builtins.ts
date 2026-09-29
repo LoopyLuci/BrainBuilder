@@ -17,7 +17,7 @@ import { AgentPanel } from '../agent/AgentPanel';
 import { PluginsPanel } from './PluginsPanel';
 import { LearnPanel } from '../tutorial/LearnPanel';
 import { ModelMistressPanel } from '../model-mistress/ModelMistressPanel';
-// OmniForge ModelBuilder widgets — ported from ModelBuilder/omniforge and
+// BrainBuilder/OmniForge ModelBuilder widgets — integrated into gui/src/omniforge-components
 // wired into BrainBuilder's widget registry so they can be toggled at
 // runtime alongside the built-in panels.
 import ConciergePanel from '../omniforge-components/ConciergePanel';
@@ -49,63 +49,70 @@ import { PmiAnalyzerPanel } from '../next-gen/PmiAnalyzerPanel';
 import { UncertaintyQuantificationPanel } from '../next-gen/UncertaintyQuantificationPanel';
 import { HyperparameterOptimizerPanel } from '../next-gen/HyperparameterOptimizerPanel';
 import LuciPanel from '../next-gen/LuciPanel';
+import LiveRuntimePanel from '../next-gen/LiveRuntimePanel';
 import { BotDashboardPanel } from '../bot/BotDashboardPanel';
 import { HomeDashboard } from '../home/HomeDashboard';
 
-// Registers all first-party panels as widgets. This replaces the hardcoded
-// panel wiring that used to live inline in App.tsx — every panel is now a
-// registry entry, so the same mechanism that mounts these mounts runtime
-// plugins. Order values leave gaps so plugins can slot between built-ins.
 export function registerBuiltinWidgets() {
   registerWidget({ id: 'palette', title: 'Components', slot: 'palette', component: ComponentPalette, order: 10 });
   registerWidget({ id: 'canvas', title: 'Canvas', slot: 'canvas', component: InfiniteCanvas, order: 10 });
 
-  // Side rail (tabs). Learn goes first — a brand-new user should land on
-  // "how do I use this" before "build a model", not after.
+  // Side rail (tabs) - organized by user workflow
+  // 1. Start here
   registerWidget({ id: 'learn', title: 'Learn', slot: 'side', component: LearnPanel, order: 5 });
   registerWidget({ id: 'home', title: 'Dashboard', slot: 'side', component: HomeDashboard, order: 6 });
+  registerWidget({ id: 'templates', title: 'Templates', slot: 'side', component: TemplatesPanel, order: 7 });
+  
+  // 2. Build & design
   registerWidget({ id: 'build', title: 'Build', slot: 'side', component: IntentPanel, order: 10 });
-  registerWidget({ id: 'templates', title: 'Templates', slot: 'side', component: TemplatesPanel, order: 15 });
-  registerWidget({ id: 'inspector', title: 'Inspector', slot: 'side', component: Inspector, order: 20 });
-  registerWidget({ id: 'data', title: 'Data', slot: 'side', component: DataPanel, order: 30 });
-  registerWidget({ id: 'author', title: 'Author', slot: 'side', component: LLMAuthor, order: 40 });
-  registerWidget({ id: 'synthesize', title: 'Synthesize', slot: 'side', component: SynthesizePanel, order: 45 });
-  registerWidget({ id: 'models', title: 'Models', slot: 'side', component: ModelHub, order: 50 });
-  registerWidget({ id: 'agent', title: 'Agent', slot: 'side', component: AgentPanel, order: 55 });
-  registerWidget({ id: 'model-mistress', title: 'ModelMistress', slot: 'side', component: ModelMistressPanel, order: 56 });
-  registerWidget({ id: 'power-manager', title: 'Power Manager', slot: 'side', component: PowerManagerPanel, order: 57 });
-  registerWidget({ id: 'compression-agent', title: 'Compression', slot: 'side', component: CompressionAgentPanel, order: 58 });
-  registerWidget({ id: 'luci', title: 'Luci', slot: 'side', component: LuciPanel, order: 59 });
-  registerWidget({ id: 'bot', title: 'Bot Server', slot: 'side', component: BotDashboardPanel, order: 60 });
-  registerWidget({ id: 'plugins', title: 'Plugins', slot: 'side', component: PluginsPanel, order: 61 });
-  // OmniForge ModelBuilder panels
-  registerWidget({ id: 'concierge', title: 'Concierge', slot: 'side', component: ConciergePanel, order: 62 });
-  registerWidget({ id: 'genui', title: 'Gen UI', slot: 'side', component: GenerativePanel, order: 63 });
-  registerWidget({ id: 'knowledge', title: 'Knowledge', slot: 'side', component: KnowledgeModuleManager, order: 64 });
-  registerWidget({ id: 'model-export', title: 'Export', slot: 'side', component: ModelExporter, order: 66 });
-  registerWidget({ id: 'self-edit', title: 'Self-Edit', slot: 'side', component: SelfEditPanel, order: 67 });
+  registerWidget({ id: 'inspector', title: 'Inspector', slot: 'side', component: Inspector, order: 15 });
+  registerWidget({ id: 'properties', title: 'Properties', slot: 'right', component: PropertiesPanel, order: 10 });
+  
+  // 3. Data & models
+  registerWidget({ id: 'data', title: 'Data', slot: 'side', component: DataPanel, order: 20 });
+  registerWidget({ id: 'author', title: 'Author', slot: 'side', component: LLMAuthor, order: 25 });
+  registerWidget({ id: 'models', title: 'Models', slot: 'side', component: ModelHub, order: 30 });
+  registerWidget({ id: 'synthesize', title: 'Synthesize', slot: 'side', component: SynthesizePanel, order: 35 });
+  
+  // 4. Advanced features
+  registerWidget({ id: 'agent', title: 'Agent', slot: 'side', component: AgentPanel, order: 40 });
+  registerWidget({ id: 'bot', title: 'Bot Server', slot: 'side', component: BotDashboardPanel, order: 45 });
+  registerWidget({ id: 'luci', title: 'Luci', slot: 'side', component: LuciPanel, order: 50 });
+  registerWidget({ id: 'model-mistress', title: 'ModelMistress', slot: 'side', component: ModelMistressPanel, order: 55 });
+  registerWidget({ id: 'power-manager', title: 'Power Manager', slot: 'side', component: PowerManagerPanel, order: 56 });
+  registerWidget({ id: 'compression-agent', title: 'Compression', slot: 'side', component: CompressionAgentPanel, order: 57 });
+  
+  // 5. Research & analysis
   registerWidget({ id: 'retrieval-augmented-generation', title: 'RAG', slot: 'side', component: RetrievalAugmentedGenerationPanel, order: 120 });
   registerWidget({ id: 'adaptive-reasoning', title: 'Adaptive Reasoning', slot: 'side', component: AdaptiveReasoningPanel, order: 121 });
   registerWidget({ id: 'knowledge-graph', title: 'Knowledge Graph', slot: 'side', component: KnowledgeGraphPanel, order: 122 });
   registerWidget({ id: 'flow-analyzer', title: 'Flow Analyzer', slot: 'side', component: FlowAnalyzerPanel, order: 123 });
   registerWidget({ id: 'counterfactual-explainer', title: 'Counterfactual', slot: 'side', component: CounterfactualExplainerPanel, order: 124 });
   registerWidget({ id: 'continual-learning', title: 'Continual Learning', slot: 'side', component: ContinualLearningPanel, order: 125 });
-  registerWidget({ id: 'symbolic-reasoning', title: 'Symbolic Reasoning', slot: 'side', component: SymbolicReasoningPanel, order: 126 });
+  registerWidget({ id: 'symbolic-reasoning', title: 'Symbolic', slot: 'side', component: SymbolicReasoningPanel, order: 126 });
   registerWidget({ id: 'temporal-point-process', title: 'Temporal PP', slot: 'side', component: TemporalPointProcessPanel, order: 127 });
   registerWidget({ id: 'interactive-explainability', title: 'Explainability', slot: 'side', component: InteractiveExplainabilityPanel, order: 128 });
   registerWidget({ id: 'compositional-reasoning', title: 'Compositional', slot: 'side', component: CompositionalReasoningPanel, order: 129 });
   registerWidget({ id: 'neuro-symbolic-prover', title: 'NS Prover', slot: 'side', component: NeuroSymbolicProverPanel, order: 130 });
-  registerWidget({ id: 'federated-learning', title: 'Federated Learning', slot: 'side', component: FederatedLearningPanel, order: 131 });
-  registerWidget({ id: 'pmi-analyzer', title: 'PMI Analyzer', slot: 'side', component: PmiAnalyzerPanel, order: 132 });
+  registerWidget({ id: 'federated-learning', title: 'Federated', slot: 'side', component: FederatedLearningPanel, order: 131 });
+  registerWidget({ id: 'pmi-analyzer', title: 'PMI', slot: 'side', component: PmiAnalyzerPanel, order: 132 });
   registerWidget({ id: 'uncertainty-quantification', title: 'Uncertainty', slot: 'side', component: UncertaintyQuantificationPanel, order: 133 });
   registerWidget({ id: 'hyperparameter-optimizer', title: 'HPO', slot: 'side', component: HyperparameterOptimizerPanel, order: 134 });
+  
+  // 6. System & plugins
+  registerWidget({ id: 'plugins', title: 'Plugins', slot: 'side', component: PluginsPanel, order: 200 });
+  registerWidget({ id: 'concierge', title: 'Concierge', slot: 'side', component: ConciergePanel, order: 201 });
+  registerWidget({ id: 'genui', title: 'Gen UI', slot: 'side', component: GenerativePanel, order: 202 });
+  registerWidget({ id: 'knowledge', title: 'Knowledge', slot: 'side', component: KnowledgeModuleManager, order: 203 });
+  registerWidget({ id: 'model-export', title: 'Export', slot: 'side', component: ModelExporter, order: 204 });
+  registerWidget({ id: 'self-edit', title: 'Self-Edit', slot: 'side', component: SelfEditPanel, order: 205 });
 
-  // Bottom rail (tabs).
+  // Bottom rail (tabs) - outputs & monitoring
   registerWidget({ id: 'metrics', title: 'Metrics', slot: 'bottom', component: TrainingDashboard, order: 10 });
   registerWidget({ id: 'predict', title: 'Predict', slot: 'bottom', component: PredictPanel, order: 20 });
   registerWidget({ id: 'experiments', title: 'History', slot: 'bottom', component: ExperimentsPanel, order: 25 });
   registerWidget({ id: 'cluster', title: 'Cluster', slot: 'bottom', component: ClusterConsole, order: 30 });
-  registerWidget({ id: 'console', title: 'Console', slot: 'bottom', component: Console, order: 40 });
-  // OmniForge inference sandbox
   registerWidget({ id: 'inference', title: 'Inference', slot: 'bottom', component: InferenceSandbox, order: 35 });
+  registerWidget({ id: 'live-runtime', title: 'Live Runtime', slot: 'bottom', component: LiveRuntimePanel, order: 38 });
+  registerWidget({ id: 'console', title: 'Console', slot: 'bottom', component: Console, order: 40 });
 }

@@ -120,7 +120,6 @@ export function InfiniteCanvas() {
         nodeTypes={nodeTypes}
         fitView
       >
-        <Background />
         <Controls />
       </ReactFlow>
       {nodes.length === 0 && <CanvasEmptyState />}

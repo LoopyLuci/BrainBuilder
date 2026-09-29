@@ -40,7 +40,10 @@ export function Tabs({
             data-tutorial={`tab-${tab.id}`}
             aria-selected={tab.id === activeTab?.id}
             className={`bb-tabs__tab ${tab.id === activeTab?.id ? 'bb-tabs__tab--active' : ''}`}
-            onClick={() => setActive(tab.id)}
+            onClick={(event) => {
+              event.stopPropagation();
+              setActive(tab.id);
+            }}
           >
             {tab.label}
             {tab.badge && <span className={`bb-tabs__badge bb-tabs__badge--${tab.badge}`} />}

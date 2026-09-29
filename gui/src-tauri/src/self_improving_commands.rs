@@ -12,6 +12,7 @@ use serde::{Serialize, Deserialize};
 use serde_json::Value;
 use uuid::Uuid;
 use crate::model_catalog::register_all;
+use crate::AppState;
 
 pub struct AppStateExt {
     pub telemetry: crate::telemetry::TelemetryStore,
@@ -52,151 +53,151 @@ pub struct AppStateExt {
 
 #[tauri::command]
 pub async fn luci_greet(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     user: String,
 ) -> Result<String, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     Ok(s.luci.greet(Some(&user)).await)
 }
 
 #[tauri::command]
 pub async fn luci_chat(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     user: String,
     message: String,
 ) -> Result<crate::luci::LuciResponse, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     Ok(s.luci.chat(&message).await)
 }
 
 #[tauri::command]
 pub async fn luci_propose_plan(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     title: String,
     description: String,
     steps: Vec<String>,
 ) -> Result<crate::luci_store::TaskPlan, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     s.luci.propose_plan(&title, &description, &steps).await
 }
 
 #[tauri::command]
 pub async fn luci_list_plans(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     status: Option<String>,
 ) -> Result<Vec<crate::luci_store::TaskPlan>, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     s.luci.list_plans(status.as_deref()).await
 }
 
 #[tauri::command]
 pub async fn luci_update_plan_status(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     plan_id: String,
     status: String,
     result: Option<String>,
 ) -> Result<(), String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     s.luci.update_plan_status(&plan_id, &status, result.as_deref()).await
 }
 
 #[tauri::command]
 pub async fn luci_reflect(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     plan_id: Option<String>,
     what_went_well: String,
     what_failed: String,
     lessons: String,
     score: f64,
 ) -> Result<String, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     s.luci.reflect(plan_id.as_deref(), &what_went_well, &what_failed, &lessons, score).await
 }
 
 #[tauri::command]
 pub async fn luci_recent_reflections(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     limit: usize,
 ) -> Result<Vec<crate::luci_store::Reflection>, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     s.luci.recent_reflections(limit).await
 }
 
 #[tauri::command]
 pub async fn luci_set_preference(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     key: String,
     value: String,
 ) -> Result<(), String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     s.luci.set_preference(&key, &value).await
 }
 
 #[tauri::command]
 pub async fn luci_get_preference(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     key: String,
 ) -> Result<Option<String>, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     Ok(s.luci.get_preference(&key).await?)
 }
 
 #[tauri::command]
 pub async fn luci_remember_fact(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     content: String,
     importance: f64,
 ) -> Result<String, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     s.luci.remember_fact(&content, importance).await
 }
 
 #[tauri::command]
 pub async fn luci_recall_memories(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     kind: Option<String>,
     limit: usize,
 ) -> Result<Vec<crate::luci_store::MemoryEntry>, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     Ok(s.luci.recall_memories(kind.as_deref(), limit).await?)
 }
 
 #[tauri::command]
 pub async fn luci_forget_memory(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     id: String,
 ) -> Result<(), String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     s.luci.forget_memory(&id).await
 }
 
 #[tauri::command]
 pub async fn luci_audit(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     event_type: String,
     details: Value,
 ) -> Result<(), String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     s.luci.audit(&event_type, details).await
 }
 
 #[tauri::command]
 pub async fn luci_recent_audit(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     limit: usize,
 ) -> Result<Vec<crate::luci_store::AuditEvent>, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     Ok(s.luci.recent_audit(limit).await?)
 }
 
 #[tauri::command]
 pub async fn luci_register_tool(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     name: String,
     description: String,
     schema: Value,
 ) -> Result<(), String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     let tool = crate::luci_store::LuciTool {
         name: name.clone(),
         description,
@@ -210,155 +211,155 @@ pub async fn luci_register_tool(
 
 #[tauri::command]
 pub async fn luci_list_tools(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
 ) -> Result<Vec<crate::luci_store::LuciTool>, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     Ok(s.luci.list_tools().await?)
 }
 
 #[tauri::command]
 pub async fn luci_improve(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
 ) -> Result<String, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     Ok(s.luci.improve().await?)
 }
 
 #[tauri::command]
 pub async fn luci_save_prompt(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     prompt_text: String,
     score: f64,
     generation: i64,
     parent_id: Option<String>,
 ) -> Result<(), String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     s.luci.save_prompt_candidate(&prompt_text, score, generation, parent_id.as_deref()).await
 }
 
 #[tauri::command]
 pub async fn luci_best_prompts(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     limit: usize,
 ) -> Result<Vec<(String, f64, i64)>, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     Ok(s.luci.best_prompts(limit).await?)
 }
 
 #[tauri::command]
 pub async fn luci_status(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
 ) -> Result<crate::luci::LuciStatus, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     Ok(s.luci.status().await)
 }
 
 #[tauri::command]
 pub async fn luci_register_skill(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     skill: crate::luci_store::SkillDefinition,
 ) -> Result<(), String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     s.luci.register_skill(skill).await
 }
 
 #[tauri::command]
 pub async fn luci_list_skills(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     limit: usize,
 ) -> Result<Vec<crate::luci_store::SkillDefinition>, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     s.luci.list_skills(limit).await
 }
 
 #[tauri::command]
 pub async fn luci_observe_and_learn(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     task: String,
     observation: String,
     outcome: serde_json::Value,
 ) -> Result<String, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     s.luci.observe_and_learn(&task, &observation, outcome).await
 }
 
 #[tauri::command]
 pub async fn luci_imitate_skill(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     from_case: crate::luci_store::TaskCase,
 ) -> Result<crate::luci_store::SkillDefinition, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     s.luci.imitate_skill(&from_case).await
 }
 
 #[tauri::command]
 pub async fn luci_decompose_task(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     task: String,
 ) -> Result<crate::luci_store::TaskPlan, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     s.luci.decompose_task(&task).await
 }
 
 #[tauri::command]
 pub async fn luci_register_model(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     model: crate::luci_store::ModelRecord,
 ) -> Result<(), String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     s.luci.register_model(model).await
 }
 
 #[tauri::command]
 pub async fn luci_list_models(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
 ) -> Result<Vec<crate::luci_store::ModelRecord>, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     s.luci.list_models().await
 }
 
 #[tauri::command]
 pub async fn luci_register_dataset(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     dataset: crate::luci_store::DatasetRecord,
 ) -> Result<(), String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     s.luci.register_dataset(dataset).await
 }
 
 #[tauri::command]
 pub async fn luci_list_datasets(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
 ) -> Result<Vec<crate::luci_store::DatasetRecord>, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     s.luci.list_datasets().await
 }
 
 #[tauri::command]
 pub async fn luci_start_training(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     model_id: String,
     mode: String,
     dataset_ids: Vec<String>,
 ) -> Result<crate::luci_store::TrainingJob, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     s.luci.start_training(&model_id, &mode, dataset_ids).await
 }
 
 #[tauri::command]
 pub async fn luci_list_training_jobs(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
 ) -> Result<Vec<crate::luci_store::TrainingJob>, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     s.luci.list_training_jobs().await
 }
 
 // --- Registration ---
 
 pub fn register_self_improving_commands(
-    app: &mut tauri::App,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let data_dir = app.path_resolver().app_data_dir().unwrap_or_else(std::env::temp_dir);
+    data_dir: std::path::PathBuf,
+) -> Result<AppStateExt, Box<dyn std::error::Error>> {
+    let data_dir = data_dir;
     let telemetry_path = data_dir.join("telemetry.db");
     let models_dir = data_dir.join("models");
     let sandbox_dir = data_dir.join("sandbox");
@@ -366,9 +367,9 @@ pub fn register_self_improving_commands(
     let eval_dir = data_dir.join("eval");
 
     let luci_store = Arc::new(tokio::sync::Mutex::new(
-        tokio::runtime::Handle::current().block_on(crate::luci_store::LuciStore::new(data_dir.join("luci")))?
+        tauri::async_runtime::block_on(crate::luci_store::LuciStore::new(data_dir.join("luci")))?
     ));
-    let luci = tokio::runtime::Handle::current().block_on(crate::luci::Luci::new(luci_store));
+    let luci = tauri::async_runtime::block_on(crate::luci::Luci::new(luci_store));
 
     let ext = AppStateExt {
         telemetry: crate::telemetry::TelemetryStore::new(&telemetry_path)?,
@@ -414,9 +415,7 @@ pub fn register_self_improving_commands(
         luci,
     };
 
-    app.manage(Arc::new(Mutex::new(ext)));
-
-    Ok(())
+    Ok(ext)
 }
 
 // --- Bot server commands ---
@@ -441,19 +440,19 @@ pub struct CallSessionDto {
 
 #[tauri::command]
 pub async fn bot_start_adapter(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     config: BotConfigDto,
 ) -> Result<(), String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     let _ = (&s.luci, config);
     Ok(())
 }
 
 #[tauri::command]
 pub async fn bot_list_adapters(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
 ) -> Result<Vec<BotConfigDto>, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     let _ = &s.luci;
     Ok(vec![
         BotConfigDto { bot_id: "telegram".into(), platform: "telegram".into(), enabled: true, credentials: HashMap::new() },
@@ -468,34 +467,34 @@ pub async fn bot_list_adapters(
 
 #[tauri::command]
 pub async fn bot_adapter_health(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     platform: String,
 ) -> Result<String, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     let _ = (&s.luci, platform);
     Ok("ok".into())
 }
 
 #[tauri::command]
 pub async fn bot_send_message(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     platform: String,
     conversation: String,
     text: String,
 ) -> Result<(), String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     let _ = (&s.luci, &platform, &conversation, &text);
     Ok(())
 }
 
 #[tauri::command]
 pub async fn bot_start_call(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     platform: String,
     conversation: String,
     user: String,
 ) -> Result<CallSessionDto, String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     let _ = (&s.luci, &platform, &conversation, &user);
     Ok(CallSessionDto {
         id: Uuid::new_v4().to_string(),
@@ -509,10 +508,10 @@ pub async fn bot_start_call(
 
 #[tauri::command]
 pub async fn bot_end_call(
-    state: tauri::State<'_, Arc<Mutex<AppStateExt>>>,
+    state: tauri::State<'_, AppState>,
     call_id: String,
 ) -> Result<(), String> {
-    let s = state.lock().await;
+    let s = state.ext.lock().await;
     let _ = (&s.luci, call_id);
     Ok(())
 }

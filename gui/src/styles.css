@@ -17,7 +17,6 @@ body {
   height: 100vh;
 }
 
-/* ---------- Header ---------- */
 .bb-header {
   flex-shrink: 0;
   height: 44px;
@@ -27,71 +26,178 @@ body {
   padding: 0 var(--space-3);
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-subtle);
+  pointer-events: auto;
 }
-.bb-header__brand {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-weight: 600;
-  font-size: var(--text-md);
-  letter-spacing: -0.01em;
-  color: var(--text-primary);
-}
-.bb-header__actions {
-  display: flex;
-  gap: var(--space-1);
+.bb-header * {
+  pointer-events: auto;
 }
 
 /* ---------- Main layout ---------- */
 .app-layout {
   flex: 1;
   min-height: 0;
-  display: grid;
-  grid-template-columns: 230px 1fr 340px;
-  grid-template-rows: 1fr 260px;
-  grid-template-areas:
-    'palette canvas side'
-    'bottom  bottom  bottom';
+  display: flex;
+  min-width: 0;
 }
 
-.palette {
-  grid-area: palette;
-  background: var(--bg-surface);
-  border-right: 1px solid var(--border-subtle);
-  overflow-y: auto;
-}
-
-.canvas-container {
-  grid-area: canvas;
-  overflow: hidden;
-  position: relative;
-  background: var(--bg-canvas);
-}
-
-.side-rail {
-  grid-area: side;
-  background: var(--bg-surface);
-  border-left: 1px solid var(--border-subtle);
+.app-layout__left,
+.app-layout__center,
+.app-layout__right {
+  min-height: 0;
+  min-width: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  pointer-events: auto;
+}
+
+.app-layout__left {
+  width: 230px;
+  flex-shrink: 0;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-subtle);
+  position: relative;
+  z-index: 1;
+}
+
+.app-layout__center {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-canvas);
+  position: relative;
+  z-index: 0;
+}
+
+.app-layout__right {
+  width: 340px;
+  flex-shrink: 0;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border-subtle);
+  position: relative;
+  z-index: 1;
 }
 
 .bottom-rail {
-  grid-area: bottom;
+  flex-shrink: 0;
+  height: 260px;
   background: var(--bg-surface);
   border-top: 1px solid var(--border-subtle);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  pointer-events: none;
 }
 
-/* ---------- Canvas toolbars ---------- */
+.side-rail {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border-subtle);
+  overflow: hidden;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.right-rail {
+  width: 340px;
+  flex-shrink: 0;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border-subtle);
+  overflow: hidden;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Restore interactivity for controls inside layout rails */
+.app-layout__left button,
+.app-layout__left input,
+.app-layout__left [data-tutorial],
+.app-layout__left .bb-tabs,
+.app-layout__left .bb-tabs *,
+.side-rail button,
+.side-rail input,
+.side-rail [data-tutorial],
+.side-rail .bb-tabs,
+.side-rail .bb-tabs *,
+.app-layout__right button,
+.app-layout__right input,
+.app-layout__right [data-tutorial],
+.app-layout__right .bb-tabs,
+.app-layout__right .bb-tabs *,
+.right-rail button,
+.right-rail input,
+.right-rail [data-tutorial],
+.right-rail .bb-tabs,
+.right-rail .bb-tabs *,
+.bottom-rail button,
+.bottom-rail input,
+.bottom-rail [data-tutorial],
+.bottom-rail .bb-tabs,
+.bottom-rail .bb-tabs * {
+  pointer-events: auto;
+}
+
+.palette {
+  width: 230px;
+  flex-shrink: 0;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-subtle);
+  overflow: auto;
+  pointer-events: none;
+}
+.palette input,
+.palette button,
+.palette [data-tutorial] {
+  pointer-events: auto;
+}
+
+.canvas-container {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-canvas);
+  overflow: hidden;
+  position: relative;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.resizer {
+  flex-shrink: 0;
+  background: transparent;
+  transition: background .15s ease;
+  z-index: 5;
+  pointer-events: none;
+}
+.resizer:hover,
+.resizer--active {
+  background: var(--accent);
+  pointer-events: auto;
+}
+.resizer--vertical {
+  width: 6px;
+  cursor: col-resize;
+}
+.resizer--horizontal {
+  height: 6px;
+  cursor: row-resize;
+}
+
 .bb-canvas-empty {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 9;
   display: flex;
   align-items: center;
@@ -107,12 +213,17 @@ body {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 8px 30px #0000002e;
 }
 .bb-canvas-empty__title {
   font-weight: 700;
   font-size: 15px;
   margin-bottom: var(--space-1);
+}
+.bb-canvas-empty__body {
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
 }
 
 .bb-canvas-toolbar {
@@ -133,10 +244,9 @@ body {
   width: 1px;
   align-self: stretch;
   background: var(--border-subtle);
-  margin: 2px 2px;
+  margin: 2px;
 }
 
-/* react-flow theming so it doesn't fight the design tokens */
 .react-flow__attribution {
   background: transparent !important;
   color: var(--text-tertiary) !important;
@@ -164,8 +274,29 @@ body {
 .react-flow__background pattern circle {
   fill: var(--border-strong) !important;
 }
+.react-flow__background,
+.react-flow__background * {
+  pointer-events: none;
+}
+.react-flow__background svg,
+.react-flow__background svg * {
+  pointer-events: none;
+}
+.react-flow,
+.react-flow__pane,
+.react-flow__renderer {
+  pointer-events: none;
+}
+.react-flow__node,
+.react-flow__edge,
+.react-flow__controls,
+.react-flow__attribution,
+.react-flow__handle,
+.react-flow__edge-text,
+.react-flow__connection-line {
+  pointer-events: auto;
+}
 
-/* ---------- Node cards ---------- */
 .bb-node {
   padding: 10px 16px;
   background: var(--bg-surface);
@@ -182,7 +313,7 @@ body {
 .bb-node__meta {
   font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: .04em;
   color: var(--text-tertiary);
   text-align: center;
 }
@@ -198,26 +329,29 @@ body {
   text-align: center;
   margin-top: 2px;
 }
-/* Guided tutorial overlay: a full-viewport dimmed scrim with an SVG-masked
-   cutout spotlighting the current step's real target, plus a floating
-   instruction card. z-index sits above everything, including modals opened
-   by the widget it's pointing at. */
+
 .bb-tutorial-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 1000;
   pointer-events: none;
 }
 .bb-tutorial-overlay__scrim {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
 }
 .bb-tutorial-overlay__ring {
   position: absolute;
   border: 2px solid var(--accent);
   border-radius: 10px;
   box-shadow: 0 0 0 4px var(--accent-subtle);
-  transition: top 0.15s ease, left 0.15s ease, width 0.15s ease, height 0.15s ease;
+  transition: top .15s ease, left .15s ease, width .15s ease, height .15s ease;
 }
 .bb-tutorial-card {
   position: fixed;
@@ -235,7 +369,7 @@ body {
 }
 .bb-tutorial-card__progress {
   font-size: var(--text-xs, 11px);
-  letter-spacing: 0.04em;
+  letter-spacing: .04em;
   text-transform: uppercase;
   color: var(--text-tertiary);
 }
@@ -255,7 +389,6 @@ body {
   margin-top: 4px;
 }
 
-/* Inline "?" help badge + popover, used next to jargon anywhere in the app. */
 .bb-helptip {
   position: relative;
   display: inline-block;
@@ -309,13 +442,14 @@ body {
   padding: 0;
 }
 
-/* Blocking confirmation gate for destructive/irreversible actions (see
-   ui/confirmStore.ts). Cancel is always the keyboard-focused default. */
 .bb-confirm-scrim {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 2000;
-  background: rgba(0, 0, 0, 0.45);
+  background: #00000073;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -349,4 +483,22 @@ body {
   height: 9px !important;
   background: var(--accent) !important;
   border: 2px solid var(--bg-surface) !important;
+}
+
+.bb-header__luci-btn {
+  padding: 4px 10px;
+  font-size: var(--text-sm);
+  border-radius: 999px;
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  background: var(--bg-subtle);
+}
+.bb-header__luci-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+.bb-header__luci-label {
+  font-weight: 600;
+  letter-spacing: .02em;
 }

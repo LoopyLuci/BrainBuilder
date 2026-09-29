@@ -3,6 +3,9 @@ name = "brainbuilder-gui"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+custom-protocol = []
+
 [build-dependencies]
 tauri-build = { version = "1", features = [] }
 

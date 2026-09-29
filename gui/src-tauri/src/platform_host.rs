@@ -104,6 +104,79 @@ impl OmniForgeHost {
         Ok(host)
     }
 
+    // Inherent wrappers for absorbed ModelBuilder `concierge_bridge` callers.
+    pub async fn search_models(
+        &self,
+        query: &str,
+        modality: Option<&str>,
+        arch: Option<&str>,
+    ) -> Result<String, ConciergeError> {
+        PlatformHost::search_models(self, query, modality, arch).await
+    }
+
+    pub async fn import_model(
+        &self,
+        path: &str,
+        format: Option<&str>,
+        name: Option<&str>,
+    ) -> Result<String, ConciergeError> {
+        PlatformHost::import_model(self, path, format, name).await
+    }
+
+    pub async fn list_models(&self, limit: usize) -> Result<String, ConciergeError> {
+        PlatformHost::list_models(self, limit).await
+    }
+
+    pub async fn add_node(
+        &self,
+        node_type: &str,
+        model_id: Option<&str>,
+        label: Option<&str>,
+        x: f64,
+        y: f64,
+        config: Option<serde_json::Value>,
+    ) -> Result<String, ConciergeError> {
+        PlatformHost::add_node(self, node_type, model_id, label, x, y, config).await
+    }
+
+    pub async fn connect_nodes(
+        &self,
+        source_node: &str,
+        source_socket: &str,
+        target_node: &str,
+        target_socket: &str,
+    ) -> Result<String, ConciergeError> {
+        PlatformHost::connect_nodes(self, source_node, source_socket, target_node, target_socket).await
+    }
+
+    pub async fn run_training(
+        &self,
+        base_model: &str,
+        dataset: &str,
+        recipe: &str,
+        output_name: Option<&str>,
+        epochs: Option<i64>,
+        learning_rate: Option<f64>,
+    ) -> Result<String, ConciergeError> {
+        PlatformHost::run_training(self, base_model, dataset, recipe, output_name, epochs, learning_rate).await
+    }
+
+    pub async fn inspect_node(&self, node_id: &str) -> Result<String, ConciergeError> {
+        PlatformHost::inspect_node(self, node_id).await
+    }
+
+    pub async fn execute_graph(
+        &self,
+        inputs: &serde_json::Value,
+        timeout_ms: Option<u64>,
+    ) -> Result<String, ConciergeError> {
+        PlatformHost::execute_graph(self, inputs, timeout_ms).await
+    }
+
+    pub async fn get_platform_status(&self) -> Result<String, ConciergeError> {
+        PlatformHost::get_platform_status(self).await
+    }
+
     fn reload_canvas_from_db(&self) -> Result<(), ConciergeError> {
         let conn = self.conn.try_lock().map_err(|_| ConciergeError::Memory("DB lock".into()))?;
         let nodes: Vec<CanvasNode> = conn.prepare(
@@ -157,7 +230,7 @@ impl PlatformHost for OmniForgeHost {
     ) -> Result<String, ConciergeError> {
         info!(query, ?modality, ?arch, "search_models");
         let q = format!("%{}%", query.to_lowercase());
-        let mut conn = self.conn.lock().await;
+        let conn = self.conn.lock().await;
         let sql = if modality.is_some() {
             "SELECT id, name, path, format, modality FROM models WHERE (lower(name) LIKE ?1 OR lower(path) LIKE ?1) AND modality = ?2 AND arch = ?"
         } else {
@@ -183,7 +256,7 @@ impl PlatformHost for OmniForgeHost {
         let id = format!("model-{}", Uuid::new_v4());
         let fmt = format.unwrap_or_else(|| if path.ends_with(".onnx") { "onnx" } else if path.ends_with(".gguf") { "gguf" } else { "auto" });
         let entry = ModelEntry { id: id.clone(), name: name.unwrap_or("imported").to_string(), path: path.to_string(), format: fmt.to_string(), modality: "text".into() };
-        let mut conn = self.conn.lock().await;
+        let conn = self.conn.lock().await;
         conn.execute(
             "INSERT INTO models (id, name, path, format, modality) VALUES (?1, ?2, ?3, ?4, ?5)
              ON CONFLICT(id) DO UPDATE SET name=excluded.name, path=excluded.path, format=excluded.format, modality=excluded.modality",
@@ -194,7 +267,7 @@ impl PlatformHost for OmniForgeHost {
     }
 
     async fn list_models(&self, limit: usize) -> Result<String, ConciergeError> {
-        let mut conn = self.conn.lock().await;
+        let conn = self.conn.lock().await;
         let entries: Vec<ModelEntry> = conn.prepare("SELECT id, name, path, format, modality FROM models LIMIT ?1")?
             .query_map(params![limit as i64], |row| {
                 Ok(ModelEntry { id: row.get(0)?, name: row.get(1)?, path: row.get(2)?, format: row.get(3)?, modality: row.get(4)? })
@@ -208,7 +281,7 @@ impl PlatformHost for OmniForgeHost {
     ) -> Result<String, ConciergeError> {
         let id = format!("node-{}", Uuid::new_v4());
         let config_json = config.as_ref().map(|c| serde_json::to_string(c).unwrap_or_default());
-        let mut conn = self.conn.lock().await;
+        let conn = self.conn.lock().await;
         conn.execute(
             "INSERT INTO canvas_nodes (id, node_type, label, model_id, x, y, config_json) VALUES (?1,?2,?3,?4,?5,?6,?7)
              ON CONFLICT(id) DO UPDATE SET node_type=excluded.node_type, label=excluded.label,
@@ -227,7 +300,7 @@ impl PlatformHost for OmniForgeHost {
         &self, source_node: &str, source_socket: &str, target_node: &str, target_socket: &str,
     ) -> Result<String, ConciergeError> {
         let id = format!("edge-{}", Uuid::new_v4());
-        let mut conn = self.conn.lock().await;
+        let conn = self.conn.lock().await;
         conn.execute(
             "INSERT INTO canvas_edges (id, source, target, source_socket, target_socket) VALUES (?1,?2,?3,?4,?5)
              ON CONFLICT(id) DO UPDATE SET source=excluded.source, target=excluded.target,
@@ -263,7 +336,7 @@ impl PlatformHost for OmniForgeHost {
     }
 
     async fn inspect_node(&self, node_id: &str) -> Result<String, ConciergeError> {
-        let mut conn = self.conn.lock().await;
+        let conn = self.conn.lock().await;
         let node = conn.query_row(
             "SELECT id, node_type, label, model_id, x, y, config_json FROM canvas_nodes WHERE id = ?1",
             params![node_id],
@@ -327,7 +400,7 @@ impl OmniForgeHost {
     }
 
     pub async fn delete_node(&self, id: &str) -> Result<(), ConciergeError> {
-        let mut conn = self.conn.lock().await;
+        let conn = self.conn.lock().await;
         conn.execute("DELETE FROM canvas_nodes WHERE id = ?1", params![id]).map_err(|e| ConciergeError::Memory(format!("Delete node: {e}")))?;
         conn.execute("DELETE FROM canvas_edges WHERE source = ?1 OR target = ?1", params![id]).map_err(|e| ConciergeError::Memory(format!("Delete edges: {e}")))?;
         drop(conn);
@@ -340,7 +413,7 @@ impl OmniForgeHost {
     }
 
     pub async fn clear_canvas(&self) -> Result<(), ConciergeError> {
-        let mut conn = self.conn.lock().await;
+        let conn = self.conn.lock().await;
         conn.execute_batch("DELETE FROM canvas_edges; DELETE FROM canvas_nodes;").map_err(|e| ConciergeError::Memory(format!("Clear canvas: {e}")))?;
         drop(conn);
         let mut canvas = self.canvas.lock().await;

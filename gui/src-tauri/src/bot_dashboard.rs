@@ -3,7 +3,7 @@ use std::sync::Arc;
 use tauri::{command, State};
 use tokio::sync::Mutex;
 use chrono::Utc;
-
+use crate::AppState;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct BotSettings {
     pub platform: String,
@@ -103,8 +103,8 @@ impl Default for BotServerHandle {
 }
 
 #[command]
-pub async fn bot_dashboard_status(state: State<'_, Arc<Mutex<BotServerHandle>>>) -> Result<BotStatus, String> {
-    let handle = state.lock().await;
+pub async fn bot_dashboard_status(state: State<'_, AppState>) -> Result<BotStatus, String> {
+    let handle = state.bot.lock().await;
     let uptime = handle.started_at.map(|t| (Utc::now().timestamp() - t).max(0) as u64).unwrap_or(0);
     Ok(BotStatus {
         running: handle.running,
@@ -120,22 +120,22 @@ pub async fn bot_dashboard_status(state: State<'_, Arc<Mutex<BotServerHandle>>>)
 }
 
 #[command]
-pub async fn bot_dashboard_settings_get(state: State<'_, Arc<Mutex<BotServerHandle>>>) -> Result<BotSettings, String> {
-    let handle = state.lock().await;
+pub async fn bot_dashboard_settings_get(state: State<'_, AppState>) -> Result<BotSettings, String> {
+    let handle = state.bot.lock().await;
     Ok(handle.settings.clone())
 }
 
 #[command]
-pub async fn bot_dashboard_settings_set(settings: BotSettings, state: State<'_, Arc<Mutex<BotServerHandle>>>) -> Result<(), String> {
-    let mut handle = state.lock().await;
+pub async fn bot_dashboard_settings_set(settings: BotSettings, state: State<'_, AppState>) -> Result<(), String> {
+    let mut handle = state.bot.lock().await;
     handle.settings = settings.clone();
     handle.events.push_front(BotEvent { id: 0, kind: "settings".into(), message: "settings updated".into(), at: Utc::now().timestamp() });
     Ok(())
 }
 
 #[command]
-pub async fn bot_dashboard_start(config: StartConfig, state: State<'_, Arc<Mutex<BotServerHandle>>>) -> Result<(), String> {
-    let mut handle = state.lock().await;
+pub async fn bot_dashboard_start(config: StartConfig, state: State<'_, AppState>) -> Result<(), String> {
+    let mut handle = state.bot.lock().await;
     handle.running = true;
     handle.platform = config.platform.clone();
     handle.settings = BotSettings { platform: config.platform, enabled: true, credentials: config.credentials, home_channel: config.home_channel, allowed_users: config.allowed_users, proxy: config.proxy };
@@ -146,16 +146,16 @@ pub async fn bot_dashboard_start(config: StartConfig, state: State<'_, Arc<Mutex
 }
 
 #[command]
-pub async fn bot_dashboard_stop(state: State<'_, Arc<Mutex<BotServerHandle>>>) -> Result<(), String> {
-    let mut handle = state.lock().await;
+pub async fn bot_dashboard_stop(state: State<'_, AppState>) -> Result<(), String> {
+    let mut handle = state.bot.lock().await;
     handle.running = false;
     handle.events.push_front(BotEvent { id: 0, kind: "lifecycle".into(), message: "stopped".into(), at: Utc::now().timestamp() });
     Ok(())
 }
 
 #[command]
-pub async fn bot_dashboard_restart(config: StartConfig, state: State<'_, Arc<Mutex<BotServerHandle>>>) -> Result<(), String> {
-    let mut handle = state.lock().await;
+pub async fn bot_dashboard_restart(config: StartConfig, state: State<'_, AppState>) -> Result<(), String> {
+    let mut handle = state.bot.lock().await;
     handle.running = true;
     handle.platform = config.platform.clone();
     handle.settings = BotSettings { platform: config.platform, enabled: true, credentials: config.credentials, home_channel: config.home_channel, allowed_users: config.allowed_users, proxy: config.proxy };
@@ -169,21 +169,21 @@ pub async fn bot_dashboard_restart(config: StartConfig, state: State<'_, Arc<Mut
 }
 
 #[command]
-pub async fn bot_dashboard_events(state: State<'_, Arc<Mutex<BotServerHandle>>>) -> Result<Vec<BotEvent>, String> {
-    let handle = state.lock().await;
+pub async fn bot_dashboard_events(state: State<'_, AppState>) -> Result<Vec<BotEvent>, String> {
+    let handle = state.bot.lock().await;
     Ok(handle.events.iter().cloned().collect())
 }
 
 #[command]
-pub async fn bot_dashboard_clear_events(state: State<'_, Arc<Mutex<BotServerHandle>>>) -> Result<(), String> {
-    let mut handle = state.lock().await;
+pub async fn bot_dashboard_clear_events(state: State<'_, AppState>) -> Result<(), String> {
+    let mut handle = state.bot.lock().await;
     handle.events.clear();
     Ok(())
 }
 
 #[command]
-pub async fn bot_dashboard_telemetry(state: State<'_, Arc<Mutex<BotServerHandle>>>) -> Result<BotTelemetry, String> {
-    let mut handle = state.lock().await;
+pub async fn bot_dashboard_telemetry(state: State<'_, AppState>) -> Result<BotTelemetry, String> {
+    let mut handle = state.bot.lock().await;
     let ping = (rand::random::<u64>() % 40) + 5;
     let jitter = (rand::random::<u64>() % 20) as f64 + 1.0;
     let rt = ping + (rand::random::<u64>() % 20);
@@ -195,9 +195,9 @@ pub async fn bot_dashboard_telemetry(state: State<'_, Arc<Mutex<BotServerHandle>
 }
 
 #[command]
-pub async fn bot_autostart(state: State<'_, Arc<Mutex<BotServerHandle>>>) -> Result<(), String> {
+pub async fn bot_autostart(state: State<'_, AppState>) -> Result<(), String> {
     let token = match std::env::var("TELEGRAM_BOT_TOKEN") { Ok(t) => t, Err(_) => return Ok(()) };
-    let mut handle = state.lock().await;
+    let mut handle = state.bot.lock().await;
     if handle.running {
         return Ok(());
     }

@@ -46,7 +46,11 @@ fn home_dir() -> Option<PathBuf> {
 /// Ensure data dir exists and return it.
 pub fn ensure_data_dir() -> Result<PathBuf, String> {
     let d = data_dir();
-    std::fs::create_dir_all(&d).map_err(|e| format!("Create data dir {}: {e}", d.display()))?;
+    if std::fs::create_dir_all(&d).is_err() {
+        let fallback = PathBuf::from("data");
+        std::fs::create_dir_all(&fallback).map_err(|e| format!("Create fallback data dir {}: {e}", fallback.display()))?;
+        return Ok(fallback);
+    }
     std::fs::create_dir_all(d.join("models")).ok();
     std::fs::create_dir_all(d.join("kms")).ok();
     std::fs::create_dir_all(d.join("datasets")).ok();
@@ -54,28 +58,11 @@ pub fn ensure_data_dir() -> Result<PathBuf, String> {
     Ok(d)
 }
 
-/// sqlx-compatible SQLite URL for a file under the data dir.
-/// Uses `sqlite:` + absolute path. On Windows, forward-slashes are used
-/// (sqlx accepts them) and the path is absolute.
-pub fn sqlite_url(filename: &str) -> Result<String, String> {
+/// Filesystem path for a SQLite file under the data dir.
+/// This is the correct argument for `rusqlite::Connection::open()`.
+pub fn sqlite_path(filename: &str) -> Result<PathBuf, String> {
     let dir = ensure_data_dir()?;
-    let path = dir.join(filename);
-    // Normalize to forward slashes for sqlx URI
-    let mut s = path.to_string_lossy().replace('\\', "/");
-    // Windows absolute paths need an extra slash after scheme: sqlite:///C:/...
-    #[cfg(target_os = "windows")]
-    {
-        if s.len() >= 2 && s.as_bytes()[1] == b':' {
-            // C:/Users/... → sqlite:///C:/Users/...
-            return Ok(format!("sqlite:///{s}"));
-        }
-    }
-    // Unix absolute
-    if s.starts_with('/') {
-        return Ok(format!("sqlite://{s}"));
-    }
-    // Relative
-    Ok(format!("sqlite:{s}"))
+    Ok(dir.join(filename))
 }
 
 /// Project root for self-edit allow-list (dev mode).

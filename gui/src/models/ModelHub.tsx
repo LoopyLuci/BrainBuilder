@@ -8,6 +8,7 @@ import {
   listLocalModels,
   registerGgufModel,
   removeCustomModelDir,
+  copyModelToBuiltin,
 } from '../api/models';
 import { logError, logInfo } from '../console/logStore';
 import { Panel } from '../ui/Panel';
@@ -92,6 +93,21 @@ export function ModelHub() {
     }
   };
 
+  const copyToBuiltin = async (model: LocalModel) => {
+    const src = findFile(model, '.gguf') || findFile(model, '.safetensors') || findFile(model, '.onnx');
+    if (!src) return;
+    setBusy(true);
+    try {
+      const dest = await copyModelToBuiltin(src, model.repo_id.replace('/', '-').toLowerCase() + '.' + src.split('.').pop());
+      logInfo(`Copied model to built-in storage: ${dest}`);
+      refresh();
+    } catch (e) {
+      logError(`Copying model to built-in storage failed: ${e}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <>
       <OpenCodeConnect />
@@ -134,7 +150,9 @@ export function ModelHub() {
       {models.length === 0 && !error && <div className="bb-empty">No locally cached models found.</div>}
 
       <ul className="bb-list" data-tutorial="modelhub-list">
-        {models.map((m) => (
+        {models.map((m) => {
+          const isBuiltin = m.snapshot_path.includes('models/built-in');
+          return (
           <li key={m.repo_id} className="bb-list-item">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
               <div style={{ minWidth: 0 }}>
@@ -145,12 +163,18 @@ export function ModelHub() {
                       {FORMAT_LABEL[f] ?? f}
                     </span>
                   ))}
+                  {isBuiltin && <span className="bb-chip">built-in</span>}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                 <Button variant="secondary" data-tutorial="modelhub-inspect-btn" onClick={() => inspect(m)}>
                   Inspect
                 </Button>
+                {!isBuiltin && (
+                  <Button variant="secondary" onClick={() => copyToBuiltin(m)} disabled={busy}>
+                    Copy to built-in
+                  </Button>
+                )}
                 {m.formats.includes('gguf') && (
                   <Button variant="secondary" data-tutorial="modelhub-register-btn" onClick={() => registerGguf(m)} disabled={busy}>
                     Register
@@ -168,7 +192,8 @@ export function ModelHub() {
               </div>
             )}
           </li>
-        ))}
+          );
+        })}
       </ul>
       </Panel>
     </>
