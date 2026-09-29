@@ -1,0 +1,91 @@
+{
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "prompt_len": 4,
+  "new_tokens": 24,
+  "config": {
+    "vocab_size": 256,
+    "hidden_dim": 64,
+    "max_draft_len": 6,
+    "min_draft_len": 2,
+    "markov_rank": 8
+  },
+  "tokens_per_boss_call_bounds": [
+    0.5,
+    2.0
+  ],
+  "avg_tokens_per_boss_call": 0.9343296703296703,
+  "per_seed": [
+    {
+      "seed": 0,
+      "tokens_produced": 24,
+      "boss_calls": 25,
+      "tokens_per_boss_call": 0.96
+    },
+    {
+      "seed": 1,
+      "tokens_produced": 24,
+      "boss_calls": 25,
+      "tokens_per_boss_call": 0.96
+    },
+    {
+      "seed": 2,
+      "tokens_produced": 24,
+      "boss_calls": 24,
+      "tokens_per_boss_call": 1.0
+    },
+    {
+      "seed": 3,
+      "tokens_produced": 24,
+      "boss_calls": 24,
+      "tokens_per_boss_call": 1.0
+    },
+    {
+      "seed": 4,
+      "tokens_produced": 24,
+      "boss_calls": 25,
+      "tokens_per_boss_call": 0.96
+    },
+    {
+      "seed": 5,
+      "tokens_produced": 24,
+      "boss_calls": 25,
+      "tokens_per_boss_call": 0.96
+    },
+    {
+      "seed": 6,
+      "tokens_produced": 24,
+      "boss_calls": 28,
+      "tokens_per_boss_call": 0.8571428571428571
+    },
+    {
+      "seed": 7,
+      "tokens_produced": 24,
+      "boss_calls": 30,
+      "tokens_per_boss_call": 0.8
+    },
+    {
+      "seed": 8,
+      "tokens_produced": 24,
+      "boss_calls": 26,
+      "tokens_per_boss_call": 0.9230769230769231
+    },
+    {
+      "seed": 9,
+      "tokens_produced": 24,
+      "boss_calls": 26,
+      "tokens_per_boss_call": 0.9230769230769231
+    }
+  ],
+  "pass": true
+}

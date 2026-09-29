@@ -1,0 +1,20 @@
+{
+  "name": "BrainBuilder Predict Server",
+  "description": "Real local inference endpoint started by BrainBuilder's Predict panel (\"Serve Model\"). Loopback-only, OS-assigned port — hand-authored from gui/src-tauri/src/predict_server.rs since it doesn't self-serve a spec.",
+  "target": {
+    "kind": "api",
+    "baseUrl": "http://127.0.0.1:PORT"
+  },
+  "generatedAt": "2026-07-11T04:48:18.034Z",
+  "operations": [
+    {
+      "kind": "api",
+      "name": "predict",
+      "description": "Run the currently trained checkpoint over rows from a dataset and return real predictions",
+      "method": "POST",
+      "path": "/predict",
+      "params": [],
+      "hasBody": true
+    }
+  ]
+}

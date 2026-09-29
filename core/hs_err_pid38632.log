@@ -1,0 +1,201 @@
+#
+# There is insufficient memory for the Java Runtime Environment to continue.
+# Native memory allocation (mmap) failed to map 1073741824 bytes for Failed to commit area from 0x0000000401800000 to 0x0000000441800000 of length 1073741824.
+# Possible reasons:
+#   The system is out of physical RAM or swap space
+#   The process is running with CompressedOops enabled, and the Java Heap may be blocking the growth of the native heap
+# Possible solutions:
+#   Reduce memory load on the system
+#   Increase physical memory or swap space
+#   Check if swap backing store is full
+#   Decrease Java heap size (-Xmx/-Xms)
+#   Decrease number of Java threads
+#   Decrease Java thread stack sizes (-Xss)
+#   Set larger code cache with -XX:ReservedCodeCacheSize=
+# This output file may be truncated or incomplete.
+#
+#  Out of Memory Error (os_windows.cpp:3391), pid=38632, tid=67132
+#
+# JRE version:  (11.0.28+6) (build )
+# Java VM: OpenJDK 64-Bit Server VM (11.0.28+6, mixed mode, sharing, tiered, compressed oops, g1 gc, windows-amd64)
+# No core dump will be written. Minidumps are not enabled by default on client versions of Windows
+#
+
+---------------  S U M M A R Y ------------
+
+Command Line: -Dbrainbuilder.config.path=Z:\Projects\BrainBuilder\core\../languages/clojure/brainbuilder_config.clj clojure.main Z:\Projects\BrainBuilder\core\../languages/clojure/bridge.clj
+
+Host: AMD Ryzen 9 5900X 12-Core Processor            , 24 cores, 63G,  Windows 10 , 64 bit Build 19041 (10.0.19041.5915)
+Time: Sun Jul  5 01:39:31 2026 Eastern Daylight Time elapsed time: 0.009435 seconds (0d 0h 0m 0s)
+
+---------------  T H R E A D  ---------------
+
+Current thread (0x0000025c1dd5c000):  JavaThread "Unknown thread" [_thread_in_vm, id=67132, stack(0x000000cf15b00000,0x000000cf15c00000)]
+
+Stack: [0x000000cf15b00000,0x000000cf15c00000]
+Native frames: (J=compiled Java code, j=interpreted, Vv=VM code, C=native code)
+V  [jvm.dll+0x6448da]
+V  [jvm.dll+0x7d7119]
+V  [jvm.dll+0x7d87f9]
+V  [jvm.dll+0x7d8ef3]
+V  [jvm.dll+0x269105]
+V  [jvm.dll+0x641af9]
+V  [jvm.dll+0x636395]
+V  [jvm.dll+0x32559d]
+V  [jvm.dll+0x325402]
+V  [jvm.dll+0x32a026]
+V  [jvm.dll+0x371020]
+V  [jvm.dll+0x370a92]
+V  [jvm.dll+0x3004c8]
+V  [jvm.dll+0x3015c5]
+V  [jvm.dll+0x7b0647]
+V  [jvm.dll+0x7b1dcf]
+V  [jvm.dll+0x37e319]
+V  [jvm.dll+0x79226f]
+V  [jvm.dll+0x3eebd7]
+V  [jvm.dll+0x3f10d1]
+C  [jli.dll+0x52c0]
+C  [ucrtbase.dll+0x21bb2]
+C  [KERNEL32.DLL+0x17374]
+C  [ntdll.dll+0x4cc91]
+
+
+---------------  P R O C E S S  ---------------
+
+Threads class SMR info:
+_java_thread_list=0x0000025c1dc90b20, length=0, elements={
+}
+
+Java Threads: ( => current thread )
+
+Other Threads:
+  0x0000025c20113800 GCTaskThread "GC Thread#0" [stack: 0x000000cf15c00000,0x000000cf15d00000] [id=39432]
+  0x0000025c201b9800 ConcurrentGCThread "G1 Main Marker" [stack: 0x000000cf15d00000,0x000000cf15e00000] [id=35196]
+  0x0000025c201bb800 ConcurrentGCThread "G1 Conc#0" [stack: 0x000000cf15e00000,0x000000cf15f00000] [id=76524]
+
+[error occurred during error reporting (printing all threads), id 0xc0000005, EXCEPTION_ACCESS_VIOLATION (0xc0000005) at pc=0x00007ff91f031327]
+
+VM state:not at safepoint (not fully initialized)
+
+VM Mutex/Monitor currently owned by a thread:  ([mutex/lock_event])
+[0x0000025c200fa780] Heap_lock - owner thread: 0x0000025c1dd5c000
+
+Heap address: 0x0000000401800000, size: 16360 MB, Compressed Oops mode: Non-zero based: 0x0000000401800000
+Narrow klass base: 0x0000000000000000, Narrow klass shift: 0
+
+GC Heap History (0 events):
+No events
+
+Deoptimization events (0 events):
+No events
+
+Classes redefined (0 events):
+No events
+
+Internal exceptions (0 events):
+No events
+
+Events (1 events):
+Event: 0.006 Loaded shared library C:\Program Files\Eclipse Adoptium\jdk-11.0.28.6-hotspot\bin\zip.dll
+
+
+Dynamic libraries:
+0x00007ff6a3870000 - 0x00007ff6a387e000 	C:\Program Files\Eclipse Adoptium\jdk-11.0.28.6-hotspot\bin\java.exe
+0x00007ff9420f0000 - 0x00007ff9422e8000 	C:\Windows\SYSTEM32\ntdll.dll
+0x00007ff940f60000 - 0x00007ff941022000 	C:\Windows\System32\KERNEL32.DLL
+0x00007ff93fb30000 - 0x00007ff93fe26000 	C:\Windows\System32\KERNELBASE.dll
+0x00007ff93bbc0000 - 0x00007ff93bc54000 	C:\Windows\SYSTEM32\apphelp.dll
+0x00007ff93fa30000 - 0x00007ff93fb30000 	C:\Windows\System32\ucrtbase.dll
+0x00007ff922210000 - 0x00007ff922227000 	C:\Program Files\Eclipse Adoptium\jdk-11.0.28.6-hotspot\bin\jli.dll
+0x00007ff9221f0000 - 0x00007ff92220e000 	C:\Program Files\Eclipse Adoptium\jdk-11.0.28.6-hotspot\bin\VCRUNTIME140.dll
+0x00007ff940ca0000 - 0x00007ff940e41000 	C:\Windows\System32\USER32.dll
+0x00007ff928e00000 - 0x00007ff92909b000 	C:\Windows\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.19041.6456_none_60b8a6cb71f64256\COMCTL32.dll
+0x00007ff93fe30000 - 0x00007ff93fe52000 	C:\Windows\System32\win32u.dll
+0x00007ff941030000 - 0x00007ff94105b000 	C:\Windows\System32\GDI32.dll
+0x00007ff941a30000 - 0x00007ff941ace000 	C:\Windows\System32\msvcrt.dll
+0x00007ff93f780000 - 0x00007ff93f899000 	C:\Windows\System32\gdi32full.dll
+0x00007ff93fe60000 - 0x00007ff93fefd000 	C:\Windows\System32\msvcp_win.dll
+0x00007ff941b40000 - 0x00007ff941b6f000 	C:\Windows\System32\IMM32.DLL
+0x00007ff9233a0000 - 0x00007ff9233ac000 	C:\Program Files\Eclipse Adoptium\jdk-11.0.28.6-hotspot\bin\vcruntime140_1.dll
+0x00007ff921330000 - 0x00007ff9213bd000 	C:\Program Files\Eclipse Adoptium\jdk-11.0.28.6-hotspot\bin\msvcp140.dll
+0x00007ff91ed20000 - 0x00007ff91f8e3000 	C:\Program Files\Eclipse Adoptium\jdk-11.0.28.6-hotspot\bin\server\jvm.dll
+0x00007ff940be0000 - 0x00007ff940c91000 	C:\Windows\System32\ADVAPI32.dll
+0x00007ff940110000 - 0x00007ff9401af000 	C:\Windows\System32\sechost.dll
+0x00007ff941f90000 - 0x00007ff9420b0000 	C:\Windows\System32\RPCRT4.dll
+0x00007ff93ff00000 - 0x00007ff93ff27000 	C:\Windows\System32\bcrypt.dll
+0x00007ff941ad0000 - 0x00007ff941b3b000 	C:\Windows\System32\WS2_32.dll
+0x00007ff9413d0000 - 0x00007ff9413d8000 	C:\Windows\System32\PSAPI.DLL
+0x00007ff937fe0000 - 0x00007ff938007000 	C:\Windows\SYSTEM32\WINMM.dll
+0x00007ff936440000 - 0x00007ff93644a000 	C:\Windows\SYSTEM32\VERSION.dll
+0x00007ff93dfa0000 - 0x00007ff93dfb2000 	C:\Windows\SYSTEM32\kernel.appcore.dll
+0x00007ff921a50000 - 0x00007ff921a60000 	C:\Program Files\Eclipse Adoptium\jdk-11.0.28.6-hotspot\bin\verify.dll
+0x00007ff93daa0000 - 0x00007ff93dca1000 	C:\Windows\SYSTEM32\DBGHELP.DLL
+0x00007ff9212f0000 - 0x00007ff921324000 	C:\Windows\SYSTEM32\dbgcore.DLL
+0x00007ff93f9a0000 - 0x00007ff93fa22000 	C:\Windows\System32\bcryptPrimitives.dll
+0x00007ff9212c0000 - 0x00007ff9212e8000 	C:\Program Files\Eclipse Adoptium\jdk-11.0.28.6-hotspot\bin\java.dll
+0x00007ff921a40000 - 0x00007ff921a4a000 	C:\Program Files\Eclipse Adoptium\jdk-11.0.28.6-hotspot\bin\jimage.dll
+0x00007ff9212a0000 - 0x00007ff9212b8000 	C:\Program Files\Eclipse Adoptium\jdk-11.0.28.6-hotspot\bin\zip.dll
+
+dbghelp: loaded successfully - version: 4.0.5 - missing functions: none
+symbol engine: initialized successfully - sym options: 0x614 - pdb path: .;C:\Program Files\Eclipse Adoptium\jdk-11.0.28.6-hotspot\bin;C:\Windows\SYSTEM32;C:\Windows\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.19041.6456_none_60b8a6cb71f64256;C:\Program Files\Eclipse Adoptium\jdk-11.0.28.6-hotspot\bin\server
+
+VM Arguments:
+jvm_args: -Dbrainbuilder.config.path=Z:\Projects\BrainBuilder\core\../languages/clojure/brainbuilder_config.clj 
+java_command: clojure.main Z:\Projects\BrainBuilder\core\../languages/clojure/bridge.clj
+java_class_path (initial): C:\Users\limpi\.m2/repository\org/clojure\clojure\1.12.0\clojure-1.12.0.jar;C:\Users\limpi\.m2/repository\org/clojure\spec.alpha\0.5.238\spec.alpha-0.5.238.jar;C:\Users\limpi\.m2/repository\org/clojure\core.specs.alpha\0.4.74\core.specs.alpha-0.4.74.jar
+Launcher Type: SUN_STANDARD
+
+[Global flags]
+     intx CICompilerCount                          = 12                                        {product} {ergonomic}
+     uint ConcGCThreads                            = 5                                         {product} {ergonomic}
+     uint G1ConcRefinementThreads                  = 18                                        {product} {ergonomic}
+   size_t G1HeapRegionSize                         = 4194304                                   {product} {ergonomic}
+    uintx GCDrainStackTargetSize                   = 64                                        {product} {ergonomic}
+   size_t InitialHeapSize                          = 1073741824                                {product} {ergonomic}
+   size_t MarkStackSize                            = 4194304                                   {product} {ergonomic}
+   size_t MaxHeapSize                              = 17154703360                               {product} {ergonomic}
+   size_t MinHeapDeltaBytes                        = 4194304                                   {product} {ergonomic}
+    uintx NonNMethodCodeHeapSize                   = 7594288                                {pd product} {ergonomic}
+    uintx NonProfiledCodeHeapSize                  = 122031976                              {pd product} {ergonomic}
+    uintx ProfiledCodeHeapSize                     = 122031976                              {pd product} {ergonomic}
+    uintx ReservedCodeCacheSize                    = 251658240                              {pd product} {ergonomic}
+     bool SegmentedCodeCache                       = true                                      {product} {ergonomic}
+     bool UseCompressedClassPointers               = true                                 {lp64_product} {ergonomic}
+     bool UseCompressedOops                        = true                                 {lp64_product} {ergonomic}
+     bool UseG1GC                                  = true                                      {product} {ergonomic}
+     bool UseLargePagesIndividualAllocation        = false                                  {pd product} {ergonomic}
+
+Logging:
+Log output configuration:
+ #0: stdout all=warning uptime,level,tags
+ #1: stderr all=off uptime,level,tags
+
+Environment Variables:
+PATH=Z:\Projects\BrainBuilder\target\debug\build\blake3-2d955421849425f3\out;Z:\Projects\BrainBuilder\target\debug\build\bzip2-sys-748228063a005dce\out\lib;Z:\Projects\BrainBuilder\target\debug\build\libsqlite3-sys-14bc1228a1b09ebb\out;Z:\Projects\BrainBuilder\target\debug\build\lzma-sys-a9ce30e1c08745ff\out;Z:\Projects\BrainBuilder\target\debug\build\ring-bee0e0d97f2fb793\out;Z:\Projects\BrainBuilder\target\debug\build\zstd-sys-a8849007ee695525\out;Z:\Projects\BrainBuilder\target\debug;Z:\Projects\BrainBuilder\target\debug\deps;C:\Users\limpi\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\limpi\bin;C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\local\bin;C:\Program Files\Git\usr\bin;C:\Program Files\Git\usr\bin;C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\bin;C:\Users\limpi\bin;C:\Program Files\Python311\Scripts;C:\Program Files\Python311;C:\Program Files\Eclipse Adoptium\jdk-11.0.28.6-hotspot\bin;C:\Program Files\Eclipse Adoptium\jdk-8.0.472.8-hotspot\bin;C:\Program Files\Common Files\Oracle\Java\javapath;C:\Program Files (x86)\Common Files\Oracle\Java\java8path;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0;C:\Windows\System32\OpenSSH;C:\Program Files\Git\cmd;C:\Program Files\dotnet;C:\ProgramData\chocolatey\bin;C:\Users\limpi\AppData\Local\nvm;C:\nvm4w\nodejs;D:\Toolz\Android Tools\platform-tools;C:\Program Files\Microsoft SQL Server\170\Tools\Binn;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn;Z:\LLVM\bin;C:\Program Files\Arduino CLI;C:\Program Files\Go\bin;C:\ProgramData\chocolatey\lib\maven\apache-maven-3.9.12\bin;C:\Program Files\GitHub CLI;C:\Program Files\Tailscale;C:\Program Files\Warp\bin;C:\Program Files\Docker\Docker\resources\bin;C:\Strawberry\c\bin;C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin
+USERNAME=Luci
+LD_LIBRARY_PATH=C:\Users\limpi\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib
+SHELL=C:\Program Files\Git\bin\bash.exe
+TERM=xterm-256color
+OS=Windows_NT
+PROCESSOR_IDENTIFIER=AMD64 Family 25 Model 33 Stepping 0, AuthenticAMD
+TMP=C:\Users\limpi\AppData\Local\Temp
+TEMP=C:\Users\limpi\AppData\Local\Temp
+
+
+
+---------------  S Y S T E M  ---------------
+
+OS: Windows 10 , 64 bit Build 19041 (10.0.19041.5915)
+OS uptime: 6 days 7:06 hours
+Hyper-V role detected
+
+CPU:total 24 (initial active 24) (24 cores per cpu, 2 threads per core) family 25 model 33 stepping 0 microcode 0x0, cmov, cx8, fxsr, mmx, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, avx, avx2, aes, clmul, erms, mmxext, 3dnowpref, lzcnt, sse4a, ht, tsc, tscinvbit, tscinv, bmi1, bmi2, adx, sha, fma
+
+Memory: 4k page, system-wide physical 65438M (26869M free)
+TotalPageFile size 73630M (AvailPageFile size 11332M)
+current process WorkingSet (physical memory assigned to process): 11M, peak: 11M
+current process commit charge ("private bytes"): 82M, peak: 1106M
+
+vm_info: OpenJDK 64-Bit Server VM (11.0.28+6) for windows-amd64 JRE (11.0.28+6), built on Jul 16 2025 11:20:51 by "" with MS VC++ 17.7 (VS2022)
+
+END.

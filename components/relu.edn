@@ -1,0 +1,8 @@
+{:component/id ""
+ :component/name "relu"
+ :meta-type "function"
+ :version "1.0.0"
+ :interface/inputs [{:name "x" :tensor {:shape [:batch :features] :dtype "float32"}}]
+ :interface/outputs [{:name "y" :tensor {:shape [:batch :features] :dtype "float32"}}]
+ :implementation [{:language "python" :entry "relu"}]
+ :compatibility {:devices ["cpu" "cuda"] :dtypes ["float32"] :autograd true}}

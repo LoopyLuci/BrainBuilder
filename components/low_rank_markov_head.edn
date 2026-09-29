@@ -1,0 +1,14 @@
+{:component/id ""
+ :component/name "low_rank_markov_head"
+ :meta-type "stateful-module"
+ :version "1.0.0"
+ :tags ["dspark" "speculative" "drafter"]
+ :interface/inputs [{:name "input" :tensor {:shape [:batch :features] :dtype "float32"}}
+                     {:name "compress_weight" :role "parameter" :tensor {:shape [:rank :features] :dtype "float32"}}
+                     {:name "expand_weight" :role "parameter" :tensor {:shape [:vocab :rank] :dtype "float32"}}]
+ :interface/outputs [{:name "output" :tensor {:shape [:batch :vocab] :dtype "float32"}}]
+ :hyperparameters {"features" {:type "int" :default 1024}
+                    "rank" {:type "int" :default 32}
+                    "vocab" {:type "int" :default 32000}}
+ :implementation [{:language "python" :entry "forward"}]
+ :compatibility {:devices ["cpu" "cuda"] :dtypes ["float32"] :autograd true}}

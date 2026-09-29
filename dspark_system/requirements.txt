@@ -1,0 +1,2 @@
+# torch is installed separately (CPU wheel) — see .github/workflows/ci.yml.
+psutil>=5.9

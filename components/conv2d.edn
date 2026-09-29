@@ -1,0 +1,18 @@
+{:component/id ""
+ :component/name "conv2d"
+ :meta-type "stateful-module"
+ :version "1.0.0"
+ :tags ["cnn" "vision"]
+ :interface/inputs [{:name "x" :tensor {:shape [:batch :in-ch :h :w] :dtype "float32"}}
+                     {:name "weight" :role "parameter" :tensor {:shape [:out-ch :in-ch :kh :kw] :dtype "float32"}}]
+ :interface/outputs [{:name "y" :tensor {:shape [:batch :out-ch (:- :h :kh 1) (:- :w :kw 1)] :dtype "float32"}}]
+ :hyperparameters {"kernel_size" {:type "int" :default 3 :range [1 11]}
+                    "stride" {:type "int" :default 1}
+                    "padding" {:type "string" :default "valid" :values ["valid" "same"]}}
+ :implementation [{:language "python" :path "conv2d.py" :entry "forward"}
+                   {:language "rust" :path "conv2d.rs" :entry "conv2d_forward"}]
+ :compatibility {:devices ["cpu" "cuda"]
+                 :dtypes ["float32" "float16"]
+                 :autograd true}
+ :tests [{:inputs [[1 3 32 32] [16 3 3 3]]
+          :expected-shape [1 16 30 30]}]}

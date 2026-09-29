@@ -1,0 +1,8 @@
+{:component/id ""
+ :component/name "image_classifier_pipeline"
+ :meta-type "pipeline"
+ :version "1.0.0"
+ :interface/inputs [{:name "image" :tensor {:shape [:batch 3 224 224] :dtype "float32"}}]
+ :interface/outputs [{:name "logits" :tensor {:shape [:batch 10] :dtype "float32"}}]
+ :implementation [{:language "python" :entry "pipeline_forward"}]
+ :compatibility {:devices ["cpu"] :dtypes ["float32"] :autograd true}}
