@@ -1,0 +1,227 @@
+# What this project can do, as ABP operations (abp_modkit). Edit freely: adopting it again
+# (`python -m abp_modkit adopt .`) keeps edited summaries, settings and ops you added, and picks up new
+# routes and commands.
+
+[service]
+id = "brainbuilder"
+name = "BrainBuilder"
+description = "BrainBuilder is a desktop application for visually building, training, predicting"
+base_url = "http://127.0.0.1:32587"
+health = "/api/status"
+start = ["npm", "run", "dev", "--", "--port", "32587", "--strictPort"]
+cwd = "gui"
+env = { PORT = "32587", HOST = "127.0.0.1" }
+ready_timeout_s = 120
+web = "/"
+
+[[op]]
+id = "app.dev"
+kind = "cmd"
+summary = "Run the BrainBuilder desktop app in development mode"
+argv = ["npm", "run", "tauri", "dev"]
+cwd = "gui"
+timeout_s = 86400
+background = true
+
+[[op]]
+id = "app.build"
+kind = "cmd"
+summary = "Build the BrainBuilder desktop app (installer)"
+argv = ["npm", "run", "tauri", "build"]
+cwd = "gui"
+timeout_s = 7200
+background = true
+
+[[op]]
+id = "script.serve"
+kind = "cmd"
+summary = "DSpark serve harness — run the speculative-decoding engine end to end."
+argv = ["{python}", "dspark_system/serve.py"]
+timeout_s = 900
+extra_args = true
+
+[[op]]
+id = "script.test_smoke"
+kind = "cmd"
+summary = "Standalone smoke test for the DSpark engine — no real LLM, just tiny stand-in"
+argv = ["{python}", "dspark_system/test_smoke.py"]
+timeout_s = 900
+extra_args = true
+
+[[op]]
+id = "nix_flakes.build"
+kind = "cmd"
+summary = "Build the flake's default package (Linux/macOS)"
+argv = ["nix", "--extra-experimental-features", "nix-command flakes", "build", "./flakes"]
+timeout_s = 7200
+background = true
+mutating = true
+
+[[op]]
+id = "nix_flakes.check"
+kind = "cmd"
+summary = "Run the flake's checks (Linux/macOS)"
+argv = ["nix", "--extra-experimental-features", "nix-command flakes", "flake", "check", "./flakes"]
+timeout_s = 7200
+background = true
+mutating = false
+
+[[op]]
+id = "nix_flakes.show"
+kind = "cmd"
+summary = "What the flake provides (Linux/macOS)"
+argv = ["nix", "--extra-experimental-features", "nix-command flakes", "flake", "show", "./flakes"]
+timeout_s = 7200
+mutating = false
+
+[[op]]
+id = "brainbuilder_gui.dev"
+kind = "cmd"
+summary = "`npm run dev`: vite --port 5180"
+argv = ["npm", "run", "dev"]
+cwd = "gui"
+timeout_s = 86400
+background = true
+extra_args = true
+
+[[op]]
+id = "brainbuilder_gui.build"
+kind = "cmd"
+summary = "`npm run build`: tsc && vite build"
+argv = ["npm", "run", "build"]
+cwd = "gui"
+timeout_s = 3600
+background = true
+extra_args = true
+
+[[op]]
+id = "brainbuilder_gui.preview"
+kind = "cmd"
+summary = "`npm run preview`: vite preview"
+argv = ["npm", "run", "preview"]
+cwd = "gui"
+timeout_s = 86400
+background = true
+extra_args = true
+
+[[op]]
+id = "brainbuilder_gui.test"
+kind = "cmd"
+summary = "`npm run test`: vitest run"
+argv = ["npm", "run", "test"]
+cwd = "gui"
+timeout_s = 3600
+background = true
+extra_args = true
+
+[[op]]
+id = "brainbuilder_gui.tauri"
+kind = "cmd"
+summary = "`npm run tauri`: tauri"
+argv = ["npm", "run", "tauri"]
+cwd = "gui"
+timeout_s = 3600
+extra_args = true
+
+[[op]]
+id = "brainbuilder_gui.tauri_dev"
+kind = "cmd"
+summary = "`npm run tauri:dev`: npx tauri dev"
+argv = ["npm", "run", "tauri:dev"]
+cwd = "gui"
+timeout_s = 3600
+extra_args = true
+
+[[op]]
+id = "brainbuilder_gui.tauri_build"
+kind = "cmd"
+summary = "`npm run tauri:build`: npx tauri build"
+argv = ["npm", "run", "tauri:build"]
+cwd = "gui"
+timeout_s = 3600
+extra_args = true
+
+[[op]]
+id = "brainbuilder_gui.tauri_win"
+kind = "cmd"
+summary = "`npm run tauri:win`: powershell -NoProfile -ExecutionPolicy Bypass -Command \"Start-Process powershell -Verb runAs -ArgumentList 'cd /d Z:\\Pro"
+argv = ["npm", "run", "tauri:win"]
+cwd = "gui"
+timeout_s = 3600
+extra_args = true
+
+[[op]]
+id = "brainbuilder_gui.e2e"
+kind = "cmd"
+summary = "`npm run e2e`: playwright test"
+argv = ["npm", "run", "e2e"]
+cwd = "gui"
+timeout_s = 3600
+background = true
+extra_args = true
+
+[[op]]
+id = "universal_harness.build"
+kind = "cmd"
+summary = "`npm run build`: tsc -p ."
+argv = ["npm", "run", "build"]
+cwd = "universal-harness"
+timeout_s = 3600
+background = true
+extra_args = true
+
+[[op]]
+id = "universal_harness.test"
+kind = "cmd"
+summary = "`npm run test`: npm run build && node --test \"dist/test/**/*.test.js\""
+argv = ["npm", "run", "test"]
+cwd = "universal-harness"
+timeout_s = 3600
+background = true
+extra_args = true
+
+[[op]]
+id = "universal_harness.harness"
+kind = "cmd"
+summary = "`npm run harness`: node dist/src/cli.js"
+argv = ["npm", "run", "harness"]
+cwd = "universal-harness"
+timeout_s = 3600
+extra_args = true
+
+[[op]]
+id = "ps1.ship"
+kind = "cmd"
+summary = "Run scripts/ship.ps1 (PowerShell)"
+argv = ["{pwsh}", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "{project}/scripts/ship.ps1"]
+timeout_s = 900
+extra_args = true
+
+[[op]]
+id = "ps1.verify"
+kind = "cmd"
+summary = "Run scripts/verify.ps1 (PowerShell)"
+argv = ["{pwsh}", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "{project}/scripts/verify.ps1"]
+timeout_s = 900
+extra_args = true
+
+[[op]]
+id = "root.get"
+kind = "http"
+summary = "GET /"
+method = "GET"
+path = "/"
+
+[[op]]
+id = "status.get"
+kind = "http"
+summary = "GET /api/status"
+method = "GET"
+path = "/api/status"
+
+[[op]]
+id = "predict.post"
+kind = "http"
+summary = "POST /predict"
+method = "POST"
+path = "/predict"
