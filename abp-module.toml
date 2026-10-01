@@ -1,0 +1,48 @@
+# How AgenticBotPlatform (ABP) builds, runs and drives BrainBuilder as a module. Operations: abp-ops.toml.
+# (Kept by hand: `python -m abp_modkit adopt` leaves this file alone.)
+#
+# ABP's Neural Lab (bot/neurallab) reads and writes BrainBuilder's graphs (*.bbir.edn): a graph comes into the lab as a
+# design and trains on the GPU there; a lab design goes back as a graph BrainBuilder opens. ModelBuilder.archive/ is
+# retired and not built.
+
+[module]
+id = "brainbuilder"
+name = "BrainBuilder"
+repo = "https://github.com/LoopyLuci/BrainBuilder.git"
+branch = "main"
+api = 1
+area = "models"
+description = "BrainBuilder is a desktop application for visually building, training, predicting"
+
+[checkout]
+marker = ["abp-module.toml", "abp-ops.toml"]
+
+[toolchain]
+require = [{ tool = "cargo", min = "1.75", url = "https://rustup.rs" }, { tool = "python", min = "3.10", url = "https://www.python.org/downloads/" }, { tool = "node", min = "20", url = "https://nodejs.org" }, { tool = "powershell", url = "https://aka.ms/powershell" }]
+
+[build]
+steps = [
+  ["python", "-m", "venv", ".venv"],
+  ["{venv_python}", "-m", "pip", "install", "-q", "-r", "dspark_system/requirements.txt"],
+  ["npm", "ci", "--prefix", "gui"],
+  ["npm", "run", "build", "--prefix", "gui"],
+  ["npm", "ci", "--prefix", "universal-harness"],
+  ["npm", "run", "build", "--prefix", "universal-harness"],
+]
+
+[hub]
+# abp_modkit's hub: the operations in abp-ops.toml (routes, commands, the project's server)
+start = ["{abp_python}", "-m", "abp_modkit", "serve", "--spec", "{repo}/abp-ops.toml", "--project", "{repo}", "--home", "{data}", "--var", "target={target}"]
+control_file = "{data}/control.json"
+start_timeout_s = 30
+
+[mcp]
+stdio = ["node", "{repo}/universal-harness/dist/index.js"]  # the project's own MCP server
+
+[ui]
+gui = ["{target}/release/brainbuilder-gui{exe}"]
+panel = "operations"
+web = "service"  # its web UI (abp-ops.toml service.web), shown in a pane once its server runs
+
+[pipeline]
+run = ["node", "scripts/ci/pipeline.mjs"]
