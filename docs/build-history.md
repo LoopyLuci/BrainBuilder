@@ -224,32 +224,28 @@ tested end to end, not just typed to compile:
 
 ## Known remaining gaps
 
-- **CUDA backend** — see above; needs real GPU hardware to finish and verify.
+Re-checked against the code on 2026-11-27; items fixed since this list was first
+written are marked as such so the history stays readable.
+
+- **CUDA backend**: `alloc`/`exec` are still `todo!()`; needs real GPU hardware and
+  a CUDA toolkit to finish and verify.
 - **Racket/Clojure bridges are one-process-per-call.** Fine for the config/
   symbolic-diff use cases they currently serve; if call volume ever makes
   process-spawn overhead a problem, the next step is a persistent
   request/response loop instead of spawn-per-call.
-- **`train_step` assumes the batch's last column is the training target.**
-  `DataSourceConfig` has no formal "label column" field yet, so this is a
-  documented convention, not something the schema makes explicit.
-- **The Arrow bridge produces one 1-D (length = batch size) tensor per
-  dataset column** — real and correct for elementwise components like
-  `scale`, but `linear`/`conv2d` need a genuine `(batch, features)` 2-D
-  matrix, which nothing currently assembles from multiple columns. The
-  bundled first-run example deliberately uses `scale` to stay honest about
-  this; multi-feature `linear`/`conv2d` graphs need that reshape step built
-  first (a real Phase 2 design question, not a quick fix).
-- **`conv2d.py`, `adam.py`, and the image-classifier pipeline's Python
-  implementation still don't exist** — only `linear.py`, `relu.py`, and
-  `scale.py` do. Their descriptors would still fail with
-  `ModuleNotFoundError` if used in a real graph today.
-- **Resource paths (`components/`, `gui/examples/`) resolve relative to the
-  Tauri backend's working directory** (`main.rs`'s `current_dir().join(
-  "../components")` convention), which is fragile across how the app gets
-  launched (`tauri dev` vs. a packaged build vs. running the built `.exe`
-  directly from an arbitrary directory — verified this actually breaks if
-  launched from the wrong cwd). Fine for development; a packaged build should
-  resolve these via Tauri's bundled-resource API instead.
+- ~~`train_step` assumes the batch's last column is the training target.~~
+  Fixed: `DataSourceConfig.label_column` names the target; the last column is
+  only the default when it is unset.
+- ~~The Arrow bridge produces only 1-D per-column tensors.~~ Fixed:
+  `runtime::arrow_bridge::stack_columns_into_matrix` assembles the
+  `(batch, features)` matrix `linear`/`conv2d` need.
+- ~~`conv2d.py`, `adam.py` don't exist.~~ Fixed: both are in
+  `components/python/`, alongside the other component implementations.
+- **Resource paths.** The Python worker script is now found at run time
+  (`core::utils::resources`: `BRAINBUILDER_COMPONENTS_DIR`, then `components/`
+  beside the executable, then the development path), so a packaged build no
+  longer depends on the path it was compiled at. Other `CARGO_MANIFEST_DIR`
+  uses remain only in tests and development helpers.
 
 ## Build instructions (now actually verified in this environment)
 

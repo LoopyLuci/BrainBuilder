@@ -81,8 +81,9 @@ impl Drop for Worker {
 
 impl Worker {
     fn spawn(_scratch_dir: &Path, caps: &Capabilities, device: Option<&str>) -> Result<Self> {
-        let worker_script =
-            Path::new(env!("CARGO_MANIFEST_DIR")).join("../components/python/_bb_worker.py");
+        // Resolved at run time so a packaged build finds its bundled components
+        // (see `utils::resources`), not the path this crate was compiled at.
+        let worker_script = crate::utils::resources::python_worker_script().map_err(BrainBuilderError::Python)?;
         let mut command = Command::new("python");
         command.arg(&worker_script);
         // Force the worker's torch device when the user picked a GPU (validated
