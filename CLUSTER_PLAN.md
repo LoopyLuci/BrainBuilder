@@ -230,9 +230,14 @@ network. This is the actual wire path two real machines (your desktop +
 NixOS box) would use — not simulated in one process like
 `distributed_gradients.rs`.
 
-**Not yet built**: the per-job data sharding/scheduling logic that decides
-which client trains which rows each step (currently each client's shard is
-assumed pre-assigned), and wiring this transport to actually invoke
+**Data sharding — done.** `ShardPlan` (`core/src/cluster/sharding.rs`) decides
+which client trains which rows each epoch: a disjoint, complete partition,
+independent of join order (host and clients compute the same plan from
+`(seed, epoch, rows, clients, weights)`), shard sizes proportional to client
+weights by largest remainder, and a seeded per-epoch shuffle. Unit-tested,
+including a bias check over 2,000 epochs.
+
+**Not yet built**: wiring this transport to actually invoke
 `PythonBridge::compute_gradients`/`apply_averaged_gradients` end-to-end in one
 running process (today the network test and the gradient-math test are
 proven separately; gluing them together is straightforward given both are

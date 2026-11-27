@@ -36,3 +36,8 @@ ProjectData.md
 gui/data/
 gui/src-tauri/data/
 ModelBuilder.archive/
+
+# Secrets: never commit. Copy .env.example to .env.
+.env
+.env.*
+!.env.example
